@@ -23,8 +23,21 @@ release = __version__
 
 extensions = [
                 'sphinx.ext.autodoc',
-                "sphinx.ext.githubpages",
+                'sphinx.ext.githubpages',
+                'sphinx.ext.napoleon', # support for numpy and google docstrings
+                'sphinx.ext.mathjax',
+                'sphinx.ext.viewcode',
+                'sphinx.ext.autosummary',
+                'sphinx.ext.todo',
 ]
+
+autodoc_default_options = {
+    'member-order': 'bysource',
+    'special-members': '__init__',
+    'undoc-members': True,
+    'exclude-members': '__weakref__',
+    'show-inheritance': True,
+}
 
 templates_path = ['_templates']
 exclude_patterns = []

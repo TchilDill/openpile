@@ -27,7 +27,7 @@ extensions = [
                 'sphinx.ext.napoleon', # support for numpy and google docstrings
                 'sphinx.ext.mathjax',
                 'sphinx.ext.viewcode',
-                'sphinx.ext.autosummary',
+                'sphinx.ext.autodoc',
                 'sphinx.ext.todo',
 ]
 

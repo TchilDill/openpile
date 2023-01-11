@@ -1,4 +1,5 @@
 alabaster==0.7.12
+attrs==22.2.0
 Babel==2.11.0
 backcall==0.2.0
 certifi==2022.12.7
@@ -10,11 +11,13 @@ decorator==5.1.1
 defusedxml==0.7.1
 docutils==0.17.1
 entrypoints==0.4
+exceptiongroup==1.1.0
 fonttools==4.38.0
 fpdf2==2.6.0
 idna==3.4
 imagesize==1.4.1
 importlib-metadata==6.0.0
+iniconfig==2.0.0
 ipykernel==6.16.2
 ipython==7.34.0
 jedi==0.18.2
@@ -29,16 +32,19 @@ matplotlib-inline==0.1.6
 nest-asyncio==1.5.6
 numba==0.56.4
 numpy==1.21.6
--e git+https://github.com/TchilDill/openpile.git@5f9bcbc89747ec8ee73f528b74e72ed5dbab68b5#egg=openpile
+-e git+https://github.com/TchilDill/openpile.git@1581f8ce3892dcdacb26f16be522fd132cc674a6#egg=openpile
 packaging==22.0
 pandas==1.3.5
 parso==0.8.3
 pickleshare==0.7.5
 Pillow==9.4.0
+pluggy==1.0.0
 prompt-toolkit==3.0.36
 psutil==5.9.4
+pydantic==1.10.4
 Pygments==2.14.0
 pyparsing==3.0.9
+pytest==7.2.0
 python-dateutil==2.8.2
 pytz==2022.7
 pywin32==305
@@ -55,6 +61,7 @@ sphinxcontrib-htmlhelp==2.0.0
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
+tomli==2.0.1
 tornado==6.2
 traitlets==5.8.0
 typing_extensions==4.4.0

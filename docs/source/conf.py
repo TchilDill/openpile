@@ -39,6 +39,9 @@ autodoc_default_options = {
     'show-inheritance': True,
 }
 
+autodoc_typehints = 'description'
+autodoc_class_signature = 'mixed'
+
 templates_path = ['_templates']
 exclude_patterns = []
 

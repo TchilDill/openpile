@@ -1,25 +1,25 @@
 # general utilities for openfile
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 
-@njit
+@njit(cache=True)
 def jit_solve(A, b):
     return np.linalg.solve(A, b)
 
-@njit
+@njit(cache=True)
 def jit_dot(a, b):
     return a.dot(b)
 
-@njit
+@njit(cache=True)
 def jit_eigh(A):
     return np.linalg.eigh(A)
 
-@njit
+@njit(cache=True)
 def reverse_indices(A, B):
     return np.array([x for x in A if x not in B])
 
-@njit  
+@njit(cache=True)
 def numba_ix(arr, rows, cols):
     """
     Numba compatible implementation of arr[np.ix_(rows, cols)] for 2D arrays.
@@ -112,7 +112,7 @@ def solve_equations(K, F, BC, _test=False):
     else:
         U = jit_solve(K,F)
     
-    Q = K @ U - F
+    Q = jit_dot(K, U) - F
     
     return U, Q
  
@@ -152,7 +152,8 @@ def elem_mechanical_stiffness_matrix(openpile_mesh, elem_no):
         raise ValueError('openpile_mesh.element.type only accepts 2-dof linear element')
         
     return k
-   
+
+@njit(parallel=True, cache=True)
 def build_stiffness_matrix(openpile_mesh):
     """Builds the stiffness matrix based on the mesh(element and node) properties 
 
@@ -183,7 +184,7 @@ def build_stiffness_matrix(openpile_mesh):
     #pre-allocate stiffness matrix
     K = np.zeros((ndim_global, ndim_global), dtype=float)
     
-    for i in range(n_elem):
+    for i in prange(n_elem):
         
         #mechanical stiffness properties
         k_elem = elem_mechanical_stiffness_matrix(openpile_mesh, i)

@@ -1,7 +1,7 @@
 API
 ===
 
-.. automodule:: openpile.construct()
+.. automodule:: openpile.construct
     :members:
 
 .. autofunction:: openpile.utils.kernel.elem_mechanical_stiffness_matrix

@@ -40,7 +40,7 @@ autodoc_default_options = {
 }
 
 autodoc_typehints = 'description'
-autodoc_class_signature = 'mixed'
+autodoc_class_signature = 'separated'
 
 templates_path = ['_templates']
 exclude_patterns = []

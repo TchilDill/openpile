@@ -1,3 +1,10 @@
+"""
+`Kernel` module
+===============
+
+#TODO
+
+"""
 # general utilities for openfile
 
 import numpy as np

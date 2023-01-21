@@ -10,6 +10,8 @@ Welcome to openpile's documentation!
    :maxdepth: 1
    :caption: Contents:
 
+   about
+   intro
    usage
    API
 

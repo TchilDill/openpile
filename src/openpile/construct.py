@@ -15,8 +15,8 @@ This include:
 """
 import math as m
 import pandas as pd
-from typing import List, Optional
-from pydantic import BaseModel, validator, Field
+from typing import List, Dict
+from pydantic import BaseModel, root_validator, validator, Field
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
@@ -34,22 +34,23 @@ class Pile:
     
     >>> import openpile as op
     >>> # Create a pile instance
-    >>> pile = Pile(type='Circular',
+    >>> MP01 = Pile(type='Circular',
     >>>             material='Steel',
     >>>             top_elevation = 0,
-    >>>             pile_sections=[ 
-    >>>                 [ 5, 10.0, 0.06],
-    >>>                 [30, 10.0, 0.08],
-    >>>             ],
+    >>>             pile_sections={
+    >>>                 'length':[5,10],
+    >>>                 'diameter':[10,10],
+    >>>                 'wall thickness':[0.05,0.05],
+    >>>             } 
     >>>         )
 
     >>> # print the dataframe
     >>> print(pile.data)
-        Elevation [m]  Diameter [m] Wall thickness [m]  Area [m2]     I [m4]
-    0              0           10.0               0.08   1.873646  23.141213
-    1             -5           10.0               0.08   1.873646  23.141213
-    2             -5           10.0               0.08   2.493168  30.669955
-    3            -35           10.0               0.08   2.493168  30.669955
+       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
+    0            0.0          10.0                0.05   1.562942  19.342388
+    1           -5.0          10.0                0.05   1.562942  19.342388
+    2           -5.0          10.0                0.05   1.562942  19.342388
+    3          -15.0          10.0                0.05   1.562942  19.342388
     
     >>> # Override young's modulus
     >>> pile.E = 250e6
@@ -62,33 +63,30 @@ class Pile:
     >>> # Check updated second moment of area
     >>> print(pile.data)
         Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0              0           10.0               <NA>      <NA>    1.11
-    1             -5           10.0               <NA>      <NA>    1.11
-    2             -5           10.0               <NA>      <NA>    1.11
-    3            -35           10.0               <NA>      <NA>    1.11    
+    0            0.0          10.0               <NA>      <NA>    1.11
+    1           -5.0          10.0               <NA>      <NA>    1.11
+    2           -5.0          10.0               <NA>      <NA>    1.11
+    3          -15.0          10.0               <NA>      <NA>    1.11   
     
     >>> # Override pile's width or pile's diameter
     >>> pile.Spread = 2.22
     >>> # Check updated width or diameter
     >>> print(pile.data)   
-       Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0              0         10.0                <NA>      <NA>    1.11
-    1             -5         10.0                <NA>      <NA>    1.11
-    2             -5         10.0                <NA>      <NA>    1.11
-    3            -35         10.0                <NA>      <NA>    1.11    
+        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
+    0            0.0          2.22               <NA>      <NA>    1.11
+    1           -5.0          2.22               <NA>      <NA>    1.11
+    2           -5.0          2.22               <NA>      <NA>    1.11
+    3          -15.0          2.22               <NA>      <NA>    1.11   
     """
     #: select the type of pile, can be of ('Circular', )
-    type: str 
+    type: str
     #: select the type of material the pile is made of, can be of ('Steel', )
-    material: str 
+    material: str
     #: top elevation of the pile according to general vertical reference set by user
     top_elevation: float
-    #: pile geometry where each list describes a section of the pile,
-    #: there can be as many sections as needed by the user.
-    #:
-    #: A pile with a unique section of 30m long, 6m diameter, and 80mm wall 
-    #: thicknnes would look like what is given in the example above.
-    pile_sections: List[List[float]]
+    #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
+    #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections. 
+    pile_sections: Dict[str, List[float]]
     
     @validator('type', always=True)
     def _type_must_equal(cls, v):
@@ -104,17 +102,29 @@ class Pile:
             raise ValueError("Pile material must be one of the following: \n - " + '\n - '.join(accepted_values))  
         return v
     
-    @validator('pile_sections', always=True)
-    def _check_pile_sections(cls, v):
-        for idx, sublist in enumerate(v):
-            if len(sublist) != 3: 
-                raise ValueError("The input parameter `pile_sections` for openpile.pile shall be a list of lists, the latter composed of 3 items, the first one for the length of the section, the second for the diameter of the section, and the third for the wall thickness. "+f"{len(sublist)} items were given in the pile section no. {idx+1}")  
-            if sublist[2] >= sublist[1]/2:
-                raise ValueError("The wall thickness cannot be larger than half the diameter of the pile")
-        return v
+    @root_validator
+    def _check_pile_sections(cls, values):
+        if values['type'] == 'Circular':
+            reference_list = ['diameter', 'length', 'wall thickness']
+            sorted_list = list(values['pile_sections'].keys())
+            sorted_list.sort()
+            if sorted_list != reference_list:
+                raise ValueError("pile_sections must have all of the following keys: \n - " + '\n - '.join(reference_list))
+            for idx, (key, sublist) in enumerate(values['pile_sections'].items()):
+                if idx == 0:
+                    reference_length = len(sublist)
+                else:
+                    if len(sublist) != reference_length:
+                         raise ValueError("length of lists in pile_sections must be the same")
+        
+            for i in range(reference_length):
+                if values['pile_sections']['diameter'][i]/2 < values['pile_sections']['wall thickness'][i]: 
+                    raise ValueError("The wall thickness cannot be larger than half the diameter of the pile")
+        return values
     
-    def __post_init__(self):
-        """Function that performs additional steps after initialisation.
+    def create(self):
+        """Function that performs additional steps after initialisation. 
+        Create a dataframe of the pile data.
         """
 
         # Create material specific specs for given material        
@@ -125,50 +135,41 @@ class Pile:
             # young modulus
             self._Young_modulus = 210.0e6 #kPa
         else:
-            accepted_values = ['Steel',]
-            errmsg = "Pile material must be one of the following: \n - " + '\n - '.join(accepted_values)
-            raise ValueError(errmsg) 
-        
+            raise ValueError()
         
         # Create top and bottom elevations
         elevation = []
         #add bottom of section i and top of section i+1 (essentially the same values) 
-        for section_id, section_values in enumerate(self.pile_sections):
-            if len(section_values) !=3:
-                errmesg = "The input parameter `pile_sections` for openpile.pile shall be a list of lists, the latter composed of 3 items, the first one for the length of the section, the second for the diameter of the section, and the third for the wall thickness. "+f"{len(section_values)} items were given in the pile section no. {section_id+1}"
-                raise ValueError(errmesg)  
-                 
-            if section_id == 0:
+        for idx, val in enumerate(self.pile_sections['length']):
+            if idx == 0:
                 elevation.append(self.top_elevation)
-                elevation.append(elevation[-1] - section_values[0])
+                elevation.append(elevation[-1] - val)
             else:
                 elevation.append(elevation[-1])
-                elevation.append(elevation[-1] - section_values[0])
+                elevation.append(elevation[-1] - val)
 
         #create sectional properties
         
         #spread
         diameter = []
         #add top and bottom of section i (essentially the same values) 
-        for _, section_values in enumerate(self.pile_sections):
-            diameter.append(section_values[1])
+        for idx, val in enumerate(self.pile_sections['diameter']):
+            diameter.append(val)
             diameter.append(diameter[-1])
 
         #thickness
         thickness = []
         #add top and bottom of section i (essentially the same values) 
-        for _, section_values in enumerate(self.pile_sections):
-            thickness.append(section_values[2])
+        for idx, val in enumerate(self.pile_sections['wall thickness']):
+            thickness.append(val)
             thickness.append(thickness[-1])
            
         #Area & second moment of area
         area = []
         second_moment_of_area = []
         #add top and bottom of section i (essentially the same values) 
-        for _, section_values in enumerate(self.pile_sections):
+        for _, (diam, thickness) in enumerate(zip(self.pile_sections['diameter'],self.pile_sections['wall thickness'])):
             #calculate area
-            diam = section_values[1] #diameter or width
-            thickness = section_values[2] #wall thickness
             if self.type == 'Circular':
                 A = m.pi / 4 * (diam**2 - (diam-2*thickness)**2)
                 I = m.pi / 64 * (diam**4 - (diam-2*thickness)**4)
@@ -178,9 +179,7 @@ class Pile:
                 second_moment_of_area.append(second_moment_of_area[-1])
             else:
                 #not yet supporting other kind
-                accepted_values = ['Circular',]
-                errmsg = "Pile type must be one of the following: \n - " + '\n - '.join(accepted_values)
-                raise ValueError(errmsg)  
+                raise ValueError()
      
         
         # Create pile data     
@@ -194,27 +193,36 @@ class Pile:
         )    
         
     @property
-    def E(self):
+    def E(self) -> float: 
         """Young modulus of the pile material. Constant for the entire pile.
 
         """
-        return self._Young_modulus
+        try:
+            return self._Young_modulus
+        except Exception as exc:
+            raise NameError('Please first create the pile with .create() method') from exc
+
     
     @E.setter
     def E(self, value: float) -> None:
         try:
             self._Young_modulus = value
-        except TypeError:
-            raise('Value must be a float')
+        except Exception as exc:
+            raise NameError('Please first create the pile with .create() method') from exc
+
             
     @property
-    def I(self):
+    def I(self) -> float:
         """Second moment of area of the pile. 
         
         If user-defined, the whole
         second moment of area of the pile is overriden. 
         """
-        return self.data['I [m4]'].mean()
+        
+        try:
+            return self.data['I [m4]'].mean()
+        except Exception as exc:
+            raise NameError('Please first create the pile with .create() method') from exc
     
     @I.setter
     def I(self, value: float) -> None:
@@ -222,30 +230,38 @@ class Pile:
         self.data.loc[:,['Area [m2]' ,'Wall thickness [m]']] = pd.NA    
 
     @property
-    def Spread(self):
+    def Spread(self) -> float:
         """Width of the pile. Used to compute soil springs.
         
         """
-        return self.data['Diameter [m]'].mean()
-    
+        try:
+            return self.data['Diameter [m]'].mean()
+        except Exception as exc:
+            raise NameError('Please first create the pile with .create() method') from exc
+
     @Spread.setter
     def Spread(self, value: float) -> None:
-        self.data.loc[:,'Diameter [m]'] = value
-        self.data.loc[:,['Area [m2]' ,'Wall thickness [m]']] = pd.NA    
-
+        try:
+            self.data.loc[:,'Diameter [m]'] = value
+            self.data.loc[:,['Area [m2]' ,'Wall thickness [m]']] = pd.NA  
+        except Exception as exc:
+            raise NameError('Please first create the pile with .create() method') from exc
 
 
 if __name__ == "__main__":
     MP01 = Pile(type='Circular',
                 material='Steel',
                 top_elevation = 0,
-                pile_sections=[ 
-                    [ 5, 10.0, 0.06],
-                    [30, 10.0, 0.08],
-                ],
+                pile_sections={
+                    'length':[5,10],
+                    'diameter':[10,10],
+                    'wall thickness':[0.05,0.05],
+                } 
             )
+    MP01.create()
     print(MP01.data)
-    MP01.E = 250e6
+    print(MP01.E)
+    MP01.E = 50e6
     print(MP01.E)
     MP01.I = 1.11
     print(MP01.data)

@@ -123,41 +123,83 @@ def solve_equations(K, F, BC, _test=False):
     
     return U, Q
  
-def elem_mechanical_stiffness_matrix(openpile_mesh, elem_no):
-    """creates element stiffness matrix based on mesh info and element number
+def elem_mechanical_stiffness_matrix(openpile_mesh, pile):
+    """creates pile element stiffness matrix based on mesh info and element number
 
     Parameters
     ----------
     openpile_mesh : openpile class object
         includes information on elements, nodes and other mesh-related data. 
-    elem_no : int
-        element number for which matrix needs to be computed. element number 0 is at the top of the mesh.
+    pile: openpile class obect
+        includes information on pile
 
     Returns
     -------
-    k: numpy array (2d)
-        element stiffness matrix related to the mechanical properties of the structure
+    k: numpy array (3d)
+        element stiffness matrix of all elememts related to the mechanical properties of the structure
 
     Raises
     ------
     ValueError
-        mesh can currently be only of type "Linear 2-dof", meaning 2-dof per node (shear and moment)
+        openpile_mesh.element.type only accepts 'EB' type (for Euler-Bernoulli) or 'T' type (for Timoshenko)
+    ValueError
+        Timoshenko beams cannot be used yet for non-circular pile types
+    ValueError
+        ndof per node can be either 2 or 3
+
     """
     
-    if openpile_mesh.element.type == 'lin2':
+    #number of dof per node
+    ndof_per_node = openpile_mesh.node_dof_count
+    #number of nodes per element
+    node_per_element = openpile_mesh.element_node_count
+    #number of element
+    elem_no = openpile_mesh.element_count
+    #element stiffnedd matrix dimension
+    dim = ndof_per_node*node_per_element
+    
+    k = np.zeros(shape=(elem_no,dim,dim), dtype=float)
+    
+    for i in range(elem_no):
+            
+        E = pile.E
+        I = openpile_mesh.element.I[i]
+        L = openpile_mesh.element.L[i]
+        G = openpile_mesh.element.E[i]/(2+2*pile.nu)
+        A = openpile_mesh.element.A[i]
+    
+        if openpile_mesh.element.type == 'EB':
+            kappa = 0
+        elif openpile_mesh.element.type == 'T':
+            if pile.type == 'Circular':
+                a = 0.5 * openpile_mesh.element.spread[i]
+                b = 0.5 * ( openpile_mesh.element.spread[i] - 2*openpile_mesh.element.thickness[i] )
+                nom = 6 * (a**2 + b**2)**2 * (1 + pile.nu)**2
+                denom = 7 * a**4 + 34 * a**2 * b**2 + 7 * b**4 + pile.nu * ( 12 * a**4 + 48 * a**2 * b**2 + 12 * b**4) + pile.nu**2 * (4 * a**4 + 16 * a**2 * b**2 + 4 * b**4)
+                kappa = nom/denom
+            else:
+                raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
+        else:
+            raise ValueError("openpile_mesh.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)")
         
-        EI = openpile_mesh.element.E[elem_no] * openpile_mesh.element.I[elem_no]
-        L = openpile_mesh.element.L[elem_no]
+        phi = 12*E*I*kappa/(A*G*L**2)
+        X = A*E/L
+        Y1 = (12*E*I) / ((1+phi)*L**3)
+        Y2 = ( 6*E*I) / ((1+phi)*L**2)
+        Y3 = ((4+phi)*E*I) / ((1+phi)*L)
+        Y4 = ((2-phi)*E*I) / ((1+phi)*L)
         
-        k = np.array([
-            [ 12,    6*L,   -12,   -6*L],
-            [6*L,  4*L*L,  -6*L,  2*L*L],
-            [-12,   -6*L,    12,    6*L],
-            [6*L,  2*L*L,  -6*L,  4*L*L],
-        ]) * EI / L**3
-    else:
-        raise ValueError('openpile_mesh.element.type only accepts 2-dof linear element')
-        
+        k[i] = np.array(
+            [
+                [ X,   0,   0, -X,   0,   0],
+                [ 0,  Y1,  Y2,  0, -Y1,  Y2],
+                [ 0,  Y2,  Y3,  0, -Y2,  Y4],
+                [-X,   0,   0,  X,   0,   0],
+                [ 0, -Y1, -Y2,  0,  Y1, -Y2],
+                [ 0,  Y2,  Y4,  0, -Y2,  Y3],
+            ]
+        )
+             
     return k
 
 @njit(parallel=True, cache=True)
@@ -191,17 +233,20 @@ def build_stiffness_matrix(openpile_mesh):
     #pre-allocate stiffness matrix
     K = np.zeros((ndim_global, ndim_global), dtype=float)
     
+    #mechanical stiffness properties
+    k_elem = elem_mechanical_stiffness_matrix(openpile_mesh)
+    
+    if openpile_mesh.settings.soilprofile:
+        k_soil = elem_soil_stiffness_matrix(openpile_mesh)
+        k_elem += k_soil 
+    
     for i in prange(n_elem):
-        
-        #mechanical stiffness properties
-        k_elem = elem_mechanical_stiffness_matrix(openpile_mesh, i)
-        
         #dummy stiffness matrix that updates at each iteration
         K_temp = np.zeros((ndim_global, ndim_global), dtype=float)
         #select relevant rows/columns of dummy stiffness matrix
         start = ndof_per_node*i
         end = ndof_per_node*i+ndof_per_node*node_per_element
-        K_temp[start:end, start:end] = k_elem
+        K_temp[start:end, start:end] = k_elem[i]
         
         #update global stiffness matrix
         K += K_temp

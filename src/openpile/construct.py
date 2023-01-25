@@ -15,10 +15,11 @@ This include:
 """
 import math as m
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel, root_validator, validator, Field
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
+
 
 
 @dataclass
@@ -102,15 +103,15 @@ class Pile:
             raise ValueError("Pile material must be one of the following: \n - " + '\n - '.join(accepted_values))  
         return v
     
-    @root_validator
-    def _check_pile_sections(cls, values):
+    @root_validator(pre=True)
+    def _check_pile_sections(cls, values):        
         if values['type'] == 'Circular':
             reference_list = ['diameter', 'length', 'wall thickness']
             sorted_list = list(values['pile_sections'].keys())
             sorted_list.sort()
             if sorted_list != reference_list:
                 raise ValueError("pile_sections must have all of the following keys: \n - " + '\n - '.join(reference_list))
-            for idx, (key, sublist) in enumerate(values['pile_sections'].items()):
+            for idx, (key, sublist) in enumerate(values['pile_sections'].items()):                
                 if idx == 0:
                     reference_length = len(sublist)
                 else:
@@ -134,8 +135,12 @@ class Pile:
             self._UW = 78.0 # kN/m3
             # young modulus
             self._Young_modulus = 210.0e6 #kPa
+            # Poisson's ratio
+            self._nu = 0.3
         else:
             raise ValueError()
+        
+        self._Shear_modulus = self._Young_modulus / (2+2*self._nu)
         
         # Create top and bottom elevations
         elevation = []
@@ -247,24 +252,69 @@ class Pile:
         except Exception as exc:
             raise NameError('Please first create the pile with .create() method') from exc
 
+@dataclass
+class SoilProfile:
+    pass
+@dataclass
+class Mesh:
+    """
+    A class to create the mesh.
+
+    The mesh is constructed based on the pile geometry and data primarily. 
+    As such it is possible to not feed any soil profile to the mesh, relying then on restrained degree(s) of freedom.
+    
+    The soil profile can be supplemented such that soil springs can be computed. After creating the mesh object, the soil springs can be
+    generated via the `ssis()` method.  
+    
+    **Example**
+
+    """
+    #: pile instance that the mesh should consider
+    pile: Pile
+    #: soil profile instance that the mesh should consider
+    soil: Optional[SoilProfile]
+    #: "EB" for Euler-Bernoulli or "T" for Timoshenko
+    element_type: str = 'T'
+    #: z coordinates values to mesh as nodes
+    z2mesh: List[float] = Field(default_factory=list)
+
+    def __post_init__(self):
+        
+        # creates mesh coordinates
+
+        # creates element structural properties
+        
+        # create element soil properties
+
+        pass
+
+    def ssis(self) -> pd.DataFrame:
+        
+        pass
 
 if __name__ == "__main__":
+
+    #Check pile
     MP01 = Pile(type='Circular',
                 material='Steel',
                 top_elevation = 0,
                 pile_sections={
-                    'length':[5,10],
-                    'diameter':[10,10],
-                    'wall thickness':[0.05,0.05],
+                    'length':[30],
+                    'diameter':[10],
+                    'wall thickness':[0.05],
                 } 
             )
-    MP01.create()
-    print(MP01.data)
-    print(MP01.E)
-    MP01.E = 50e6
-    print(MP01.E)
-    MP01.I = 1.11
-    print(MP01.data)
-    MP01.Spread = 2.22
-    print(MP01.data)
+    # MP01.create()
+    # print(MP01.data)
+    # print(MP01.E)
+    # MP01.E = 50e6
+    # print(MP01.E)
+    # MP01.I = 1.11
+    # print(MP01.data)
+    # MP01.Spread = 2.22
+    # print(MP01.data)
+    from openpile.utils.txt import txt_pile
+    print(txt_pile(MP01))
 
+    MP01_mesh = Mesh(pile=MP01, soil=None)
+    

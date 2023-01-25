@@ -21,12 +21,9 @@ def txt_pile(obj: Pile) -> str:
     txt += '\n{:-^80s}'.format("")
     txt += f'\nPile Material: {obj.material}'
     txt += f'\tPile Type: {obj.type}'
-    try:    
-        txt += f'\tYoung modulus: {obj._Young_modulus/1000:.0f} MPa'
-    except AttributeError:
-        obj.create()
-        txt += f'\tYoung modulus = {obj._Young_modulus/1000:.0f} MPa'
-    txt += f"\nMaterial Unit Weight: {obj._UW:0.1f} kN/m3"
+    txt += f'\tYoung modulus: {obj._young_modulus/1000:.0f} MPa'
+    txt += f'\tPoisson ratio = {obj._nu:.2f}'
+    txt += f"\nMaterial Unit Weight: {obj._uw:0.1f} kN/m3"
     txt += f"\n\nPile sections:\n"
     txt += obj.data.to_string(header=True, index=True)
     

@@ -9,6 +9,7 @@
 
 import numpy as np
 from numba import njit, prange
+from openpile.construct import Mesh 
 
 @njit(cache=True)
 def jit_solve(A, b):
@@ -123,7 +124,7 @@ def solve_equations(K, F, BC, _test=False):
     
     return U, Q
  
-def elem_mechanical_stiffness_matrix(openpile_mesh, pile):
+def elem_mechanical_stiffness_matrix(openpile_mesh: Mesh, pile):
     """creates pile element stiffness matrix based on mesh info and element number
 
     Parameters
@@ -168,9 +169,9 @@ def elem_mechanical_stiffness_matrix(openpile_mesh, pile):
         G = openpile_mesh.element.E[i]/(2+2*pile.nu)
         A = openpile_mesh.element.A[i]
     
-        if openpile_mesh.element.type == 'EB':
+        if openpile_mesh.element_type == 'EulerBernoulli':
             kappa = 0
-        elif openpile_mesh.element.type == 'T':
+        elif openpile_mesh.element_type == 'Timoshenko':
             if pile.type == 'Circular':
                 a = 0.5 * openpile_mesh.element.spread[i]
                 b = 0.5 * ( openpile_mesh.element.spread[i] - 2*openpile_mesh.element.thickness[i] )

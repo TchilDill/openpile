@@ -17,14 +17,16 @@ import math as m
 import pandas as pd
 from typing import List, Dict, Optional
 from typing_extensions import Literal
-from pydantic import BaseModel, root_validator, validator, Field
+from pydantic import BaseModel, Field
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
-import openpile.utils.validation as validator
+from openpile.utils import validation as validate
 
+class PydanticConfig:
+    arbitrary_types_allowed = True
 
-@dataclass
+@dataclass(config=PydanticConfig)
 class Pile:
     """
     A class to create the pile.
@@ -92,10 +94,25 @@ class Pile:
     pile_sections: Dict[str, List[float]] = Field(default_factory=Dict)
     
     def create(self):
-        """Function that performs additional steps after initialisation. 
-        Create a dataframe of the pile data.
-        """
-
+        
+        # check that dict is correctly entered
+        validate.pile_sections_must_be(self)
+        
+        # Create material specific specs for given material        
+        # if steel
+        if self.material == 'Steel':
+            # unit weight
+            self._uw = 78.0 # kN/m3
+            # young modulus
+            self._young_modulus = 210.0e6 #kPa
+            # Poisson's ratio
+            self._nu = 0.3
+        else:
+            raise ValueError()
+        
+        self._shear_modulus = self._young_modulus / (2+2*self._nu)
+        
+        # create pile data used by openpile for mesh and calculations.
         # Create top and bottom elevations
         elevation = []
         #add bottom of section i and top of section i+1 (essentially the same values) 
@@ -139,10 +156,9 @@ class Pile:
             else:
                 #not yet supporting other kind
                 raise ValueError()
-     
-        
+    
         # Create pile data     
-        pile_data = pd.DataFrame(data = {
+        self.data = pd.DataFrame(data = {
             'Elevation [m]' :  elevation,
             'Diameter [m]' : diameter,
             'Wall thickness [m]' : thickness,  
@@ -150,35 +166,6 @@ class Pile:
             'I [m4]': second_moment_of_area,
             }
         )
-        
-        return pile_data
-    
-    def __post_init__(self):
-        
-        validator.pile_topelevation_must_be(self)
-        # check that type is one of the accepted option
-        validator.pile_type_must_be(self)
-        # check that material is one of the accepted option
-        validator.pile_material_must_be(self)
-        # check that dict is correctly entered
-        validator.pile_pile_sections_must_be(self)
-        
-        # Create material specific specs for given material        
-        # if steel
-        if self.material == 'Steel':
-            # unit weight
-            self._uw = 78.0 # kN/m3
-            # young modulus
-            self._young_modulus = 210.0e6 #kPa
-            # Poisson's ratio
-            self._nu = 0.3
-        else:
-            raise ValueError()
-        
-        self._shear_modulus = self._young_modulus / (2+2*self._nu)
-        
-        # create pile data used by openpile for mesh and calculations.
-        self.data = self.create()
         
     @property
     def E(self) -> float: 
@@ -235,19 +222,20 @@ class Pile:
         except Exception as exc:
             raise NameError('Please first create the pile with .create() method') from exc
 
-@dataclass
+@dataclass(config=PydanticConfig)
 class SoilProfile:
     pass
-@dataclass
+
+@dataclass(config=PydanticConfig)
 class Mesh:
     """
     A class to create the mesh.
 
-    The mesh is constructed based on the pile geometry and data primarily. 
+    The mesh is constructed based on the pile geometry and data primarily.
     As such it is possible to not feed any soil profile to the mesh, relying then on restrained degree(s) of freedom.
     
     The soil profile can be supplemented such that soil springs can be computed. After creating the mesh object, the soil springs can be
-    generated via the `ssis()` method.  
+    generated via the `ssis()` method.
     
     **Example**
 
@@ -255,31 +243,28 @@ class Mesh:
     #: pile instance that the mesh should consider
     pile: Pile
     #: soil profile instance that the mesh should consider
-    soil: Optional[SoilProfile]
+    soil: Optional[SoilProfile] = None
     #: "EB" for Euler-Bernoulli or "T" for Timoshenko
-    element_type: Literal['T'] = 'T'
+    element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko'
     #: z coordinates values to mesh as nodes
     z2mesh: List[float] = Field(default_factory=list)
 
-    def __post_init__(self):
-        
-        #validation
-        
+    def create(self):
         
         # creates mesh coordinates
 
         # creates element structural properties
         
         # create element soil properties
-
         pass
 
-    def ssis(self) -> pd.DataFrame:
-        
+    def ssis(self) -> pd.DataFrame: 
         pass
 
 if __name__ == "__main__":
 
+    from openpile.construct import Pile, Mesh
+    
     #Check pile
     MP01 = Pile(type='Circular',
                 material='Steel',
@@ -290,6 +275,7 @@ if __name__ == "__main__":
                     'wall thickness':[0.04],
                 } 
             )
+    MP01.create()
     # print(MP01.data)
     # print(MP01.E)
     # MP01.E = 50e6
@@ -300,6 +286,5 @@ if __name__ == "__main__":
     # print(MP01.data)
     # from openpile.utils.txt import txt_pile
     # print(txt_pile(MP01))
-
-    MP01_mesh = Mesh(pile=MP01, soil=None)
-    
+    MP01_mesh = Mesh(pile=MP01, element_type="top")
+    MP01_mesh.create()

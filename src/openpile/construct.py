@@ -15,6 +15,7 @@ This include:
 """
 import math as m
 import pandas as pd
+import numpy as np
 from typing import List, Dict, Optional
 from typing_extensions import Literal
 from pydantic import BaseModel, Field
@@ -37,25 +38,27 @@ class Pile:
     
     **Example**
     
-    >>> import openpile as op
-    >>> # Create a pile instance with two sections of respectively 5m and 10m length.
-    >>> MP01 = Pile(type='Circular',
-    >>>             material='Steel',
-    >>>             top_elevation = 0,
-    >>>             pile_sections={
-    >>>                 'length':[5,10],
-    >>>                 'diameter':[10,10],
-    >>>                 'wall thickness':[0.05,0.05],
-    >>>             } 
-    >>>         )
-
-    >>> # print the dataframe
+    >>> from openpile.construct import Pile
+     
+    >>> # Create a pile instance with two sections of respectively 10m and 30m length.
+    >>> pile = Pile(type='Circular',
+    >>>         material='Steel',
+    >>>         top_elevation = 0,
+    >>>         pile_sections={
+    >>>             'length':[10,30],
+    >>>             'diameter':[7.5,7.5],
+    >>>             'wall thickness':[0.07, 0.08],
+    >>>         } 
+    >>>     )
+    >>> # Create the pile secondary data
+    >>> pile.create()
+    >>> # Print the pile data 
     >>> print(pile.data)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0          10.0                0.05   1.562942  19.342388
-    1           -5.0          10.0                0.05   1.562942  19.342388
-    2           -5.0          10.0                0.05   1.562942  19.342388
-    3          -15.0          10.0                0.05   1.562942  19.342388
+    Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
+    0            0.0           7.5                0.08   1.633942  11.276204
+    1          -10.0           7.5                0.08   1.633942  11.276204
+    2          -10.0           7.5                0.08   1.864849  12.835479
+    3          -40.0           7.5                0.08   1.864849  12.835479
     
     >>> # Override young's modulus
     >>> pile.E = 250e6
@@ -67,21 +70,21 @@ class Pile:
     >>> pile.I = 1.11
     >>> # Check updated second moment of area
     >>> print(pile.data)
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          10.0               <NA>      <NA>    1.11
-    1           -5.0          10.0               <NA>      <NA>    1.11
-    2           -5.0          10.0               <NA>      <NA>    1.11
-    3          -15.0          10.0               <NA>      <NA>    1.11   
+    Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
+    0            0.0           7.5               <NA>      <NA>    1.11
+    1          -10.0           7.5               <NA>      <NA>    1.11
+    2          -10.0           7.5               <NA>      <NA>    1.11
+    3          -40.0           7.5               <NA>      <NA>    1.11  
     
     >>> # Override pile's width or pile's diameter
     >>> pile.width = 2.22
     >>> # Check updated width or diameter
     >>> print(pile.data)   
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
+    Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
     0            0.0          2.22               <NA>      <NA>    1.11
-    1           -5.0          2.22               <NA>      <NA>    1.11
-    2           -5.0          2.22               <NA>      <NA>    1.11
-    3          -15.0          2.22               <NA>      <NA>    1.11   
+    1          -10.0          2.22               <NA>      <NA>    1.11
+    2          -10.0          2.22               <NA>      <NA>    1.11
+    3          -40.0          2.22               <NA>      <NA>    1.11  
     """
     #: select the type of pile, can be of ('Circular', )
     type: Literal['Circular']
@@ -248,16 +251,81 @@ class Mesh:
     element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko'
     #: z coordinates values to mesh as nodes
     z2mesh: List[float] = Field(default_factory=list)
+    #: mesh coarseness, represent the maximum accepted length of elements
+    coarseness: float = 0.2
+    
+    def get_structural_properties(self):
+        pass
+
+    def get_soil_properties(self):
+        pass
 
     def create(self):
         
+        def get_coordinates() -> pd.DataFrame:
+            
+            # Primary discretisation over z-axis
+            z = np.array([],dtype=np.float16)
+            # add get pile relevant sections
+            z = np.append(z,self.pile.data['Elevation [m]'].values)
+            # add soil relevant layers and others
+            if self.soil is not None:
+                z = np.append(z,self.soil.data['Elevation [m]'].values)
+            # add user-defined elevation
+            z = np.append(z, self.z2mesh)
+            
+            # get unique values and sort in reverse order 
+            z = np.unique(z)[::-1]
+            
+            # Secondary discretisation over z-axis depending on coarseness factor
+            z_secondary = np.array([],dtype=np.float16)
+            for i in range(len(z)-1):
+                spacing = z[i] - z[i+1]
+                new_spacing = spacing
+                divider = 1
+                while new_spacing > self.coarseness:
+                    divider +=1
+                    new_spacing = spacing/divider
+                new_z = z[i] - (np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider-1) ))   
+                
+                z_secondary = np.append(z_secondary, new_z)
+                
+            # assemble z- coordinates 
+            z = np.append(z,z_secondary)
+            z = np.unique(z)[::-1]
+            
+            # dummy y- coordinates
+            y = np.zeros(shape= z.shape)
+            
+            #create dataframe coordinates
+            coordinates = pd.DataFrame(
+                data = {
+                    'z': z,
+                    'y': y,
+                }, dtype= float
+            ).round(3)
+            coordinates.index.name = 'Node no.'
+            
+            return coordinates
+        
+        
         # creates mesh coordinates
-
+        nodes_coordinates = get_coordinates()
+        self.coordinates = pd.DataFrame(
+            data = {
+                'z_top [m]': nodes_coordinates['z'].values[:-1],
+                'z_bottom [m]':nodes_coordinates['z'].values[1:],
+                'y_top [m]': nodes_coordinates['y'].values[:-1],
+                'y_bottom [m]':nodes_coordinates['y'].values[1:],
+            }, dtype=float
+        )
+        self.coordinates.index.name = 'Element no.'
+        
         # creates element structural properties
+        #merge Pile.data and self.coordinates
         
         # create element soil properties
-        pass
-
+        
     def ssis(self) -> pd.DataFrame: 
         pass
 
@@ -270,15 +338,17 @@ if __name__ == "__main__":
                 material='Steel',
                 top_elevation = 0,
                 pile_sections={
-                    'length':[30],
-                    'diameter':[10],
-                    'wall thickness':[0.04],
+                    'length':[10,30],
+                    'diameter':[7.5,7.5],
+                    'wall thickness':[0.07, 0.08],
                 } 
             )
+    # Create the pile secondary data
     MP01.create()
+    # Print the pile data 
     # print(MP01.data)
     # print(MP01.E)
-    # MP01.E = 50e6
+    # MP01.E = 250e6
     # print(MP01.E)
     # MP01.I = 1.11
     # print(MP01.data)
@@ -286,5 +356,6 @@ if __name__ == "__main__":
     # print(MP01.data)
     # from openpile.utils.txt import txt_pile
     # print(txt_pile(MP01))
-    MP01_mesh = Mesh(pile=MP01, element_type="top")
+    MP01_mesh = Mesh(pile=MP01, element_type="Timoshenko")
     MP01_mesh.create()
+    print(MP01_mesh.coordinates)

@@ -147,11 +147,11 @@ class Pile:
         area = []
         second_moment_of_area = []
         #add top and bottom of section i (essentially the same values) 
-        for _, (diam, thickness) in enumerate(zip(self.pile_sections['diameter'],self.pile_sections['wall thickness'])):
+        for _, (d, wt) in enumerate(zip(self.pile_sections['diameter'],self.pile_sections['wall thickness'])):
             #calculate area
             if self.type == 'Circular':
-                A = m.pi / 4 * (diam**2 - (diam-2*thickness)**2)
-                I = m.pi / 64 * (diam**4 - (diam-2*thickness)**4)
+                A = m.pi / 4 * (d**2 - (d-2*wt)**2)
+                I = m.pi / 64 * (d**4 - (d-2*wt)**4)
                 area.append(A)
                 area.append(area[-1])
                 second_moment_of_area.append(I)
@@ -323,6 +323,12 @@ class Mesh:
         
         # creates element structural properties
         #merge Pile.data and self.coordinates
+        self.element_properties = pd.merge_asof(left= self.coordinates.sort_values(by=['z_top [m]']),
+                                                right= self.pile.data.drop_duplicates(subset='Elevation [m]',keep='last').sort_values(by=['Elevation [m]']),
+                                                left_on='z_top [m]',
+                                                right_on='Elevation [m]',
+                                                direction='forward').sort_values(by=['z_top [m]'],ascending=False)
+        self.element_properties['E [kPa]'] = self.pile.E
         
         # create element soil properties
         
@@ -339,14 +345,14 @@ if __name__ == "__main__":
                 top_elevation = 0,
                 pile_sections={
                     'length':[10,30],
-                    'diameter':[7.5,7.5],
-                    'wall thickness':[0.07, 0.08],
+                    'diameter':[9.5,7.5],
+                    'wall thickness':[0.1, 0.08],
                 } 
             )
     # Create the pile secondary data
     MP01.create()
     # Print the pile data 
-    # print(MP01.data)
+    print(MP01.data)
     # print(MP01.E)
     # MP01.E = 250e6
     # print(MP01.E)
@@ -358,4 +364,4 @@ if __name__ == "__main__":
     # print(txt_pile(MP01))
     MP01_mesh = Mesh(pile=MP01, element_type="Timoshenko")
     MP01_mesh.create()
-    print(MP01_mesh.coordinates)
+    print(MP01_mesh.element_properties)

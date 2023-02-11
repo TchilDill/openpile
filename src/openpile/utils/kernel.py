@@ -46,6 +46,15 @@ def numba_ix(arr, rows, cols):
     slice_1d = np.take(arr_1d, one_d_index)
     return slice_1d.reshape((len(rows), len(cols)))
 
+def global_dof_vector_to_consistent_stacked_array(dof_vector, dim):
+    
+    arr = dof_vector.reshape((-1,3))
+    arr_inner = np.tile(arr[1:-1],2)
+    arr = np.vstack([arr[0,:], arr_inner.reshape((-1,3)), arr[-1,:]])
+    arr = arr.reshape(-1,dim,1)
+
+    return arr
+
 def solve_equations(K, F, U, restraints=None):
     r"""function that solves the system of equations
 
@@ -118,84 +127,15 @@ def solve_equations(K, F, U, restraints=None):
     
     return U, Q
 
-def solve_equations_2(K, F, BC, _test=False):
-    r"""function that solves the system of equations
-
-    The function uses numba to speed up the computational time.
-
-    The system of equations to solve is the following :eq:`solve_eq_3dof_example` assuming a trivial 3 degree of freedom system:
+def mesh_to_element_length(mesh) -> np.ndarray:
     
-    .. math::
-        :label: solve_eq_3dof_example
+    # elememt coordinates along z and y-axes 
+    ez = np.array([mesh.element_properties['z_top [m]'].to_numpy(dtype=float) , mesh.element_properties['z_bottom [m]'].to_numpy(dtype=float)])
+    ey = np.array([mesh.element_properties['y_top [m]'].to_numpy(dtype=float) , mesh.element_properties['y_bottom [m]'].to_numpy(dtype=float)])
+    # length calcuated via pythagorus theorem
+    L = np.sqrt(( (ez[0] - ez[1])**2 + (ey[0] - ey[1])**2 )).reshape(-1,1,1)
     
-        \begin{pmatrix}
-        U_1\\ 
-        U_2\\ 
-        U_3
-        \end{pmatrix} = 
-        \begin{bmatrix}
-        K_{11} & K_{12} & K_{13} \\ 
-        K_{21} & K_{22} & K_{23}\\ 
-        K_{31} & K_{23} & K_{33}
-        \end{bmatrix} \cdot \begin{pmatrix}
-        F_1 \\ 
-        F_2 \\ 
-        F_3
-        \end{pmatrix}
-        \\
-        \\
-
-    Parameters
-    ----------
-    K : numpy array of dim (ndof, ndof)
-        Global stiffness matrix with all dofs in unit:1/kPa.
-    F : numpy array of dim (ndof, 1)
-        External force vetor (can also be denoted as load vector) in unit:kN.
-    BC : list (of tuples)
-        tuples where first item is the prescribed dof, and second item is the precribed displacement in unit:m.
-        
-    Returns
-    -------
-    U : numpy array of dim (ndof, 1)
-        Global displacement vector in unit:m.
-    Q : numpy array of dim (ndof, 1)
-        Global reaction force vector in unit:kN
-    
-    Example
-    -------
-    
-    >>> from openpile.utils.kernel import solve_equations
-    >>> import numpy as np
-    
-    >>> K = np.random.rand(3,3) + np.identity(3) # ensure the matrix can be inverted
-    >>> F = np.random.rand(3,1)
-    >>> BC = [(0,0),] # restrain first dof
-    >>> U, Q = solve_equations(K,F,BC)
-    """    
-    
-    if BC or _test:
-        prescribed_dof_all = np.arange(len(F))
-        prescribed_dof_true =  np.arange(len(BC))
-        prescribed_disp = np.zeros([len(BC),1],dtype=float)
-        for idx, val in enumerate(BC):
-            prescribed_dof_true[idx] = int(val[0])
-            prescribed_disp[idx] = val[1]
-            
-        prescribed_dof_false =  reverse_indices(prescribed_dof_all, prescribed_dof_true)
-
-        U = np.zeros(F.shape,dtype=float)
-        U[prescribed_dof_true] = prescribed_disp
-
-        Fred = numba_ix(F,prescribed_dof_false,np.array([0])) - jit_dot(numba_ix(K,prescribed_dof_false,prescribed_dof_true), prescribed_disp) 
-        Kred = numba_ix(K, prescribed_dof_false,prescribed_dof_false)
-
-        U[prescribed_dof_false] = jit_solve(Kred,Fred)        
-    else:
-        U = jit_solve(K,F)
-    
-    Q = jit_dot(K, U) - F
-    
-    return U, Q
+    return L
  
 def elem_mechanical_stiffness_matrix(mesh):
     """creates pile element stiffness matrix based on mesh info and element number
@@ -221,11 +161,8 @@ def elem_mechanical_stiffness_matrix(mesh):
 
     """      
        
-    # elememt coordinates along z and y-axes 
-    ez = np.array([mesh.element_properties['z_top [m]'].to_numpy(dtype=float) , mesh.element_properties['z_bottom [m]'].to_numpy(dtype=float)])
-    ey = np.array([mesh.element_properties['y_top [m]'].to_numpy(dtype=float) , mesh.element_properties['y_bottom [m]'].to_numpy(dtype=float)])
-    # length calcuated via pythagorus theorem
-    L = np.sqrt(( (ez[0] - ez[1])**2 + (ey[0] - ey[1])**2 )).reshape((-1,1,1))
+    # calculate length vector
+    L = mesh_to_element_length(mesh)
     # elastic properties
     nu = mesh.pile._nu
     E = mesh.element_properties['E [kPa]'].to_numpy(dtype=float).reshape((-1,1,1))
@@ -240,7 +177,7 @@ def elem_mechanical_stiffness_matrix(mesh):
     if mesh.element_type == 'EulerBernoulli':
         kappa = 0
     elif mesh.element_type == 'Timoshenko':
-        if mesh.pile.type == 'Circular':
+        if mesh.pile.kind == 'Circular':
             a = 0.5 * d
             b = 0.5 * ( d - 2*wt )
             nom = 6 * (a**2 + b**2)**2 * (1 + nu)**2
@@ -292,7 +229,7 @@ def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     return K
 
 
-def build_stiffness_matrix(openpile_mesh):
+def build_stiffness_matrix(openpile_mesh, soil_flag = False):
     """Builds the stiffness matrix based on the mesh(element and node) properties 
 
     Element stiffness matrices are first computed for each element and then loaded in the global stiffness matrix through summation.
@@ -320,32 +257,55 @@ def build_stiffness_matrix(openpile_mesh):
     ndim_global = ndof_per_node * n_elem + ndof_per_node
     
     #mechanical stiffness properties
-    k_elem = elem_mechanical_stiffness_matrix(openpile_mesh)
-    
-    K = jit_build(k_elem, ndim_global, n_elem, 2, 3)
-        
+    km = elem_mechanical_stiffness_matrix(openpile_mesh)
+    #global mech stiffness matrix
+    # add soil contribution
+    if soil_flag:
+        # k = ks + elem_soil_stiffness_matrix(openpile_mesh)
+        k = km + 0  # to be changed to above line
+        K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
+    else:
+        K = jit_build(km, ndim_global, n_elem, node_per_element, ndof_per_node)
+  
     return K
-
-def mesh_to_global_force_dof_vector(df:pd.DataFrame):
+    
+def mesh_to_global_force_dof_vector(df:pd.DataFrame) -> np.ndarray:
 
     # extract each column (one line per node)
     force_dof_vector = df[['Pz [kN]', 'Py [kN]', 'Mx [kNm]']].values.reshape(-1,1).astype(np.float64)
     
     return force_dof_vector
 
-def mesh_to_global_disp_dof_vector(df:pd.DataFrame):
+def mesh_to_global_disp_dof_vector(df:pd.DataFrame) -> np.ndarray:
 
     # extract each column (one line per node)
     disp_dof_vector = df[['Tz [m]', 'Ty [m]', 'Rx [rad]']].values.reshape(-1,1).astype(np.float64)
     
     return disp_dof_vector
 
-def mesh_to_global_restrained_dof_vector(df:pd.DataFrame):
+def mesh_to_global_restrained_dof_vector(df:pd.DataFrame) -> np.ndarray:
 
     # extract each column (one line per node)
     restrained_dof_vector = df[['Tz', 'Ty', 'Rx']].values.reshape(-1,1)
     
     return restrained_dof_vector
+   
+
+def struct_internal_force(mesh, u) -> np.ndarray:
+        
+    #number of dof per node
+    ndof_per_node = 3
+    #number of nodes per element
+    node_per_element = 2
+
+    # create mech consistent stiffness matrix
+    km = elem_mechanical_stiffness_matrix(mesh)
+    # create array u of shape [n_elem x 6 x 1] 
+    u = global_dof_vector_to_consistent_stacked_array(u,ndof_per_node*node_per_element)
+    #compute internal forces and reshape into global dof vector
+    F_int = (-1)*np.matmul(km,u).reshape((-1))
+
+    return F_int
 
 def computer():
     """This function is the solver of openpile.

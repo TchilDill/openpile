@@ -36,12 +36,12 @@ class Pile:
     the initialisation of a pile, a Pandas dataframe is created 
     which can be read by the following command:
     
-    **Example**
-    
+    Example
+    -------
     >>> from openpile.construct import Pile
      
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
-    >>> pile = Pile(type='Circular',
+    >>> pile = Pile(kind='Circular',
     >>>         material='Steel',
     >>>         top_elevation = 0,
     >>>         pile_sections={
@@ -87,7 +87,7 @@ class Pile:
     3          -40.0          2.22               <NA>      <NA>    1.11  
     """
     #: select the type of pile, can be of ('Circular', )
-    type: Literal['Circular']
+    kind: Literal['Circular']
     #: select the type of material the pile is made of, can be of ('Steel', )
     material: Literal['Steel']
     #: top elevation of the pile according to general vertical reference set by user
@@ -149,7 +149,7 @@ class Pile:
         #add top and bottom of section i (essentially the same values) 
         for _, (d, wt) in enumerate(zip(self.pile_sections['diameter'],self.pile_sections['wall thickness'])):
             #calculate area
-            if self.type == 'Circular':
+            if self.kind == 'Circular':
                 A = m.pi / 4 * (d**2 - (d-2*wt)**2)
                 I = m.pi / 64 * (d**4 - (d-2*wt)**4)
                 area.append(A)
@@ -239,8 +239,9 @@ class Mesh:
     The soil profile can be supplemented such that soil springs can be computed. After creating the mesh object, the soil springs can be
     generated via the `ssis()` method.
     
-    **Example**
-
+    Example
+    -------
+    
     """
     #: pile instance that the mesh should consider
     pile: Pile
@@ -293,8 +294,7 @@ class Mesh:
                 while new_spacing > self.coarseness:
                     divider +=1
                     new_spacing = spacing/divider
-                new_z = z[i] - (np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider-1) ))   
-                
+                new_z = z[i] - (np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider-1) ))                
                 z_secondary = np.append(z_secondary, new_z)
                 
             # assemble z- coordinates 
@@ -466,13 +466,71 @@ class Mesh:
                 else:
                     print("Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `z2mesh` variable when creating the mesh.")
 
+#@validate_arguments decorator not nedded as it is already embedded in the Pile class
+def create_pile( kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):
+    """_summary_
+
+    A function to create the pile. This function provides a 2-in-1 command where:
+    
+    - a `Pile` instance is created
+    - the `.create()` method is run right away and creates all additional pile data necessary.
+
+    Pile instances include the pile geometry and data.
+    
+    Example
+    -------
+    >>> from openpile.construct import Pile
+     
+    >>> # Create a pile instance with two sections of respectively 10m and 30m length.
+    >>> pile = create_pile(kind='Circular',
+    >>>                 material='Steel',
+    >>>                 top_elevation = 0,
+    >>>                 pile_sections={
+    >>>                 'length':[10,30],
+    >>>                 'diameter':[7.5,7.5],
+    >>>                 'wall thickness':[0.07, 0.08],
+    >>>             }
+    >>>         )
+
+    See Also
+    --------
+    openpile.construct.Pile
+
+    Parameters
+    ----------
+    kind : str
+        select the type of pile, can be of ('Circular', )
+    material : str
+        select the type of material the pile is made of, can be of ('Steel', )
+    top_elevation : float
+        _description_
+    pile_sections : dict
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    obj = Pile( kind = kind, material = material, top_elevation=top_elevation,  pile_sections = pile_sections)
+    obj.create()
+
+    return obj
+
+#@validate_arguments decorator not nedded as it is already embedded in the Mesh class
+def create_mesh(pile: Pile, soil: Optional[SoilProfile] = None, element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', z2mesh: List[float] = Field(default_factory=list), coarseness: float = 0.5):
+    
+    obj = Mesh(pile=pile, soil=soil, element_type=element_type, z2mesh=z2mesh, coarseness=coarseness)
+    obj.create()
+    
+    return obj
 
 if __name__ == "__main__":
 
     from openpile.construct import Pile, Mesh
     
     #Check pile
-    MP01 = Pile(type='Circular',
+    MP01 = Pile(kind='Circular',
                 material='Steel',
                 top_elevation = 0,
                 pile_sections={

@@ -19,7 +19,7 @@ def pile_sections_must_be(obj):
     if not isinstance(obj.pile_sections, dict):
         raise UserInputError("openpile.construct.Pile.pile_sections must be a dictionary")
     
-    if obj.type == 'Circular':
+    if obj.kind == 'Circular':
         reference_list = ['diameter', 'length', 'wall thickness']
         sorted_list = list(obj.pile_sections.keys())
         sorted_list.sort()
@@ -100,12 +100,16 @@ def check_boundary_conditions(mesh):
             # support in z axis is given and load over z is given --> correct BC
             raise InvalidBoundaryConditionsError('Support conditions in normal direction not provided.')
         
+        #laterally-loaded beam
         if (restrained_count_Ty+restrained_count_Rx) >= 2 and loaded_count_Ty > 0:
             pass
             # support in z axis is given and load over z is given --> correct BC
         elif (restrained_count_Ty+restrained_count_Rx) >= 2 and loaded_count_Rx > 0:
             pass
-            # support in z axis is given and load over z is given --> correct BC        else:
+            # support in z axis is given and load over z is given --> correct BC        
+        elif (loaded_count_Rx + loaded_count_Ty) == 0:
+            # no trasnverse load --> no need to give any error
+            pass
         else:
             raise InvalidBoundaryConditionsError('Support conditions against bending not provided.')
     else:

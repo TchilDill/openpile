@@ -249,8 +249,8 @@ class Mesh:
     soil: Optional[SoilProfile] = None
     #: "EB" for Euler-Bernoulli or "T" for Timoshenko
     element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko'
-    #: z coordinates values to mesh as nodes
-    z2mesh: List[float] = Field(default_factory=list)
+    #: x coordinates values to mesh as nodes
+    x2mesh: List[float] = Field(default_factory=list)
     #: mesh coarseness, represent the maximum accepted length of elements
     coarseness: float = 0.5
     
@@ -272,42 +272,42 @@ class Mesh:
         
         def get_coordinates() -> pd.DataFrame:
             
-            # Primary discretisation over z-axis
-            z = np.array([],dtype=np.float16)
+            # Primary discretisation over x-axis
+            x = np.array([],dtype=np.float16)
             # add get pile relevant sections
-            z = np.append(z,self.pile.data['Elevation [m]'].values)
+            x = np.append(x,self.pile.data['Elevation [m]'].values)
             # add soil relevant layers and others
             if self.soil is not None:
-                z = np.append(z,self.soil.data['Elevation [m]'].values)
+                x = np.append(x,self.soil.data['Elevation [m]'].values)
             # add user-defined elevation
-            z = np.append(z, self.z2mesh)
+            x = np.append(x, self.x2mesh)
             
             # get unique values and sort in reverse order 
-            z = np.unique(z)[::-1]
+            x = np.unique(x)[::-1]
             
-            # Secondary discretisation over z-axis depending on coarseness factor
-            z_secondary = np.array([],dtype=np.float16)
-            for i in range(len(z)-1):
-                spacing = z[i] - z[i+1]
+            # Secondary discretisation over x-axis depending on coarseness factor
+            x_secondary = np.array([],dtype=np.float16)
+            for i in range(len(x)-1):
+                spacing = x[i] - x[i+1]
                 new_spacing = spacing
                 divider = 1
                 while new_spacing > self.coarseness:
                     divider +=1
                     new_spacing = spacing/divider
-                new_z = z[i] - (np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider-1) ))                
-                z_secondary = np.append(z_secondary, new_z)
+                new_x = x[i] - (np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider-1) ))                
+                x_secondary = np.append(x_secondary, new_x)
                 
-            # assemble z- coordinates 
-            z = np.append(z,z_secondary)
-            z = np.unique(z)[::-1]
+            # assemble x- coordinates 
+            x = np.append(x,x_secondary)
+            x = np.unique(x)[::-1]
             
             # dummy y- coordinates
-            y = np.zeros(shape= z.shape)
+            y = np.zeros(shape= x.shape)
             
             #create dataframe coordinates
             nodes = pd.DataFrame(
                 data = {
-                    'z [m]': z,
+                    'x [m]': x,
                     'y [m]': y,
                 }, dtype= float
             ).round(3)
@@ -315,8 +315,8 @@ class Mesh:
             
             element = pd.DataFrame(
                 data = {
-                    'z_top [m]': z[:-1],
-                    'z_bottom [m]': z[1:],
+                    'x_top [m]': x[:-1],
+                    'x_bottom [m]': x[1:],
                     'y_top [m]': y[:-1],
                     'y_bottom [m]': y[1:],
                 }, dtype=float
@@ -331,11 +331,11 @@ class Mesh:
         
         # creates element structural properties
         #merge Pile.data and self.coordinates
-        self.element_properties = pd.merge_asof(left= self.element_coordinates.sort_values(by=['z_top [m]']),
+        self.element_properties = pd.merge_asof(left= self.element_coordinates.sort_values(by=['x_top [m]']),
                                                 right= self.pile.data.drop_duplicates(subset='Elevation [m]',keep='last').sort_values(by=['Elevation [m]']),
-                                                left_on='z_top [m]',
+                                                left_on='x_top [m]',
                                                 right_on='Elevation [m]',
-                                                direction='forward').sort_values(by=['z_top [m]'],ascending=False)
+                                                direction='forward').sort_values(by=['x_top [m]'],ascending=False)
         self.element_properties['E [kPa]'] = self.pile.E
         
         # create element soil properties
@@ -346,21 +346,21 @@ class Mesh:
 
         # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
         self.global_forces = self.nodes_coordinates.copy()
-        self.global_forces['Pz [kN]'] = 0
+        self.global_forces['Px [kN]'] = 0
         self.global_forces['Py [kN]'] = 0
-        self.global_forces['Mx [kNm]'] = 0
+        self.global_forces['Mz [kNm]'] = 0
 
         # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
         self.global_disp = self.nodes_coordinates.copy()
-        self.global_disp['Tz [m]'] = 0
+        self.global_disp['Tx [m]'] = 0
         self.global_disp['Ty [m]'] = 0
-        self.global_disp['Rx [rad]'] = 0
+        self.global_disp['Rz [rad]'] = 0
         
         # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
         self.global_restrained = self.nodes_coordinates.copy()
-        self.global_restrained['Tz'] = False
+        self.global_restrained['Tx'] = False
         self.global_restrained['Ty'] = False
-        self.global_restrained['Rx'] = False
+        self.global_restrained['Rz'] = False
 
     def ssis(self) -> pd.DataFrame: 
         
@@ -374,9 +374,9 @@ class Mesh:
                 RuntimeError('No soil found. Please create the mesh first.')
             else: 
                 self.soil_springs = create_springs()
-        except Exception as exc:
+        except Exception:
             print('No soil found. Please first create the mesh first.')
-            raise Exception from exc
+            raise
     
     def get_pointload(self, output = False, verbose = True):
         """_summary_
@@ -385,18 +385,38 @@ class Mesh:
         """
         out = ""
         try:
-            for (idx, elevation, _, Pz, Py, Mx) in self.global_forces.itertuples(name=None):
-                if any([Pz, Py, Mx]):
-                    string = f"\nLoad applied at elevation {elevation} m (node no. {idx}): Pz = {Pz} kN, Py = {Py} kN, Mx = {Mx} kNm."
+            for (idx, elevation, _, Px, Py, Mz) in self.global_forces.itertuples(name=None):
+                if any([Px, Py, Mz]):
+                    string = f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
                     if verbose is True:
                         print(string)
-                    out += f"\nLoad applied at elevation {elevation} m (node no. {idx}): Pz = {Pz} kN, Py = {Py} kN, Mx = {Mx} kNm."
+                    out += f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
             if output is True:
                 return out
-        except NameError:
-            RuntimeError('No data found. Please create the mesh first.')
+        except Exception:
+            print('No data found. Please create the mesh first.')
+            raise
 
-    def set_pointload(self, elevation:float=0.0, Py:float=0.0, Pz:float=0.0, Mx:float=0.0):
+    def get_pointload(self, output = False, verbose = True):
+        """_summary_
+
+        _extended_summary_
+        """
+        out = ""
+        try:
+            for (idx, elevation, _, Px, Py, Mz) in self.global_forces.itertuples(name=None):
+                if any([Px, Py, Mz]):
+                    string = f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
+                    if verbose is True:
+                        print(string)
+                    out += f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
+            if output is True:
+                return out
+        except Exception:
+            print('No data found. Please create the mesh first.')
+            raise
+        
+    def set_pointload(self, elevation:float=0.0, Py:float=0.0, Px:float=0.0, Mz:float=0.0):
         """_summary_
 
         _extended_summary_
@@ -407,31 +427,35 @@ class Mesh:
             _description_, by default 0.0
         Py : float, optional
             _description_, by default 0.0
-        Pz : float, optional
+        Px : float, optional
             _description_, by default 0.0
-        Mx : float, optional
+        Mz : float, optional
             _description_, by default 0.0
         """
     
         #identify if one node is at given elevation or if load needs to be split
-        nodes_elevations = self.nodes_coordinates['z [m]'].values
+        nodes_elevations = self.nodes_coordinates['x [m]'].values
         # check if corresponding node exist
         check = np.isclose(nodes_elevations ,np.tile(elevation, nodes_elevations.shape),atol=0.001)
         
-        if any(check):
-            #one node correspond, extract node
-            node_idx = int(np.where(check == True)[0])
-            # apply loads at this node
-            self.global_forces.loc[node_idx,'Pz [kN]'] = Pz
-            self.global_forces.loc[node_idx,'Py [kN]'] = Py
-            self.global_forces.loc[node_idx,'Mx [kNm]'] = Mx
-        else:
-            if elevation > self.nodes_coordinates['z [m]'].iloc[0] or elevation < self.nodes_coordinates['z [m]'].iloc[-1]:
-                print("Load not applied! The chosen elevation is outside the mesh. The load must be applied on the structure.")
+        try:
+            if any(check):
+                #one node correspond, extract node
+                node_idx = int(np.where(check == True)[0])
+                # apply loads at this node
+                self.global_forces.loc[node_idx,'Px [kN]'] = Px
+                self.global_forces.loc[node_idx,'Py [kN]'] = Py
+                self.global_forces.loc[node_idx,'Mz [kNm]'] = Mz
             else:
-                print("Load not applied! The chosen elevation is not meshed as a node. Please include elevation in `z2mesh` variable when creating the mesh.")
+                if elevation > self.nodes_coordinates['x [m]'].iloc[0] or elevation < self.nodes_coordinates['x [m]'].iloc[-1]:
+                    print("Load not applied! The chosen elevation is outside the mesh. The load must be applied on the structure.")
+                else:
+                    print("Load not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the mesh.")
+        except Exception:
+            print("\n!User Input Error! Please create mesh first with the Mesh.create().\n")
+            raise
 
-    def set_support(self, elevation:float=0.0, Ty:bool=False, Tz:bool=False, Rx:bool=False):
+    def set_support(self, elevation:float=0.0, Ty:bool=False, Tx:bool=False, Rz:bool=False):
             """_summary_
 
             _extended_summary_
@@ -440,31 +464,35 @@ class Mesh:
             ----------
             elevation : float, optional
                 _description_, by default 0.0
-            Py : float, optional
+            Ty : float, optional
                 _description_, by default 0.0
-            Pz : float, optional
+            Tx : float, optional
                 _description_, by default 0.0
-            Mx : float, optional
+            Rz : float, optional
                 _description_, by default 0.0
             """
-        
-            #identify if one node is at given elevation or if load needs to be split
-            nodes_elevations = self.nodes_coordinates['z [m]'].values
-            # check if corresponding node exist
-            check = np.isclose(nodes_elevations ,np.tile(elevation, nodes_elevations.shape),atol=0.001)
-            
-            if any(check):
-                #one node correspond, extract node
-                node_idx = int(np.where(check == True)[0])
-                # apply loads at this node
-                self.global_restrained.loc[node_idx,'Tz'] = Tz
-                self.global_restrained.loc[node_idx,'Ty'] = Ty
-                self.global_restrained.loc[node_idx,'Rx'] = Rx
-            else:
-                if elevation > self.nodes_coordinates['z [m]'].iloc[0] or elevation < self.nodes_coordinates['z [m]'].iloc[-1]:
-                    print("Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure.")
+
+            try:
+                #identify if one node is at given elevation or if load needs to be split
+                nodes_elevations = self.nodes_coordinates['x [m]'].values
+                # check if corresponding node exist
+                check = np.isclose(nodes_elevations ,np.tile(elevation, nodes_elevations.shape),atol=0.001)
+                
+                if any(check):
+                    #one node correspond, extract node
+                    node_idx = int(np.where(check == True)[0])
+                    # apply loads at this node
+                    self.global_restrained.loc[node_idx,'Tx'] = Tx
+                    self.global_restrained.loc[node_idx,'Ty'] = Ty
+                    self.global_restrained.loc[node_idx,'Rz'] = Rz
                 else:
-                    print("Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `z2mesh` variable when creating the mesh.")
+                    if elevation > self.nodes_coordinates['x [m]'].iloc[0] or elevation < self.nodes_coordinates['x [m]'].iloc[-1]:
+                        print("Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure.")
+                    else:
+                        print("Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the mesh.")
+            except Exception:
+                print("\n!User Input Error! Please create mesh first with the Mesh.create().\n")
+                raise
 
 #@validate_arguments decorator not nedded as it is already embedded in the Pile class
 def create_pile( kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):
@@ -518,9 +546,9 @@ def create_pile( kind: Literal['Circular'], material: Literal['Steel'], top_elev
     return obj
 
 #@validate_arguments decorator not nedded as it is already embedded in the Mesh class
-def create_mesh(pile: Pile, soil: Optional[SoilProfile] = None, element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', z2mesh: List[float] = Field(default_factory=list), coarseness: float = 0.5):
+def create_mesh(pile: Pile, soil: Optional[SoilProfile] = None, element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', x2mesh: List[float] = Field(default_factory=list), coarseness: float = 0.5):
     
-    obj = Mesh(pile=pile, soil=soil, element_type=element_type, z2mesh=z2mesh, coarseness=coarseness)
+    obj = Mesh(pile=pile, soil=soil, element_type=element_type, x2mesh=x2mesh, coarseness=coarseness)
     obj.create()
     
     return obj
@@ -554,5 +582,5 @@ if __name__ == "__main__":
     # print(txt_pile(MP01))
     MP01_mesh = Mesh(pile=MP01, element_type="Timoshenko")
     MP01_mesh.create()
-    MP01_mesh.set_pointload(elevation = -2.1, Pz=500)
+    MP01_mesh.set_pointload(elevation = -2.1, Px=500)
     MP01_mesh.get_pointload()

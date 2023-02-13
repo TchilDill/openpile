@@ -130,7 +130,7 @@ def solve_equations(K, F, U, restraints=None):
 def mesh_to_element_length(mesh) -> np.ndarray:
     
     # elememt coordinates along z and y-axes 
-    ez = np.array([mesh.element_properties['z_top [m]'].to_numpy(dtype=float) , mesh.element_properties['z_bottom [m]'].to_numpy(dtype=float)])
+    ez = np.array([mesh.element_properties['x_top [m]'].to_numpy(dtype=float) , mesh.element_properties['x_bottom [m]'].to_numpy(dtype=float)])
     ey = np.array([mesh.element_properties['y_top [m]'].to_numpy(dtype=float) , mesh.element_properties['y_bottom [m]'].to_numpy(dtype=float)])
     # length calcuated via pythagorus theorem
     L = np.sqrt(( (ez[0] - ez[1])**2 + (ey[0] - ey[1])**2 )).reshape(-1,1,1)
@@ -272,21 +272,21 @@ def build_stiffness_matrix(openpile_mesh, soil_flag = False):
 def mesh_to_global_force_dof_vector(df:pd.DataFrame) -> np.ndarray:
 
     # extract each column (one line per node)
-    force_dof_vector = df[['Pz [kN]', 'Py [kN]', 'Mx [kNm]']].values.reshape(-1,1).astype(np.float64)
+    force_dof_vector = df[['Px [kN]', 'Py [kN]', 'Mz [kNm]']].values.reshape(-1,1).astype(np.float64)
     
     return force_dof_vector
 
 def mesh_to_global_disp_dof_vector(df:pd.DataFrame) -> np.ndarray:
 
     # extract each column (one line per node)
-    disp_dof_vector = df[['Tz [m]', 'Ty [m]', 'Rx [rad]']].values.reshape(-1,1).astype(np.float64)
+    disp_dof_vector = df[['Tx [m]', 'Ty [m]', 'Rz [rad]']].values.reshape(-1,1).astype(np.float64)
     
     return disp_dof_vector
 
 def mesh_to_global_restrained_dof_vector(df:pd.DataFrame) -> np.ndarray:
 
     # extract each column (one line per node)
-    restrained_dof_vector = df[['Tz', 'Ty', 'Rx']].values.reshape(-1,1)
+    restrained_dof_vector = df[['Tx', 'Ty', 'Rz']].values.reshape(-1,1)
     
     return restrained_dof_vector
    

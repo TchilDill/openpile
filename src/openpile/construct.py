@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field, root_validator
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
+import openpile.utils.plots as plots
 from openpile.utils import validation as validate
 
 class PydanticConfig:
@@ -169,7 +170,10 @@ class Pile:
             'I [m4]': second_moment_of_area,
             }
         )
-        
+    
+    def show(self):
+        print(self.data.to_string())
+      
     @property
     def E(self) -> float: 
         """Young modulus of the pile material. Constant for the entire pile.
@@ -493,6 +497,13 @@ class Mesh:
             except Exception:
                 print("\n!User Input Error! Please create mesh first with the Mesh.create().\n")
                 raise
+      
+    def show(self):
+        print(self.data.to_string())
+        
+    def plot(self):
+        fig = plots.connectivity_plot(self)
+        return fig
 
 #@validate_arguments decorator not nedded as it is already embedded in the Pile class
 def create_pile( kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):

@@ -400,25 +400,6 @@ class Mesh:
         except Exception:
             print('No data found. Please create the mesh first.')
             raise
-
-    def get_pointload(self, output = False, verbose = True):
-        """_summary_
-
-        _extended_summary_
-        """
-        out = ""
-        try:
-            for (idx, elevation, _, Px, Py, Mz) in self.global_forces.itertuples(name=None):
-                if any([Px, Py, Mz]):
-                    string = f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
-                    if verbose is True:
-                        print(string)
-                    out += f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
-            if output is True:
-                return out
-        except Exception:
-            print('No data found. Please create the mesh first.')
-            raise
         
     def set_pointload(self, elevation:float=0.0, Py:float=0.0, Px:float=0.0, Mz:float=0.0):
         """_summary_

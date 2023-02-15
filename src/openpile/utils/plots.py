@@ -9,11 +9,12 @@ import numpy as np
 
 def connectivity_plot(mesh):
 
-    support_color = '#F97306'
+    support_color = 'b'
     #create 4 subplots with (deflectiom, normal force, shear force, bending moment)
     fig, ax = plt.subplots()
     ax.set_ylabel('x [m]')
     ax.set_xlabel('y [m]')
+    ax.set_title('Connectivity plot')
     ax.axis('equal')
     ax.grid(which='both')
     
@@ -49,56 +50,62 @@ def connectivity_plot(mesh):
     
     normalized_arrow_size = 0.10*total_length #max arrow length will be 20% of the total structure length
     
-    load_max =  mesh.global_forces['Py [kN]'].max()   
+    load_max =  mesh.global_forces['Py [kN]'].abs().max()   
     for yval, xval, load in zip(x, y, mesh.global_forces['Py [kN]']):
         if load == 0:
             pass
         else:
-            style = "Simple, tail_width=0.5, head_width=5, head_length=3"
+            style = "Simple, tail_width=1, head_width=5, head_length=3"
             kw = dict(arrowstyle=style, color="r")
-            arrow_length = normalized_arrow_size*load/load_max
+            arrow_length = normalized_arrow_size*abs(load/load_max)
             if load > 0:
                 arrows.append(FancyArrowPatch((-arrow_length, yval),(xval, yval),**kw))
             elif load < 0:
                 arrows.append(FancyArrowPatch(( arrow_length, yval),(xval, yval),**kw))
     
-    load_max =  mesh.global_forces['Px [kN]'].max()    
-    for yval, xval, load in zip(x, y, mesh.global_forces['Px [kN]']):
+    load_max =  mesh.global_forces['Px [kN]'].abs().max()    
+    for idx, (yval, xval, load) in enumerate(zip(x, y, mesh.global_forces['Px [kN]'])):
         if load == 0:
             pass
         else:
-            style = "Simple, tail_width=0.5, head_width=5, head_length=3"
-            kw = dict(arrowstyle=style, color="b")
-            arrow_length = normalized_arrow_size*load/load_max
+            style = "Simple, tail_width=1, head_width=5, head_length=3"
+            kw = dict(arrowstyle=style, color="r")
+            arrow_length = normalized_arrow_size*abs(load/load_max)
             if load > 0:
-                arrows.append(FancyArrowPatch((xval,-arrow_length),(xval, yval),**kw))
+                if idx == len(x)-1:
+                    arrows.append(FancyArrowPatch((xval, yval),(xval,yval+arrow_length),**kw))
+                else:
+                    arrows.append(FancyArrowPatch((xval,yval-arrow_length),(xval, yval),**kw))       
             elif load < 0:
-                arrows.append(FancyArrowPatch((xval, arrow_length),(xval, yval),**kw))
+                if idx == len(x)-1:
+                    arrows.append(FancyArrowPatch((xval, yval),(xval,yval-arrow_length),**kw))                    
+                else:
+                    arrows.append(FancyArrowPatch((xval,yval+arrow_length),(xval, yval),**kw))
     
     load_max =  mesh.global_forces['Mz [kNm]'].abs().max()     
     for idx, (yval, xval, load) in enumerate(zip(x, y, mesh.global_forces['Mz [kNm]'])):
         if load == 0:
             pass
         else:
-            kw = dict(arrowstyle=style, color="g")
-            arrow_length = normalized_arrow_size*load/load_max
-            style = "Simple, tail_width=0.5, head_width=5, head_length=3"
+            kw = dict(arrowstyle=style, color="r")
+            arrow_length = normalized_arrow_size*abs(load/load_max)
+            style = "Simple, tail_width=1, head_width=5, head_length=3"
             if load > 0:
-                if idx == len(x):
-                    arrows.append(FancyArrowPatch((arrow_length/3, yval), (-arrow_length/3, yval),connectionstyle="arc3,rad=0.5", **kw))
+                if idx == len(x)-1:
+                    arrows.append(FancyArrowPatch((arrow_length/1.5, yval), (-arrow_length/1.5, yval),connectionstyle="arc3,rad=0.5", **kw))
                 else:
-                    arrows.append(FancyArrowPatch((-arrow_length/3, yval), (arrow_length/3, yval),connectionstyle="arc3,rad=0.5", **kw))
+                    arrows.append(FancyArrowPatch((-arrow_length/1.5, yval), (arrow_length/1.5, yval),connectionstyle="arc3,rad=0.5", **kw))
             elif load < 0:
-                if idx == len(x):
-                    arrows.append(FancyArrowPatch((arrow_length/3, yval), (-arrow_length/3, yval),connectionstyle="arc3,rad=-0.5", **kw))
+                if idx == len(x)-1:
+                    arrows.append(FancyArrowPatch((arrow_length/1.5, yval), (-arrow_length/1.5, yval),connectionstyle="arc3,rad=-0.5", **kw))
                 else:
-               
-                    arrows.append(FancyArrowPatch((-arrow_length/3, yval), (arrow_length/3, yval),connectionstyle="arc3,rad=-0.5", **kw))
+                    arrows.append(FancyArrowPatch((-arrow_length/1.5, yval), (arrow_length/1.5, yval),connectionstyle="arc3,rad=-0.5", **kw))
 
     for arrow in arrows:
-        plt.gca().add_patch(arrow)
+        ax.add_patch(arrow)
         
     ax.set_ylim(ylim[0]-0.11*total_length, ylim[1]+0.11*total_length)
+    
     
     return fig
         

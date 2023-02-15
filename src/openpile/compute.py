@@ -19,6 +19,40 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# from pydantic import BaseModel, Field, root_validator
+from pydantic.dataclasses import dataclass
+
+
+class PydanticConfig:
+    arbitrary_types_allowed = True
+
+@dataclass(config=PydanticConfig)
+class Results:
+    _coordinates: pd.DataFrame
+    _displacements: pd.DataFrame
+    _forces: pd.DataFrame
+    
+    @property
+    def x_coordinates(self):
+        return self._coordinates['x [m]']
+
+    @property
+    def y_coordinates(self):    
+        
+        return self._coordinates['y [m]']
+    
+    @property
+    def deflection(self):
+        return pd.Series(data = {'Deflection [m]':self._displacements[1::3]})
+    
+    @property
+    def rotation(self):
+        return pd.Series(data = {'Deflection [m]':self._displacements[2::3]})
+    
+    @property
+    def deflection(self):
+        return self._displacements[1::3]
+
 def lateral_loading(mesh):
     
     def repeat_inner(arr):
@@ -70,33 +104,33 @@ def lateral_loading(mesh):
         force_facecolor = '#E6DAA6' #beige
         force_edgecolor = '#AAA662' #khaki
         
-        #create 4 subplots with (deflectiom, normal force, shear force, bending moment)
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1,4)
-        ax1.set_ylabel('Elevation [m VREF]')
-        ax1.set_xlabel('Deflection [m]')
-        ax1.grid(which='both')
-        ax1.fill_betweenx(mesh.nodes_coordinates['x [m]'].values,u[1::3].reshape(-1),edgecolor=force_edgecolor,facecolor=force_facecolor)
-        ax1.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
+        # #create 4 subplots with (deflectiom, normal force, shear force, bending moment)
+        # fig, (ax1, ax2, ax3, ax4) = plt.subplots(1,4)
+        # ax1.set_ylabel('Elevation [m VREF]')
+        # ax1.set_xlabel('Deflection [m]')
+        # ax1.grid(which='both')
+        # ax1.fill_betweenx(mesh.nodes_coordinates['x [m]'].values,u[1::3].reshape(-1),edgecolor=force_edgecolor,facecolor=force_facecolor)
+        # ax1.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
         
-        ax2.set_xlabel('Normal [kN]')
-        ax2.grid(which='both')
-        ax2.fill_betweenx(NVM['Elevation [m]'].values,NVM['N [kN]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
-        ax2.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
-        ax2.set_xlim([NVM['N [kN]'].values.min()-0.1, NVM['N [kN]'].values.max()+0.1])
-        ax2.set_yticklabels('')
+        # ax2.set_xlabel('Normal [kN]')
+        # ax2.grid(which='both')
+        # ax2.fill_betweenx(NVM['Elevation [m]'].values,NVM['N [kN]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
+        # ax2.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
+        # ax2.set_xlim([NVM['N [kN]'].values.min()-0.1, NVM['N [kN]'].values.max()+0.1])
+        # ax2.set_yticklabels('')
 
-        ax3.set_xlabel('Shear [kN]')
-        ax3.grid(which='both')
-        ax3.fill_betweenx(NVM['Elevation [m]'].values,NVM['V [kN]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
-        ax3.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
-        ax3.set_xlim([NVM['V [kN]'].values.min()-0.1, NVM['V [kN]'].values.max()+0.1])
-        ax3.set_yticklabels('')
+        # ax3.set_xlabel('Shear [kN]')
+        # ax3.grid(which='both')
+        # ax3.fill_betweenx(NVM['Elevation [m]'].values,NVM['V [kN]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
+        # ax3.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
+        # ax3.set_xlim([NVM['V [kN]'].values.min()-0.1, NVM['V [kN]'].values.max()+0.1])
+        # ax3.set_yticklabels('')
 
-        ax4.set_xlabel('Moment [kNm]')
-        ax4.grid(which='both')
-        ax4.fill_betweenx(NVM['Elevation [m]'].values,NVM['M [kNm]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
-        ax4.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
-        ax4.set_xlim([NVM['M [kNm]'].values.min()-0.1, NVM['M [kNm]'].values.max()+0.1])
-        ax4.set_yticklabels('')
+        # ax4.set_xlabel('Moment [kNm]')
+        # ax4.grid(which='both')
+        # ax4.fill_betweenx(NVM['Elevation [m]'].values,NVM['M [kNm]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
+        # ax4.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
+        # ax4.set_xlim([NVM['M [kNm]'].values.min()-0.1, NVM['M [kNm]'].values.max()+0.1])
+        # ax4.set_yticklabels('')
         
-        return u, NVM, fig
+        return u, NVM#, fig

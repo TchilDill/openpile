@@ -4,12 +4,7 @@
 
 The `compute` module is used to run various simulations. 
 
-
-The :
-
-- the pile
-- the soil profile
-- the mesh
+Every function from this module returns an `openpile.compute.Result` object. 
 
 """
 
@@ -17,7 +12,21 @@ import openpile.utils.kernel as kernel
 import openpile.utils.validation as validate
 import numpy as np
 
-def lateral_loading(mesh):
+def simple_beam_analysis(mesh):
+    """
+    Function where loading or displacement defined in the mesh boundary conditions 
+    are used to solve the system of equations, .
+    
+    Parameters
+    ----------
+    mesh : `openpile.construct.Mesh` object
+        mesh where structure and boundary conditions are defined.
+
+    Returns
+    -------
+    results : `openpile.compute.Result` object
+        Results of the analysis where
+    """
     
     if mesh.soil is None:
         F = kernel.mesh_to_global_force_dof_vector(mesh.global_forces)
@@ -32,7 +41,7 @@ def lateral_loading(mesh):
         
         return u
 
-def lateral_displacement(mesh):
+def simple_winkler_analysis(mesh):
     pass
 
 

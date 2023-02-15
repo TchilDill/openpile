@@ -1,7 +1,7 @@
 
-
 from openpile.construct import create_pile, create_mesh
 from openpile.compute import lateral_loading
+from openpile.utils.plots import connectivity_plot
 
 import matplotlib.pyplot as plt
 
@@ -18,8 +18,10 @@ mesh = create_mesh(pile=pile, coarseness=5)
 mesh.set_support(elevation=-0, Tx = True, Ty =True)
 mesh.set_support(elevation=-30, Ty = True)
 
-mesh.set_pointload(elevation=-20,Py=100)
-mesh.set_pointload(elevation=-25,Py=100)
-u, f, fig = lateral_loading(mesh)
+mesh.set_pointload(elevation=-15,Mz=-200)
+mesh.set_pointload(elevation=-20,Py=200)
+mesh.set_pointload(elevation=-25,Px=100)
+u, f= lateral_loading(mesh)
 
+fig = connectivity_plot(mesh)
 plt.show()

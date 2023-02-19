@@ -8,45 +8,51 @@ Every function from this module returns an `openpile.compute.Result` object.
 
 """
 
-import openpile.utils.kernel as kernel 
-import openpile.utils.validation as validate
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
 # from pydantic import BaseModel, Field, root_validator
 from pydantic.dataclasses import dataclass
+import openpile.utils.kernel as kernel 
+import openpile.utils.validation as validation
+import openpile.utils.graphics as graphics
 
 
 class PydanticConfig:
     arbitrary_types_allowed = True
 
 @dataclass(config=PydanticConfig)
-class Results:
-    coordinates: pd.DataFrame
+class Result:
     displacements: pd.DataFrame
     forces: pd.DataFrame
     
-    @property
-    def x_coordinates(self):
-        return self.coordinates['x [m]']
-
-    @property
-    def y_coordinates(self):    
-        
-        return self.coordinates['y [m]']
+    class Config:
+        frozen = True
     
     @property
+    def settlement(self):
+        return self.displacements[['Elevation [m]','Settlement [m]']]
+
+    @property
     def deflection(self):
-        return pd.Series(data = {'Deflection [m]':self.displacements[1::3]})
+        return self.displacements[['Elevation [m]','Deflection [m]']]
     
     @property
     def rotation(self):
-        return pd.Series(data = {'Deflection [m]':self.displacements[2::3]})
+        return self.displacements[['Elevation [m]','Rotation [rad]']]
     
-    @property
-    def deflection(self):
-        return self.displacements[1::3]
+    def plot_deflection(self, assign = False):
+        fig = graphics.plot_deflection(self)
+        return fig if assign else None
+
+    def plot_forces(self, assign = False):
+        fig = graphics.plot_forces(self)
+        return fig if assign else None
+    
+    def plot(self, assign = False):
+        fig = graphics.plot_results(self)
+        return fig if assign else None
+
 
 def simple_beam_analysis(mesh):
     """
@@ -89,8 +95,25 @@ def simple_beam_analysis(mesh):
                 'M [kNm]': M,
                 }
             )
-        
+
             return structural_forces_to_DataFrame
+    
+    def disp_to_df(mesh,u):
+        x = mesh.nodes_coordinates['x [m]'].values
+
+        Tx = u[::3].reshape(-1)
+        Ty = u[1::3].reshape(-1)
+        Rx = u[2::3].reshape(-1)
+        
+        disp_to_DataFrame = pd.DataFrame(data={
+            'Elevation [m]': x,
+            'Settlement [m]': Tx ,
+            'Deflection [m]': Ty,
+            'Rotation [rad]': Rx,
+            }
+        )
+    
+        return disp_to_DataFrame
     
     if mesh.soil is None:
         F = kernel.mesh_to_global_force_dof_vector(mesh.global_forces)
@@ -100,7 +123,7 @@ def simple_beam_analysis(mesh):
         
         
         # validate boundary conditions
-        validate.check_boundary_conditions(mesh)
+        validation.check_boundary_conditions(mesh)
         
         u, _ = kernel.solve_equations(K, F, U, restraints=supports)
         
@@ -108,45 +131,11 @@ def simple_beam_analysis(mesh):
         q_int = kernel.struct_internal_force(mesh, u)
         
         NVM = structural_forces_to_df(mesh,q_int)
+        df_u = disp_to_df(mesh, u)
         
-        # Define plot colors
-        force_facecolor = '#E6DAA6' #beige
-        force_edgecolor = '#AAA662' #khaki
-        
-        #create 4 subplots with (deflectiom, normal force, shear force, bending moment)
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1,4)
-        ax1.set_ylabel('Elevation [m VREF]',fontsize=8)
-        ax1.set_xlabel('Deflection [m]',fontsize=8)
-        ax1.tick_params(axis='both', labelsize=8)
-        ax1.grid(which='both')
-        ax1.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
-        ax1.plot(u[1::3].reshape(-1),mesh.nodes_coordinates['x [m]'],color='0.0', lw=2)
-        
-        ax2.set_xlabel('Normal [kN]',fontsize=8)
-        ax2.tick_params(axis='both', labelsize=8)
-        ax2.grid(which='both')
-        ax2.fill_betweenx(NVM['Elevation [m]'].values,NVM['N [kN]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
-        ax2.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
-        ax2.set_xlim([NVM['N [kN]'].values.min()-0.1, NVM['N [kN]'].values.max()+0.1])
-        ax2.set_yticklabels('')
-
-        ax3.set_xlabel('Shear [kN]',fontsize=8)
-        ax3.tick_params(axis='both', labelsize=8)
-        ax3.grid(which='both')
-        ax3.fill_betweenx(NVM['Elevation [m]'].values,NVM['V [kN]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
-        ax3.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
-        ax3.set_xlim([NVM['V [kN]'].values.min()-0.1, NVM['V [kN]'].values.max()+0.1])
-        ax3.set_yticklabels('')
-
-        ax4.set_xlabel('Moment [kNm]',fontsize=8)
-        ax4.tick_params(axis='both', labelsize=8)
-        ax4.grid(which='both')
-        ax4.fill_betweenx(NVM['Elevation [m]'].values,NVM['M [kNm]'].values,edgecolor=force_edgecolor,facecolor=force_facecolor)
-        ax4.plot(mesh.nodes_coordinates['y [m]'],mesh.nodes_coordinates['x [m]'],color='0.4')
-        ax4.set_xlim([NVM['M [kNm]'].values.min()-0.1, NVM['M [kNm]'].values.max()+0.1])
-        ax4.set_yticklabels('')
-                
-        return u, NVM
+        results = Result(coordinates=mesh.nodes_coordinates, displacements=df_u, forces=NVM)
+  
+        return results
 
 def simple_winkler_analysis(mesh):
     pass

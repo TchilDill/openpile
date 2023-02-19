@@ -7,8 +7,56 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 import numpy as np
 
-def connectivity_plot(mesh):
+def plot_deflection(result):
+    
+    fig, ax = plt.subplots()
 
+    fig.suptitle('Sectional forces')
+
+    ax = U_plot(ax, result)
+           
+    return fig
+
+def plot_forces(result):
+    
+    #create 4 subplots with (deflectiom, normal force, shear force, bending moment)
+    
+    fig, (ax1, ax2, ax3) = plt.subplots(1,3)
+
+    fig.suptitle('Sectional forces')
+
+    ax1 = F_plot(ax1, result, 'N [kN]')
+    ax2 = F_plot(ax2, result, 'V [kN]')
+    ax3 = F_plot(ax3, result, 'M [kNm]')
+
+    for axis in [ax2, ax3]:
+        axis.set_yticklabels('')
+        axis.set_ylabel('')
+           
+    return fig
+
+def plot_results(result):
+    
+    #create 4 subplots with (deflectiom, normal force, shear force, bending moment)
+    
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1,4)
+
+    fig.suptitle('Analysis results')
+
+    ax1 = U_plot(ax1, result)
+    ax2 = F_plot(ax2, result, 'N [kN]')
+    ax3 = F_plot(ax3, result, 'V [kN]')
+    ax4 = F_plot(ax4, result, 'M [kNm]')
+
+    for axis in [ax2, ax3, ax4]:
+        axis.set_yticklabels('')
+        axis.set_ylabel('')
+           
+    return fig
+
+def connectivity_plot(mesh):
+    #TODO docstring
+    
     support_color = 'b'
     #create 4 subplots with (deflectiom, normal force, shear force, bending moment)
     fig, ax = plt.subplots()
@@ -105,7 +153,46 @@ def connectivity_plot(mesh):
         ax.add_patch(arrow)
         
     ax.set_ylim(ylim[0]-0.11*total_length, ylim[1]+0.11*total_length)
-    
-    
+         
     return fig
         
+        
+def U_plot(axis: plt.axis, result):
+    #TODO docstring
+    
+    axis.set_ylabel('Elevation [m VREF]',fontsize=8)
+    axis.set_xlabel('Deflection [m]',fontsize=8)
+    axis.tick_params(axis='both', labelsize=8)
+    axis.grid(which='both')
+    
+    y = result.displacements['Elevation [m]'].values
+    x = np.zeros(shape=y.shape)
+    deflection = result.displacements['Deflection [m]']
+    
+    axis.plot(x,y,color='0.4')
+    axis.plot(deflection,y,color='0.0', lw=2)
+    
+    return axis
+        
+def F_plot(axis:plt.axis, result, force:str):
+    #TODO docstring
+ 
+    # Define plot colors
+    force_facecolor = '#E6DAA6' #beige
+    force_edgecolor = '#AAA662' #khaki
+    
+    axis.set_ylabel('Elevation [m VREF]',fontsize=8)
+    axis.set_xlabel(force,fontsize=8)
+    axis.tick_params(axis='both', labelsize=8)
+    axis.grid(which='both')
+
+    f = result.forces[force]
+    y = result.forces['Elevation [m]']
+
+    axis.fill_betweenx(y, f ,edgecolor=force_edgecolor,facecolor=force_facecolor)
+    axis.plot(np.zeros(shape=y.shape), y ,color='0.4')
+
+    axis.set_xlim([min(0, f.values.min()-0.1*abs(f.min())), max(0, f.values.max()+0.1*abs(f.max()))])
+
+    
+    return axis

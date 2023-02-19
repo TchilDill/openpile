@@ -22,8 +22,8 @@ from pydantic import BaseModel, Field, root_validator
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
-import openpile.utils.plots as plots
-from openpile.utils import validation as validate
+import openpile.utils.graphics as graphics
+from openpile.utils import validation as validation
 
 class PydanticConfig:
     arbitrary_types_allowed = True
@@ -100,7 +100,7 @@ class Pile:
     def create(self):
         
         # check that dict is correctly entered
-        validate.pile_sections_must_be(self)
+        validation.pile_sections_must_be(self)
         
         # Create material specific specs for given material        
         # if steel
@@ -482,9 +482,9 @@ class Mesh:
     def show(self):
         print(self.data.to_string())
         
-    def plot(self):
-        fig = plots.connectivity_plot(self)
-        return fig
+    def plot(self, assign = False):
+        fig = graphics.connectivity_plot(self)
+        return fig if assign else None
 
 #@validate_arguments decorator not nedded as it is already embedded in the Pile class
 def create_pile( kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):

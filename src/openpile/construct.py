@@ -171,8 +171,8 @@ class Pile:
             }
         )
     
-    def show(self):
-        print(self.data.to_string())
+    def __str__(self):
+        return self.data.to_string()
       
     @classmethod  
     def create(cls, kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):
@@ -391,7 +391,12 @@ class Mesh:
                                                 left_on='x_top [m]',
                                                 right_on='Elevation [m]',
                                                 direction='forward').sort_values(by=['x_top [m]'],ascending=False)
+        #add young modulus to data
         self.element_properties['E [kPa]'] = self.pile.E
+        #delete Elevation [m] column
+        self.element_properties.drop('Elevation [m]', inplace=True, axis=1)
+        #reset index
+        self.element_properties.reset_index(inplace=True, drop=True)
         
         # create element soil properties
         if self.soil is None:
@@ -529,9 +534,6 @@ class Mesh:
             except Exception:
                 print("\n!User Input Error! Please create mesh first with the Mesh.create().\n")
                 raise
-      
-    def show(self):
-        print(self.data.to_string())
         
     def plot(self, assign = False):
         fig = graphics.connectivity_plot(self)
@@ -544,6 +546,9 @@ class Mesh:
         obj._postinit()
         
         return obj
+    
+    def __str__(self):
+        return self.element_properties.to_string()
 
 if __name__ == "__main__":
 

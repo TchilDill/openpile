@@ -97,7 +97,7 @@ class Pile:
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections. 
     pile_sections: Dict[str, List[float]]
     
-    def create(self):
+    def _postinit(self):
         
         # check that dict is correctly entered
         validation.pile_sections_must_be(self)
@@ -173,6 +173,57 @@ class Pile:
     
     def show(self):
         print(self.data.to_string())
+      
+    @classmethod  
+    def create(cls, kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):
+        """_summary_
+
+        A method to create the pile. This function provides a 2-in-1 command where:
+        
+        - a `Pile` instance is created
+        - the `._postinit()` method is run and creates all additional pile data necessary.
+
+        Pile instances include the pile geometry and data.
+        
+        Example
+        -------
+        >>> from openpile.construct import Pile
+        
+        >>> # Create a pile instance with two sections of respectively 10m and 30m length.
+        >>> pile = create_pile(kind='Circular',
+        >>>                 material='Steel',
+        >>>                 top_elevation = 0,
+        >>>                 pile_sections={
+        >>>                 'length':[10,30],
+        >>>                 'diameter':[7.5,7.5],
+        >>>                 'wall thickness':[0.07, 0.08],
+        >>>             }
+        >>>         )
+
+        See Also
+        --------
+        openpile.construct.Pile
+
+        Parameters
+        ----------
+        kind : str
+            select the type of pile, can be of ('Circular', )
+        material : str
+            select the type of material the pile is made of, can be of ('Steel', )
+        top_elevation : float
+            _description_
+        pile_sections : dict
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        obj = cls( kind = kind, material = material, top_elevation=top_elevation,  pile_sections = pile_sections)
+        obj._postinit()
+
+        return obj
       
     @property
     def E(self) -> float: 
@@ -272,7 +323,7 @@ class Mesh:
             print('Data not found. Please create mesh first.')
             raise Exception from exc
 
-    def create(self):
+    def _postinit(self):
         
         def get_coordinates() -> pd.DataFrame:
             
@@ -486,64 +537,13 @@ class Mesh:
         fig = graphics.connectivity_plot(self)
         return fig if assign else None
 
-#@validate_arguments decorator not nedded as it is already embedded in the Pile class
-def create_pile( kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):
-    """_summary_
-
-    A function to create the pile. This function provides a 2-in-1 command where:
-    
-    - a `Pile` instance is created
-    - the `.create()` method is run right away and creates all additional pile data necessary.
-
-    Pile instances include the pile geometry and data.
-    
-    Example
-    -------
-    >>> from openpile.construct import Pile
-     
-    >>> # Create a pile instance with two sections of respectively 10m and 30m length.
-    >>> pile = create_pile(kind='Circular',
-    >>>                 material='Steel',
-    >>>                 top_elevation = 0,
-    >>>                 pile_sections={
-    >>>                 'length':[10,30],
-    >>>                 'diameter':[7.5,7.5],
-    >>>                 'wall thickness':[0.07, 0.08],
-    >>>             }
-    >>>         )
-
-    See Also
-    --------
-    openpile.construct.Pile
-
-    Parameters
-    ----------
-    kind : str
-        select the type of pile, can be of ('Circular', )
-    material : str
-        select the type of material the pile is made of, can be of ('Steel', )
-    top_elevation : float
-        _description_
-    pile_sections : dict
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-    """
-    obj = Pile( kind = kind, material = material, top_elevation=top_elevation,  pile_sections = pile_sections)
-    obj.create()
-
-    return obj
-
-#@validate_arguments decorator not nedded as it is already embedded in the Mesh class
-def create_mesh(pile: Pile, soil: Optional[SoilProfile] = None, element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', x2mesh: List[float] = Field(default_factory=list), coarseness: float = 0.5):
-    
-    obj = Mesh(pile=pile, soil=soil, element_type=element_type, x2mesh=x2mesh, coarseness=coarseness)
-    obj.create()
-    
-    return obj
+    @classmethod
+    def create(cls, pile: Pile, soil: Optional[SoilProfile] = None, element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', x2mesh: List[float] = Field(default_factory=list), coarseness: float = 0.5):
+        
+        obj = cls(pile=pile, soil=soil, element_type=element_type, x2mesh=x2mesh, coarseness=coarseness)
+        obj._postinit()
+        
+        return obj
 
 if __name__ == "__main__":
 

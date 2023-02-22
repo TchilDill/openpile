@@ -1,7 +1,7 @@
 # import libraries
 import matplotlib.pyplot as plt
 from openpile.construct import create_pile, create_mesh
-from openpile.compute import simple_beam_analysis
+from openpile.analyses import simple_beam_analysis
 from openpile.utils.graphics import connectivity_plot
 
 # create pile

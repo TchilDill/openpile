@@ -3,7 +3,8 @@ API
 
 .. automodule:: openpile.construct
     :members:
-    :exclude-members: __init__
+    :exclude-members: __init__, PydanticConfig
+
 
 .. automodule:: openpile.utils.kernel
     :members:

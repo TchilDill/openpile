@@ -36,11 +36,16 @@ autodoc_default_options = {
     'special-members': '__init__',
     'undoc-members': True,
     'exclude-members': '__weakref__',
-    'show-inheritance': True,
+    'show-inheritance': False,
 }
 
-autodoc_typehints = 'description'
-autodoc_class_signature = 'separated'
+auoclass_content = 'class'
+# Automatically extract typehints when specified and place them in
+# descriptions of the relevant function/method.
+autodoc_typehints = "description"
+
+# Don't show class signature with the class' name.
+autodoc_class_signature = "separated"
 
 templates_path = ['_templates']
 exclude_patterns = []

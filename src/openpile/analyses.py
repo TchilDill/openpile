@@ -1,8 +1,8 @@
 """
-`Compute` module
+`Analyses` module
 ==================
 
-The `compute` module is used to run various simulations. 
+The `analyses` module is used to run various simulations. 
 
 Every function from this module returns an `openpile.compute.Result` object. 
 

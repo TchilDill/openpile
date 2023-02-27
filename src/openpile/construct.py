@@ -19,7 +19,7 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional
 from typing_extensions import Literal
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, root_validator, PositiveFloat, confloat, conlist
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
@@ -98,7 +98,7 @@ class Pile:
     top_elevation: float
     #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections. 
-    pile_sections: Dict[str, List[float]]
+    pile_sections: Dict[str, List[PositiveFloat]]
     
     def _postinit(self):
         
@@ -240,7 +240,7 @@ class Pile:
     @property
     def width(self) -> float:
         """
-        Width of the pile. Used to compute soil springs.
+        Width of the pile. (Used to compute soil springs)
         """
         try:
             return self.data['Diameter [m]'].mean()
@@ -260,8 +260,54 @@ class Pile:
             print(e)
 
 @dataclass(config=PydanticConfig)
-class SoilProfile:
+class PYmodel:
     pass
+
+@dataclass(config=PydanticConfig)
+class APIsand(PYmodel):
+    phi: conlist(float, min_items=1, max_items=2)
+    
+    # TODO define class function 
+    # self.func =  
+
+@dataclass(config=PydanticConfig)
+class APIclay(PYmodel):
+    Su: conlist(float, min_items=1, max_items=2)
+    eps50: conlist(float, min_items=1, max_items=2)
+
+@dataclass(config=PydanticConfig)
+class TZmodel:
+    pass
+
+@dataclass(config=PydanticConfig)
+class MTmodel:
+    pass
+
+@dataclass(config=PydanticConfig)
+class Layer:
+    name: str
+    top: float
+    bottom: FloatingPointError
+    weight: PositiveFloat
+    pymodel: Optional[PYmodel] = None
+    tzmodel: Optional[TZmodel] = None
+    mtmodel: Optional[MTmodel] = None
+    color: Optional[str] = None
+
+    @root_validator
+    def check_elevations(cls, values):
+        if not values['top'] > values['bottom']:
+            print('Bottom elevation is higher than top elevation')
+            raise ValueError
+        else:
+            return values
+
+@dataclass(config=PydanticConfig)
+class SoilProfile:
+    top_elevation: float
+    water_table: float
+    layers: List[Layer]
+    cpt_data: Optional[np.ndarray] = None
 
 @dataclass(config=PydanticConfig)
 class Mesh:
@@ -293,7 +339,10 @@ class Mesh:
     #: mesh coarseness, represent the maximum accepted length of elements
     coarseness: float = 0.5
     
-    def get_structural_properties(self):
+    def get_structural_properties(self) -> pd.DataFrame:
+        """
+        Returns a table with the structural properties of the pile sections.
+        """
         try: 
             return self.element_properties
         except AttributeError:
@@ -301,7 +350,10 @@ class Mesh:
         except Exception as e:
             print(e)
 
-    def get_soil_properties(self):
+    def get_soil_properties(self) -> pd.DataFrame:
+        """
+        Returns a table with the soil main properties and soil models of each element.
+        """
         try:
             return self.soil_properties
         except AttributeError:
@@ -409,6 +461,13 @@ class Mesh:
         self.global_restrained['Rz'] = False
 
     def ssis(self) -> pd.DataFrame: 
+        """Returns the soil springs in one DataFrame
+
+        Returns
+        -------
+        pd.DataFrame
+            Soil springs 
+        """
         
         # function doing the work
         def create_springs():
@@ -422,7 +481,7 @@ class Mesh:
     
     def get_pointload(self, output = False, verbose = True):
         """
-        Returns the point loads currently defined in the mesh vi printout statements.
+        Returns the point loads currently defined in the mesh via printout statements.
         
         Parameters
         ----------
@@ -447,7 +506,10 @@ class Mesh:
         
     def set_pointload(self, elevation:float=0.0, Py:float=0.0, Px:float=0.0, Mz:float=0.0):
         """
-        Defines the point load(s) at a given elevation.
+        Defines the point load(s) at a given elevation. 
+        
+        .. note:
+            If run several times at the same elevation, the loads are overwritten by the last command.
 
 
         Parameters
@@ -455,11 +517,11 @@ class Mesh:
         elevation : float, optional
             the elevation must match the elevation of a node, by default 0.0
         Py : float, optional
-            _description_, by default 0.0
+            Shear force in kN, by default 0.0
         Px : float, optional
-            _description_, by default 0.0
+            Normal force in kN, by default 0.0
         Mz : float, optional
-            _description_, by default 0.0
+            Bending moment in kNm, by default 0.0
         """
     
         #identify if one node is at given elevation or if load needs to be split
@@ -485,43 +547,46 @@ class Mesh:
             raise
 
     def set_support(self, elevation:float=0.0, Ty:bool=False, Tx:bool=False, Rz:bool=False):
-            """_summary_
+        """
+        Defines the supports at a given elevation. If True, the relevant degree of freedom is restrained.
+        
+        .. note:
+            If run several times at the same elevation, the support are overwritten by the last command.
 
-            _extended_summary_
 
-            Parameters
-            ----------
-            elevation : float, optional
-                _description_, by default 0.0
-            Ty : float, optional
-                _description_, by default 0.0
-            Tx : float, optional
-                _description_, by default 0.0
-            Rz : float, optional
-                _description_, by default 0.0
-            """
+        Parameters
+        ----------
+        elevation : float, optional
+            the elevation must match the elevation of a node, by default 0.0
+        Ty : bool, optional
+            Translation along y-axis, by default False
+        Tx : bool, optional
+            Translation along x-axis, by default False
+        Rz : bool, optional
+            Rotation around z-axis, by default False
+        """
 
-            try:
-                #identify if one node is at given elevation or if load needs to be split
-                nodes_elevations = self.nodes_coordinates['x [m]'].values
-                # check if corresponding node exist
-                check = np.isclose(nodes_elevations ,np.tile(elevation, nodes_elevations.shape),atol=0.001)
-                
-                if any(check):
-                    #one node correspond, extract node
-                    node_idx = int(np.where(check == True)[0])
-                    # apply loads at this node
-                    self.global_restrained.loc[node_idx,'Tx'] = Tx
-                    self.global_restrained.loc[node_idx,'Ty'] = Ty
-                    self.global_restrained.loc[node_idx,'Rz'] = Rz
+        try:
+            #identify if one node is at given elevation or if load needs to be split
+            nodes_elevations = self.nodes_coordinates['x [m]'].values
+            # check if corresponding node exist
+            check = np.isclose(nodes_elevations ,np.tile(elevation, nodes_elevations.shape),atol=0.001)
+            
+            if any(check):
+                #one node correspond, extract node
+                node_idx = int(np.where(check == True)[0])
+                # apply loads at this node
+                self.global_restrained.loc[node_idx,'Tx'] = Tx
+                self.global_restrained.loc[node_idx,'Ty'] = Ty
+                self.global_restrained.loc[node_idx,'Rz'] = Rz
+            else:
+                if elevation > self.nodes_coordinates['x [m]'].iloc[0] or elevation < self.nodes_coordinates['x [m]'].iloc[-1]:
+                    print("Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure.")
                 else:
-                    if elevation > self.nodes_coordinates['x [m]'].iloc[0] or elevation < self.nodes_coordinates['x [m]'].iloc[-1]:
-                        print("Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure.")
-                    else:
-                        print("Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the mesh.")
-            except Exception:
-                print("\n!User Input Error! Please create mesh first with the Mesh.create().\n")
-                raise
+                    print("Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the mesh.")
+        except Exception:
+            print("\n!User Input Error! Please create mesh first with the Mesh.create().\n")
+            raise
         
     def plot(self, assign = False):
         fig = graphics.connectivity_plot(self)

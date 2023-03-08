@@ -304,10 +304,33 @@ class Layer:
 
 @dataclass(config=PydanticConfig)
 class SoilProfile:
+    """
+    A class to create the soil profile. A soil profile consist of a ground elevation (or top elevation)
+    with one or more layers of soil. 
+
+    Additionally, a soil profile can include discrete information at given elevation such as CPT 
+    (Cone Penetration Test) data
+
+
+    Example
+    -------
+
+    >>> from openpile.construct import SoilProfile
+    
+    #TODO    
+    """
+    #: top of ground elevation with respect to the model reference elevation datum
     top_elevation: float
-    water_table: float
+    #: water elevation (this can refer to sea elevation of water table)
+    water_elevation: float
+    #: soil layers to consider in the soil propfile 
     layers: List[Layer]
+    #: Cone Penetration Test data with folloeing structure: 
+    #: 1st col: elevation[m], 2nd col: cone resistance[MPa], 3rd col: pore pressure u2 [MPa] 
+    #: (the cpt data cannot be given outside the soil profile boundaries defined by the layers)
     cpt_data: Optional[np.ndarray] = None
+
+
 
 @dataclass(config=PydanticConfig)
 class Mesh:

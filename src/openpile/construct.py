@@ -17,18 +17,55 @@ This include:
 import math as m
 import pandas as pd
 import numpy as np
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from typing_extensions import Literal
 from pydantic import BaseModel, Field, root_validator, PositiveFloat, confloat, conlist
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
+from matplotlib.colors import CSS4_COLORS 
+import random
 
 import openpile.utils.graphics as graphics
 import openpile.utils.validation as validation
+import openpile.core.PYsoilmodels as PYsoilmodels
+
+# misc functions 
+def from_list2x_parse_top_bottom(var):
+    """provide top and bottom values of layer based on float or list inputs"""
+    if isinstance(var, float):
+        top = var
+        bottom = var
+    elif isinstance(var, list) and len(var) == 1:
+        top = var[0]
+        bottom = var[0]
+    elif isinstance(var, list) and len(var) == 2:
+        top = var[0]
+        bottom = var[1]
+    else:
+        print('Soil Layer variable is not a float nor a list')
+        raise TypeError
+    
+    return top, bottom
+
+def var_to_str(var):
+    if isinstance(var, float):
+        var_print = var
+    elif isinstance(var, list):
+        var_print = '-'.join(str(v) for v in var)
+    else:
+        raise ValueError('not a float nor list')
+    return var_print
+
+def generate_color_string():
+    colors = list(CSS4_COLORS.values())
+    return colors[random.randint(0,len(colors))]
 
 class PydanticConfig:
     arbitrary_types_allowed = True
 
+class PydanticConfigFrozen:
+    arbitrary_types_allowed = True
+    allow_mutation = False
 @dataclass(config=PydanticConfig)
 class Pile:
     """
@@ -263,17 +300,91 @@ class Pile:
 class PYmodel:
     pass
 
-@dataclass(config=PydanticConfig)
+@dataclass(config=PydanticConfigFrozen)
 class APIsand(PYmodel):
-    phi: conlist(float, min_items=1, max_items=2)
-    
-    # TODO define class function 
-    # self.func =  
+    phi: Union[float, conlist(float, min_items=1, max_items=2)]
+    Neq: confloat(ge = 1.0, le=100.0)
 
-@dataclass(config=PydanticConfig)
+    def __str__(self):
+        if self.Neq == 1:
+            Neq = 'Static'
+        else:
+            Neq = 'Cyclic'
+              
+        return f"API sand\phi = {var_to_str(self.phi)}°\n{Neq}"
+
+    def spring_fct(self, 
+                   sig:float, 
+                   X:float, 
+                   layer_height:float, 
+                   depth_from_top_of_layer:float, 
+                   D:float, 
+                   ymax:float=0.2, 
+                   output_length:int = 20):
+            
+        #validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError('Spring elevation outside layer')
+        
+        # define phi
+        phi_t, phi_b = from_list2x_parse_top_bottom(self.phi)
+        phi = phi_t + (phi_b - phi_t) * depth_from_top_of_layer/layer_height
+                
+        return PYsoilmodels.API_sand(sig=sig, 
+                                     X=X, 
+                                     phi=phi, 
+                                     D=D, 
+                                     Neq=self.Neq, 
+                                     ymax=ymax, 
+                                     output_length=output_length)
+      
+@dataclass(config=PydanticConfigFrozen)
 class APIclay(PYmodel):
-    Su: conlist(float, min_items=1, max_items=2)
-    eps50: conlist(float, min_items=1, max_items=2)
+    Su: Union[float, conlist(float, min_items=1, max_items=2)]
+    eps50: Union[float, conlist(float, min_items=1, max_items=2)]
+    Neq: confloat(ge = 1.0, le=100.0)
+    J: confloat(ge = 0.25, le=0.5) = 0.5
+    stiff_clay_threshold: PositiveFloat = 96
+    
+    def __str__(self):  
+        if self.Neq == 1:
+            Neq = 'Static'
+        else:
+            Neq = 'Cyclic'
+                    
+        return f"API clay\nSu = {var_to_str(self.Su)} kPa\neps50 = {var_to_str(self.eps50)}\n{Neq}"
+    
+    def spring_fct(self, 
+                   sig:float, 
+                   X:float, 
+                   layer_height:float, 
+                   depth_from_top_of_layer:float, 
+                   D:float, 
+                   ymax:float=0.2, 
+                   output_length:int = 20):
+                    
+        #validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError('Spring elevation outside layer')
+        
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer/layer_height
+
+        # define eps50
+        eps50_t, eps50_b = from_list2x_parse_top_bottom(self.eps50)
+        eps50 = eps50_t + (eps50_b - eps50_t) * depth_from_top_of_layer/layer_height
+                
+        return PYsoilmodels.API_clay(sig=sig, 
+                                     X=X, 
+                                     Su=Su, 
+                                     eps50=eps50, 
+                                     D=D, 
+                                     J=self.J, 
+                                     stiff_clay_threshold=self.stiff_clay_threshold,
+                                     Neq=self.Neq, 
+                                     ymax=ymax, 
+                                     output_length=output_length)
 
 @dataclass(config=PydanticConfig)
 class TZmodel:
@@ -287,20 +398,28 @@ class MTmodel:
 class Layer:
     name: str
     top: float
-    bottom: FloatingPointError
-    weight: PositiveFloat
+    bottom: float
+    weight: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     pymodel: Optional[PYmodel] = None
     tzmodel: Optional[TZmodel] = None
     mtmodel: Optional[MTmodel] = None
     color: Optional[str] = None
 
+    def __post_init__(self):
+        if self.color is None:
+            self.color = generate_color_string()
+
+    def __str__(self):
+        return f"{self.name}\n{self.weight} kN/m3\n{self.pymodel}"
+
     @root_validator
-    def check_elevations(cls, values):
+    def check_elevations(cls, values): #pylint: disable=no-self-argument
         if not values['top'] > values['bottom']:
             print('Bottom elevation is higher than top elevation')
             raise ValueError
         else:
             return values
+    
 
 @dataclass(config=PydanticConfig)
 class SoilProfile:

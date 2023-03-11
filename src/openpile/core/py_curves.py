@@ -1,6 +1,3 @@
-"""
-
-"""
 
 # Import libraries
 import math as m
@@ -8,11 +5,13 @@ import numpy as np
 from numba import njit, prange
 from random import random
 
+# SPRING FUNCTIONS --------------------------------------------
+
 # API sand function
 @njit(parallel=True, cache=True)
-def API_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0.2, output_length:int = 20):
+def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0.2, output_length:int = 20):
     """
-    Creates the API sand p-y curve from relevant input. 
+    Creates the API sand p-y curve from relevant input. See below 
     
     ---------
     input:
@@ -36,7 +35,8 @@ def API_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
             p vector [unit: kPa/metre of pile length]
         y: numpy 1darray 
             y vector [unit: m]
-    ---------    
+    ---------
+    
     """
     # creation of 'y' array
     if ymax < 0.01*D:
@@ -74,7 +74,7 @@ def API_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
 
 # API sand function
 @njit(parallel=True, cache=True)
-def API_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, stiff_clay_threshold=96,Neq:float=1.0, ymax:float=0.2, output_length:int = 20):
+def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, stiff_clay_threshold=96,Neq:float=1.0, ymax:float=0.2, output_length:int = 20):
     """
     Creates the API clay p-y curve from relevant input. 
     
@@ -182,3 +182,4 @@ def API_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, st
             p[i] = 0.23*Pmax        
     
     return p, y
+

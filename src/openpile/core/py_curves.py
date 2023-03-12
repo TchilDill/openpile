@@ -9,7 +9,7 @@ from random import random
 
 # API sand function
 @njit(parallel=True, cache=True)
-def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0.2, output_length:int = 20):
+def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=None, output_length:int = 20):
     """
     Creates the API sand p-y curve from relevant input. See below 
     
@@ -25,9 +25,9 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
             Pile width [unit: m]
         Neq: float, by default 1.0
             Number of equivalent cycles [unit: -]
-        ymax: float, by default 0.2
-            maximum value of y, default is 20% of the pile width
-        output_length: int, by default 20
+        ymax: float, by default None
+            maximum value of y, default goes to 99.9% of ultimate resistance
+        output_length: int, by default 10
             Number of discrete point along the springs
     ---------
     Returns curve with 2 vectors:
@@ -38,12 +38,6 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
     ---------
     
     """
-    # creation of 'y' array
-    if ymax < 0.01*D:
-        ymax = 0.01*D
-    # determine y vector from 0 to ymax 
-    y_ini = np.array([0,],dtype=np.float64)
-    y = np.append(y_ini,np.logspace(np.log10(0.0001*D),np.log10(ymax),output_length-1))
     # A value - only thing that changes between cyclic or static
     if Neq == 1:
         A = max(0.9, 3-0.8*X/D)
@@ -65,8 +59,17 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
     ## Pmax for shallow and deep zones (regular API)
     Pmax = min( C3*sig*D , C1*sig*X + C2*sig*D )
     
-    p = np.zeros(shape=len(y),dtype=np.float64)
+    # creation of 'y' array
+    if ymax is None:
+        ymax = 4*A*Pmax / (k_phi*X)
+
+    # determine y vector from 0 to ymax 
+    # y_ini = np.array([0,],dtype=np.float64)
+    # y = np.append(y_ini,np.logspace(np.log10(0.0001*D),np.log10(ymax),output_length-1))
+    y = np.linspace(0, ymax, output_length)
+    
     ## calculate p vector
+    p = np.zeros(shape=len(y),dtype=np.float32)
     for i in prange(len(y)):
         p[i] = A * Pmax * m.tanh( (k_phi*X*y[i])/(A*Pmax) )
     
@@ -74,7 +77,7 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
 
 # API sand function
 @njit(parallel=True, cache=True)
-def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, stiff_clay_threshold=96,Neq:float=1.0, ymax:float=0.2, output_length:int = 20):
+def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, stiff_clay_threshold=96,Neq:float=1.0, ymax:float=None, output_length:int = 15):
     """
     Creates the API clay p-y curve from relevant input. 
     
@@ -109,12 +112,13 @@ def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, st
             y vector [unit: m]
     ---------    
     """
-    # creation of 'y' array
-    if ymax < 0.01*D:
-        ymax = 0.01*D
     # important variables
     y50 = 2.5*eps50*D
     Xr = max( (6*D) / (sig/X * D/Su + J), 2.5*D)
+    
+    # creation of 'y' array
+    if ymax is None:
+        ymax = 16*y50
     
     # Calculate Pmax (regular API)
     ## Pmax for shallow and deep zones (regular API)
@@ -122,14 +126,14 @@ def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, st
     Pmax_deep    = 9*Su*X
     Pmax = min(Pmax_deep,Pmax_shallow)
     
-    ylist_in = [0,0.1*y50,0.21*y50,1*y50,3*y50,8*y50,15*y50,16*y50,ymax]
+    ylist_in = [0,0.1*y50,0.21*y50,1*y50,3*y50,8*y50,15*y50,ymax]
     ylist_out = []
     for i in range(len(ylist_in)):
         if ylist_in[i] <= ymax:
            ylist_out.append(ylist_in[i]) 
             
     # determine y vector from 0 to ymax
-    y = np.array(ylist_out,dtype=np.float64)
+    y = np.array(ylist_out,dtype=np.float32)
     add_values = output_length - len(y)
     add_y_values = []
     for _ in range(add_values):
@@ -138,7 +142,7 @@ def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, st
     y = np.sort(y)
     
     # define p vector 
-    p = np.zeros(shape=len(y),dtype=np.float64)
+    p = np.zeros(shape=len(y),dtype=np.float32)
     
     for i in prange(len(y)):
         if Neq == 1:

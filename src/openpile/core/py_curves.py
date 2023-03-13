@@ -137,7 +137,7 @@ def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, st
     add_values = output_length - len(y)
     add_y_values = []
     for _ in range(add_values):
-        add_y_values.append(random()*ymax)
+        add_y_values.append(0.1*y50+random()*(ymax - 0.1*y50))
     y = np.append(y, add_y_values)
     y = np.sort(y)
     

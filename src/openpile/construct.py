@@ -19,7 +19,7 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal
-from pydantic import BaseModel, Field, root_validator, PositiveFloat, confloat, conlist
+from pydantic import BaseModel, Field, root_validator, PositiveFloat, confloat, conlist, Extra
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
@@ -34,6 +34,7 @@ from openpile.utils.misc import generate_color_string
 
 class PydanticConfig:
     arbitrary_types_allowed = True
+    extra=Extra.forbid
 
 @dataclass(config=PydanticConfig)
 class Pile:
@@ -305,7 +306,7 @@ class Layer:
             self.color = generate_color_string()
 
     def __str__(self):
-        return f"{self.name}\n{self.weight} kN/m3\n{self.lateral_model}"
+        return f"Name: {self.name}\nElevation: ({self.top}) - ({self.bottom}) m\nWeight: {self.weight} kN/m3\nLateral model: {self.lateral_model}\nAxial model: {self.axial_model}"
 
     @root_validator
     def check_elevations(cls, values): #pylint: disable=no-self-argument
@@ -343,6 +344,16 @@ class SoilProfile:
     #: 1st col: elevation[m], 2nd col: cone resistance[MPa], 3rd col: pore pressure u2 [MPa] 
     #: (the cpt data cannot be given outside the soil profile boundaries defined by the layers)
     cpt_data: Optional[np.ndarray] = None
+    
+    def __str__(self):
+        """List all layers in table-like format"""
+        out = ""
+        i = 0
+        for layer in self.layers:
+            i += 1
+            out += f"Layer {i}\n" + "-"*30 + "\n"
+            out += f"{layer}\n" + "~"*30 + "\n"
+        return out
 
 
 

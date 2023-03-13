@@ -10,7 +10,7 @@ from numba import njit, prange
 
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal
-from pydantic import BaseModel, Field, root_validator, PositiveFloat, confloat, conlist
+from pydantic import BaseModel, Field, root_validator, PositiveFloat, confloat, conlist, Extra
 from pydantic.dataclasses import dataclass
 
 from openpile.utils.misc import from_list2x_parse_top_bottom, var_to_str
@@ -22,6 +22,7 @@ from openpile.core import py_curves
 class PydanticConfigFrozen:
     arbitrary_types_allowed = True
     allow_mutation = False
+    extra=Extra.forbid
     
 class ConstitutiveModel:
     pass
@@ -45,11 +46,11 @@ class API_sand(LateralModel):
 
     def __str__(self):
         if self.Neq == 1:
-            Neq = 'Static'
+            Neq = 'Static, N < 1 cycle'
         else:
-            Neq = 'Cyclic'
+            Neq = 'Cyclic, N = 100 cycles'
               
-        return f"API sand\nphi = {var_to_str(self.phi)}°\n{Neq}"
+        return f"\tAPI sand\n\tphi = {var_to_str(self.phi)}°\n\t{Neq}"
 
     def py_spring_fct(self, 
                    sig:float, 
@@ -59,7 +60,7 @@ class API_sand(LateralModel):
                    D:float,
                    L:float = None, 
                    ymax:float=None, 
-                   output_length:int = 20):
+                   output_length:int = 15):
             
         #validation
         if depth_from_top_of_layer > layer_height:
@@ -68,10 +69,6 @@ class API_sand(LateralModel):
         # define phi
         phi_t, phi_b = from_list2x_parse_top_bottom(self.phi)
         phi = phi_t + (phi_b - phi_t) * depth_from_top_of_layer/layer_height
-        
-        # define ymax
-        if ymax == None:
-            ymax = 0.2*D
               
         return py_curves.api_sand(sig=sig, 
                         X=X, 
@@ -101,11 +98,11 @@ class API_clay(LateralModel):
     
     def __str__(self):  
         if self.Neq == 1:
-            Neq = 'Static'
+            Neq = 'Static, N < 1 cycle'
         else:
-            Neq = 'Cyclic'
+            Neq = 'Cyclic, N = 100 cycles'
                     
-        return f"API clay\nSu = {var_to_str(self.Su)} kPa\neps50 = {var_to_str(self.eps50)}\n{Neq}"
+        return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{Neq}"
     
     def py_spring_fct(self, 
                    sig:float, 
@@ -115,7 +112,7 @@ class API_clay(LateralModel):
                    D:float, 
                    L:float = None,
                    ymax:float=None, 
-                   output_length:int = 20):
+                   output_length:int = 15):
                     
         #validation
         if depth_from_top_of_layer > layer_height:
@@ -128,10 +125,6 @@ class API_clay(LateralModel):
         # define eps50
         eps50_t, eps50_b = from_list2x_parse_top_bottom(self.eps50)
         eps50 = eps50_t + (eps50_b - eps50_t) * depth_from_top_of_layer/layer_height
-        
-        # define ymax
-        if ymax == None:
-            ymax = 0.2*D
                 
         return py_curves.api_clay(sig=sig, 
                         X=X, 

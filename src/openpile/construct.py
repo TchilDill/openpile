@@ -345,6 +345,27 @@ class SoilProfile:
     #: (the cpt data cannot be given outside the soil profile boundaries defined by the layers)
     cpt_data: Optional[np.ndarray] = None
     
+    @root_validator
+    def check_layers_elevations(cls,values): # pylint: disable=no-self-argument
+        layers = values['layers']
+        
+        top_elevations = np.array([x.top for x in layers], dtype=float)
+        bottom_elevations = np.array([x.bottom for x in layers], dtype=float)  
+        idx_sort = np.argsort(top_elevations)        
+        
+        top_sorted = top_elevations[idx_sort][::-1]     
+        bottom_sorted = bottom_elevations[idx_sort][::-1] 
+        
+        #check no overlap
+        if top_sorted[0] != values['top_elevation']:
+            raise ValueError("top_elevation not matching uppermost layer's elevations.")
+        
+        for i in range(len(top_sorted)-1):            
+            if not m.isclose(top_sorted[i+1], bottom_sorted[i], abs_tol=0.001):
+                raise ValueError("Layers' elevations overlap.")
+    
+        return values
+    
     def __str__(self):
         """List all layers in table-like format"""
         out = ""
@@ -386,6 +407,9 @@ class Mesh:
     x2mesh: List[float] = Field(default_factory=list)
     #: mesh coarseness, represent the maximum accepted length of elements
     coarseness: float = 0.5
+    rotational_springs: bool = False
+    base_shear_spring: bool = False
+    base_moment_spring: bool = False
     
     def get_structural_properties(self) -> pd.DataFrame:
         """
@@ -419,7 +443,8 @@ class Mesh:
             x = np.append(x,self.pile.data['Elevation [m]'].values)
             # add soil relevant layers and others
             if self.soil is not None:
-                x = np.append(x,self.soil.data['Elevation [m]'].values)
+                soil_elevations = np.array([x.top for x in self.soil.layers]+[x.bottom for x in self.soil.layers], dtype=float)
+                x = np.append(x,soil_elevations)
             # add user-defined elevation
             x = np.append(x, self.x2mesh)
             
@@ -466,6 +491,25 @@ class Mesh:
             
             return nodes, element
         
+            # function doing the work
+    
+        def get_vertical_effective_stress():
+            pass
+    
+        def create_springs():
+            
+            #dim of springs
+            spring_dim = 15
+            
+            # Allocate array
+            py = np.zeros(shape=(self.element_number,2,2,spring_dim),dtype=np.float32)
+            mt = np.zeros(shape=(self.element_number,2,2,spring_dim),dtype=np.float32)
+            tz = np.zeros(shape=(self.element_number,2,2,15),dtype=np.float32)
+            Hb = np.zeros(shape=(1,1,2,spring_dim),dtype=np.float32)
+            Mb = np.zeros(shape=(1,1,2,spring_dim),dtype=np.float32)
+            
+            # fill in spring for each element
+            
         # creates mesh coordinates
         self.nodes_coordinates, self.element_coordinates = get_coordinates()
         self.element_number = int(self.element_coordinates.shape[0])
@@ -483,12 +527,6 @@ class Mesh:
         self.element_properties.drop('Elevation [m]', inplace=True, axis=1)
         #reset index
         self.element_properties.reset_index(inplace=True, drop=True)
-        
-        # create element soil properties
-        if self.soil is None:
-            self.soil_properties = None
-        else:
-            self.soil_properties = pd.DataFrame()
 
         # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
         self.global_forces = self.nodes_coordinates.copy()
@@ -508,7 +546,10 @@ class Mesh:
         self.global_restrained['Ty'] = False
         self.global_restrained['Rz'] = False
 
-    def ssis(self) -> pd.DataFrame: 
+
+        # self.py_springs, self.mt_springs, self.Hb_spring, self.Mb_spring = create_springs()
+
+    def ssis(self, flag) -> pd.DataFrame: 
         """Returns the soil springs in one DataFrame
 
         Returns
@@ -517,15 +558,27 @@ class Mesh:
             Soil springs 
         """
         
-        # function doing the work
-        def create_springs():
+        def springs_to_df(springs) -> pd.DataFrame:
             pass
         
         # main part of function
         if self.soil is None:
             RuntimeError('No soil found. Please create the mesh first with soil.')
-        else: 
-            self.soil_springs = create_springs()
+        else:
+            if flag == 'py':
+                springs_df = springs_to_df(self.py_springs)
+            elif flag == 'mt':
+                springs_df = springs_to_df(self.mt_springs)
+            elif flag == 'Hb':
+                springs_df = springs_to_df(self.Hb_spring)
+            elif flag == 'Mb':
+                springs_df = springs_to_df(self.Mb_spring)
+            elif flag == 'tz':
+                springs_df = springs_to_df(self.tz_springs)
+            else:
+                ValueError("flag should be one of ['py','mt','Hb','Mb']")
+
+        return springs_df
     
     def get_pointload(self, output = False, verbose = True):
         """

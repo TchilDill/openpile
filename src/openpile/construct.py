@@ -493,8 +493,23 @@ class Mesh:
         
             # function doing the work
     
-        def get_vertical_effective_stress():
-            pass
+        def get_vertical_effective_stress() -> pd.DataFrame:
+            top_elevations = [x.top for x in self.soil.layers]
+            bottom_elevations = [x.bottom for x in self.soil.layers]
+            soil_weights =  [x.weight for x in self.soil.layers]
+            idx_sort = np.argsort(top_elevations)[::-1]
+            
+            #calculate vertical stress
+            v_stress = [0.0,]
+            for uw, top, bottom in zip(soil_weights[idx_sort], 
+                                       top_elevations[idx_sort], 
+                                       bottom_elevations[idx_sort]):
+                v_stress.append(v_stress[-1] + uw*(top-bottom))
+                
+            x = top_elevations[idx_sort].append(bottom_elevations[idx_sort][-1])
+                
+            return pd.DataFrame(data={'x [m]': x,
+                               "Sigma_v [kPa]": v_stress}, dtype=np.float64)
     
         def create_springs():
             

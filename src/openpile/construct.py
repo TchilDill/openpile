@@ -19,7 +19,7 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal
-from pydantic import BaseModel, Field, root_validator, PositiveFloat, confloat, conlist, Extra
+from pydantic import BaseModel, Field, root_validator, validator, PositiveFloat, confloat, conlist, Extra
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
@@ -197,7 +197,14 @@ class Pile:
         obj._postinit()
 
         return obj
-      
+
+    @property
+    def bottom_elevation(self) -> float: 
+        """
+        Bottom elevation of the pile.
+        """
+        return self.top_elevation - sum(self.pile_sections['length']) 
+              
     @property
     def E(self) -> float: 
         """
@@ -375,6 +382,24 @@ class SoilProfile:
             out += f"Layer {i}\n" + "-"*30 + "\n"
             out += f"{layer}\n" + "~"*30 + "\n"
         return out
+    
+    def _postinit(self):
+        pass
+    
+    @property
+    def bottom_elevation(self) -> float: 
+        """
+        Bottom elevation of the soil profile.
+        """
+        return self.top_elevation - sum([abs(x.top - x.bottom) for x in self.layers]) 
+    
+    @classmethod
+    def create(cls, name: str, top_elevation: float, water_elevation: float, layers: List[Layer], cpt_data: Optional[np.ndarray] = None):
+        
+        obj = cls(name=name, top_elevation=top_elevation, water_elevation=water_elevation, layers=layers, cpt_data=cpt_data)
+        obj._postinit()
+        
+        return obj  
 
 
 
@@ -410,6 +435,12 @@ class Mesh:
     rotational_springs: bool = False
     base_shear_spring: bool = False
     base_moment_spring: bool = False
+    
+    @root_validator
+    def soil_and_pile_bottom_elevation_match(cls, values): # pylint: disable=no-self-argument
+        if values['pile'].bottom_elevation < values['soil'].bottom_elevation:
+            raise UserWarning('The pile ends deeper than the soil profile.')
+        return values
     
     def get_structural_properties(self) -> pd.DataFrame:
         """
@@ -493,23 +524,30 @@ class Mesh:
         
             # function doing the work
     
-        def get_vertical_effective_stress() -> pd.DataFrame:
+        def get_soil_profile() -> pd.DataFrame:
             top_elevations = [x.top for x in self.soil.layers]
             bottom_elevations = [x.bottom for x in self.soil.layers]
             soil_weights =  [x.weight for x in self.soil.layers]
+            
             idx_sort = np.argsort(top_elevations)[::-1]
             
-            #calculate vertical stress
-            v_stress = [0.0,]
-            for uw, top, bottom in zip(soil_weights[idx_sort], 
-                                       top_elevations[idx_sort], 
-                                       bottom_elevations[idx_sort]):
-                v_stress.append(v_stress[-1] + uw*(top-bottom))
-                
-            x = top_elevations[idx_sort].append(bottom_elevations[idx_sort][-1])
-                
-            return pd.DataFrame(data={'x [m]': x,
-                               "Sigma_v [kPa]": v_stress}, dtype=np.float64)
+            top_elevations = [top_elevations[i] for i in idx_sort]
+            soil_weights = [soil_weights[i] for i in idx_sort]
+            bottom_elevations = [bottom_elevations[i] for i in idx_sort]
+            
+            
+            # #calculate vertical stress
+            # v_stress = [0.0,]
+            # for uw, top, bottom in zip(soil_weights, top_elevations, bottom_elevations):
+            #     v_stress.append(v_stress[-1] + uw*(top-bottom))
+            
+            # elevation in model w.r.t to x axis    
+            x = top_elevations
+            # elevation w.r.t. ground elevation
+            xg = [z - x[0] for z in x]
+            
+            return pd.DataFrame(data={'Top soil layer [m]': x,
+                                      "Unit Weight [kN/m3]": soil_weights}, dtype=np.float64)
     
         def create_springs():
             
@@ -524,7 +562,7 @@ class Mesh:
             Mb = np.zeros(shape=(1,1,2,spring_dim),dtype=np.float32)
             
             # fill in spring for each element
-            
+              
         # creates mesh coordinates
         self.nodes_coordinates, self.element_coordinates = get_coordinates()
         self.element_number = int(self.element_coordinates.shape[0])
@@ -532,7 +570,7 @@ class Mesh:
         # creates element structural properties
         #merge Pile.data and self.coordinates
         self.element_properties = pd.merge_asof(left= self.element_coordinates.sort_values(by=['x_top [m]']),
-                                                right= self.pile.data.drop_duplicates(subset='Elevation [m]',keep='last').sort_values(by=['Elevation [m]']),
+                                                right= self.pile.data.sort_values(by=['Elevation [m]']),
                                                 left_on='x_top [m]',
                                                 right_on='Elevation [m]',
                                                 direction='forward').sort_values(by=['x_top [m]'],ascending=False)
@@ -542,6 +580,21 @@ class Mesh:
         self.element_properties.drop('Elevation [m]', inplace=True, axis=1)
         #reset index
         self.element_properties.reset_index(inplace=True, drop=True)
+
+        # create soil properties
+        self.soil_properties = pd.merge_asof(left= self.element_coordinates[['x_top [m]','x_bottom [m]']].sort_values(by=['x_top [m]']),
+                                                right= get_soil_profile().sort_values(by=['Top soil layer [m]']),
+                                                left_on='x_top [m]',
+                                                right_on='Top soil layer [m]',
+                                                direction='forward').sort_values(by=['x_top [m]'],ascending=False)
+        
+        s =  (self.soil_properties['x_top [m]'] - self.soil_properties['x_bottom [m]']) * self.soil_properties["Unit Weight [kN/m3]"]
+        
+        self.soil_properties['sigma_v top [kPa]'] = np.insert(s.cumsum().values[:-1], 
+                                                              np.where(self.soil_properties['x_top [m]'].values==self.soil.top_elevation)[0], 
+                                                              0.0)
+        self.soil_properties['sigma_v bottom [kPa]'] = s.cumsum()
+        
 
         # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
         self.global_forces = self.nodes_coordinates.copy()

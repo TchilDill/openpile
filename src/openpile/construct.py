@@ -204,6 +204,14 @@ class Pile:
         Bottom elevation of the pile.
         """
         return self.top_elevation - sum(self.pile_sections['length']) 
+
+    @property
+    def length(self) -> float: 
+        """
+        Pile length.
+        """
+        return sum(self.pile_sections['length']) 
+          
               
     @property
     def E(self) -> float: 
@@ -549,7 +557,7 @@ class Mesh:
             return pd.DataFrame(data={'Top soil layer [m]': x,
                                       "Unit Weight [kN/m3]": soil_weights}, dtype=np.float64)
     
-        def create_springs():
+        def create_springs() -> np.ndarray:
             
             #dim of springs
             spring_dim = 15
@@ -557,11 +565,37 @@ class Mesh:
             # Allocate array
             py = np.zeros(shape=(self.element_number,2,2,spring_dim),dtype=np.float32)
             mt = np.zeros(shape=(self.element_number,2,2,spring_dim),dtype=np.float32)
-            tz = np.zeros(shape=(self.element_number,2,2,15),dtype=np.float32)
             Hb = np.zeros(shape=(1,1,2,spring_dim),dtype=np.float32)
             Mb = np.zeros(shape=(1,1,2,spring_dim),dtype=np.float32)
             
+            tz = np.zeros(shape=(self.element_number,2,2,15),dtype=np.float32)
+
             # fill in spring for each element
+            for layer in self.soil.layers: 
+                elements_for_layer = self.soil_properties.loc[
+                    (self.soil_properties['x_top [m]'] <= layer.top) 
+                     & (self.soil_properties['x_bottom [m]'] >= layer.bottom)
+                    ].index
+                #py curve
+                if layer.lateral_model.spring_signature[0]: #True if py spring function exist
+                    for i in elements_for_layer:
+                        sig_v = self.soil_properties[['sigma_v top [kPa]','sigma_v bottom [kPa]']].iloc[i]
+                        elevation = self.soil_properties[['x_top [m]', 'x_bottom [m]']].iloc[i]
+                        depth_from_ground = (self.soil_properties[['xg_top [m]','xg_bottom [m]']].iloc[i]).abs()
+                        pile_width = self.element_properties['Diameter [m]'].iloc[i]
+
+                        # top and bottom of element
+                        for j in [0,1]:
+                            py[i, j, 0, :], py[i, j, 1, :] = layer.lateral_model.py_spring_fct(
+                                sig=sig_v[j],
+                                X = depth_from_ground[j],
+                                layer_height = (layer.top - layer.bottom),
+                                depth_from_top_of_layer = (layer.top - elevation[j]),
+                                D = pile_width, 
+                                L = self.pile.length,
+                                output_length = spring_dim)
+            
+            return py, mt, Hb, Mb, tz
               
         # creates mesh coordinates
         self.nodes_coordinates, self.element_coordinates = get_coordinates()
@@ -587,14 +621,18 @@ class Mesh:
                                                 left_on='x_top [m]',
                                                 right_on='Top soil layer [m]',
                                                 direction='forward').sort_values(by=['x_top [m]'],ascending=False)
-        
+        # add elevation of element w.r.t. ground level
+        self.soil_properties['xg_top [m]'] = self.soil_properties['x_top [m]'] - self.soil.top_elevation
+        self.soil_properties['xg_bottom [m]'] = self.soil_properties['x_bottom [m]'] - self.soil.top_elevation
+        # add vertical stress at top and bottom of each element
         s =  (self.soil_properties['x_top [m]'] - self.soil_properties['x_bottom [m]']) * self.soil_properties["Unit Weight [kN/m3]"]
-        
         self.soil_properties['sigma_v top [kPa]'] = np.insert(s.cumsum().values[:-1], 
                                                               np.where(self.soil_properties['x_top [m]'].values==self.soil.top_elevation)[0], 
                                                               0.0)
         self.soil_properties['sigma_v bottom [kPa]'] = s.cumsum()
-        
+        #reset index
+        self.soil_properties.reset_index(inplace=True, drop=True)
+
 
         # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
         self.global_forces = self.nodes_coordinates.copy()
@@ -615,8 +653,8 @@ class Mesh:
         self.global_restrained['Rz'] = False
 
 
-        # self.py_springs, self.mt_springs, self.Hb_spring, self.Mb_spring = create_springs()
-
+        self._py, mt, Hb, Mb, tz = create_springs()
+    
     def ssis(self, flag) -> pd.DataFrame: 
         """Returns the soil springs in one DataFrame
 
@@ -626,8 +664,15 @@ class Mesh:
             Soil springs 
         """
         
-        def springs_to_df(springs) -> pd.DataFrame:
-            pass
+        def springs_to_df(springs:np.ndarray) -> pd.DataFrame:
+            spring_dim = springs.shape[-1]
+            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
+            
+            springs = springs.reshape(shape=(-1,spring_dim))
+            
+            df = pd.DataFrame()
+            #TODO
+            return df
         
         # main part of function
         if self.soil is None:

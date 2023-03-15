@@ -9,7 +9,7 @@ from random import random
 
 # API sand function
 @njit(parallel=True, cache=True)
-def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=None, output_length:int = 20):
+def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0.0, output_length:int = 20):
     """
     Creates the API sand p-y curve from relevant input. See below 
     
@@ -25,7 +25,7 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=N
             Pile width [unit: m]
         Neq: float, by default 1.0
             Number of equivalent cycles [unit: -]
-        ymax: float, by default None
+        ymax: float, by default 0.0
             maximum value of y, default goes to 99.9% of ultimate resistance
         output_length: int, by default 10
             Number of discrete point along the springs
@@ -60,7 +60,7 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=N
     Pmax = min( C3*sig*D , C1*sig*X + C2*sig*D )
     
     # creation of 'y' array
-    if ymax is None:
+    if ymax == 0.0:
         ymax = 4*A*Pmax / (k_phi*X)
 
     # determine y vector from 0 to ymax 
@@ -77,7 +77,7 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=N
 
 # API sand function
 @njit(parallel=True, cache=True)
-def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, stiff_clay_threshold=96,Neq:float=1.0, ymax:float=None, output_length:int = 15):
+def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, stiff_clay_threshold=96,Neq:float=1.0, ymax:float=0.0, output_length:int = 15):
     """
     Creates the API clay p-y curve from relevant input. 
     
@@ -100,8 +100,8 @@ def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, st
             undrained shear strength at which stiff clay curve is computed [unit: kPa]
         Neq: float, by default 1.0
             Number of equivalent cycles [unit: -]
-        ymax: float, by default 0.2 
-            maximum value of y, default is 20% of the pile width
+        ymax: float, by default 0.0 
+            maximum value of y, if null the maximum is calculated such that the whole curve is computed
         output_length: int, by default 20
             Number of discrete point along the springs
     ---------
@@ -114,10 +114,13 @@ def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, st
     """
     # important variables
     y50 = 2.5*eps50*D
-    Xr = max( (6*D) / (sig/X * D/Su + J), 2.5*D)
+    if X == 0.0 or Su == 0:
+        Xr = 2.5*D 
+    else:
+        Xr = max( (6*D) / (sig/X * D/Su + J), 2.5*D)
     
     # creation of 'y' array
-    if ymax is None:
+    if ymax == 0.0:
         ymax = 16*y50
     
     # Calculate Pmax (regular API)
@@ -126,11 +129,11 @@ def api_clay(sig:float, X:float, Su:float, eps50:float, D:float, J:float=0.5, st
     Pmax_deep    = 9*Su*X
     Pmax = min(Pmax_deep,Pmax_shallow)
     
-    ylist_in = [0,0.1*y50,0.21*y50,1*y50,3*y50,8*y50,15*y50,ymax]
+    ylist_in = [0.0,0.1*y50,0.21*y50,1*y50,3*y50,8*y50,15*y50,ymax]
     ylist_out = []
     for i in range(len(ylist_in)):
         if ylist_in[i] <= ymax:
-           ylist_out.append(ylist_in[i]) 
+            ylist_out.append(ylist_in[i])
             
     # determine y vector from 0 to ymax
     y = np.array(ylist_out,dtype=np.float32)

@@ -59,7 +59,7 @@ class API_sand(LateralModel):
                    depth_from_top_of_layer:float, 
                    D:float,
                    L:float = None, 
-                   ymax:float=None, 
+                   ymax:float=0.0, 
                    output_length:int = 15):
             
         #validation
@@ -111,7 +111,7 @@ class API_clay(LateralModel):
                    depth_from_top_of_layer:float, 
                    D:float, 
                    L:float = None,
-                   ymax:float=None, 
+                   ymax:float=0.0, 
                    output_length:int = 15):
                     
         #validation

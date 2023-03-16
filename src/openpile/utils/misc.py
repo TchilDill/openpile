@@ -2,6 +2,8 @@
 
 
 import random
+import numpy as np
+
 from matplotlib.colors import CSS4_COLORS 
 
 
@@ -33,4 +35,13 @@ def var_to_str(var):
 
 def generate_color_string():
     colors = list(CSS4_COLORS.values())
-    return colors[random.randint(0,len(colors))]
+    return colors[random.randint(0,len(colors)-1)]
+
+def repeat_inner(arr):
+    
+    arr = arr.reshape(-1,1)
+    
+    arr_inner = arr[1:-1]
+    arr_inner = np.tile(arr_inner,(2)).reshape(-1)
+    
+    return np.hstack([arr[0],arr_inner,arr[-1]])

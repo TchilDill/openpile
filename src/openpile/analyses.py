@@ -13,10 +13,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 # from pydantic import BaseModel, Field, root_validator
 from pydantic.dataclasses import dataclass
+
 import openpile.utils.kernel as kernel 
 import openpile.utils.validation as validation
 import openpile.utils.graphics as graphics
-
+import openpile.utils.misc as misc
 
 class PydanticConfig:
     arbitrary_types_allowed = True
@@ -70,18 +71,9 @@ def simple_beam_analysis(mesh):
         Results of the analysis where
     """
     
-    def repeat_inner(arr):
-        
-        arr = arr.reshape(-1,1)
-        
-        arr_inner = arr[1:-1]
-        arr_inner = np.tile(arr_inner,(2)).reshape(-1)
-        
-        return np.hstack([arr[0],arr_inner,arr[-1]])
-    
     def structural_forces_to_df(mesh,q):
             x = mesh.nodes_coordinates['x [m]'].values
-            x = repeat_inner(x)
+            x = misc.repeat_inner(x)
             L = kernel.mesh_to_element_length(mesh).reshape(-1)
 
             N = np.vstack( (-q[0::6], q[3::6]) ).reshape(-1,order='F')

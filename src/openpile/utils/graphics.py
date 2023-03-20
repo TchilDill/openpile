@@ -54,7 +54,7 @@ def plot_results(result):
            
     return fig
 
-def connectivity_plot(mesh):
+def connectivity_plot(model):
     #TODO docstring
     
     support_color = 'b'
@@ -67,17 +67,17 @@ def connectivity_plot(mesh):
     ax.grid(which='both')
     
     # plot mesh with + scatter points to see nodes.
-    x = mesh.nodes_coordinates['x [m]']
-    y = mesh.nodes_coordinates['y [m]']
+    x = model.nodes_coordinates['x [m]']
+    y = model.nodes_coordinates['y [m]']
     ax.plot(y,x,'-k',marker='+')
     
-    total_length = max( (mesh.nodes_coordinates['x [m]'].max() - mesh.nodes_coordinates['x [m]'].min()) , (mesh.nodes_coordinates['y [m]'].max() - mesh.nodes_coordinates['y [m]'].min() ) )
+    total_length = max( (model.nodes_coordinates['x [m]'].max() - model.nodes_coordinates['x [m]'].min()) , (model.nodes_coordinates['y [m]'].max() - model.nodes_coordinates['y [m]'].min() ) )
 
     ylim = ax.get_ylim()
     
     # plots SUPPORTS
     # Plot supports along x
-    support_along_x = mesh.global_restrained['Tx'].values
+    support_along_x = model.global_restrained['Tx'].values
     support_along_x_down = np.copy(support_along_x)
     support_along_x_down[-1] = False
     support_along_x_up = np.copy(support_along_x)
@@ -86,11 +86,11 @@ def connectivity_plot(mesh):
     ax.scatter(y[support_along_x_up],x[support_along_x_up], color=support_color, marker=6, s=100)
     
     # Plot supports along y    
-    support_along_y = mesh.global_restrained['Ty'].values
+    support_along_y = model.global_restrained['Ty'].values
     ax.scatter(y[support_along_y],x[support_along_y], color=support_color, marker=5, s=100)
     
     # Plot supports along z
-    support_along_z = mesh.global_restrained['Rz'].values
+    support_along_z = model.global_restrained['Rz'].values
     ax.scatter(y[support_along_z],x[support_along_z], color=support_color, marker='s', s=35)
 
     # plot LOADS
@@ -98,8 +98,8 @@ def connectivity_plot(mesh):
     
     normalized_arrow_size = 0.10*total_length #max arrow length will be 20% of the total structure length
     
-    load_max =  mesh.global_forces['Py [kN]'].abs().max()   
-    for yval, xval, load in zip(x, y, mesh.global_forces['Py [kN]']):
+    load_max =  model.global_forces['Py [kN]'].abs().max()   
+    for yval, xval, load in zip(x, y, model.global_forces['Py [kN]']):
         if load == 0:
             pass
         else:
@@ -111,8 +111,8 @@ def connectivity_plot(mesh):
             elif load < 0:
                 arrows.append(FancyArrowPatch(( arrow_length, yval),(xval, yval),**kw))
     
-    load_max =  mesh.global_forces['Px [kN]'].abs().max()    
-    for idx, (yval, xval, load) in enumerate(zip(x, y, mesh.global_forces['Px [kN]'])):
+    load_max =  model.global_forces['Px [kN]'].abs().max()    
+    for idx, (yval, xval, load) in enumerate(zip(x, y, model.global_forces['Px [kN]'])):
         if load == 0:
             pass
         else:
@@ -130,8 +130,8 @@ def connectivity_plot(mesh):
                 else:
                     arrows.append(FancyArrowPatch((xval,yval+arrow_length),(xval, yval),**kw))
     
-    load_max =  mesh.global_forces['Mz [kNm]'].abs().max()     
-    for idx, (yval, xval, load) in enumerate(zip(x, y, mesh.global_forces['Mz [kNm]'])):
+    load_max =  model.global_forces['Mz [kNm]'].abs().max()     
+    for idx, (yval, xval, load) in enumerate(zip(x, y, model.global_forces['Mz [kNm]'])):
         if load == 0:
             pass
         else:

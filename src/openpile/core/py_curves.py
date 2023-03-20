@@ -61,7 +61,13 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
     
     # creation of 'y' array
     if ymax == 0.0:
-        ymax = 4*A*Pmax / (k_phi*X)
+        # ensure X cannot be zero
+        z = max(X,0.1)
+        if Pmax == 0:
+            f = ( C3*D + C2*D )/2
+        else:
+            f = Pmax 
+        ymax = 4*A*f / (k_phi*z)
 
     # determine y vector from 0 to ymax 
     # y_ini = np.array([0,],dtype=np.float64)
@@ -71,7 +77,10 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
     ## calculate p vector
     p = np.zeros(shape=len(y),dtype=np.float32)
     for i in prange(len(y)):
-        p[i] = A * Pmax * m.tanh( (k_phi*X*y[i])/(A*Pmax) )
+        if Pmax == 0:
+            p[i] = 0
+        else:
+            p[i] = A * Pmax * m.tanh( (k_phi*X*y[i])/(A*Pmax) )
     
     return p, y
 

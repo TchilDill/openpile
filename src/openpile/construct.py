@@ -10,7 +10,7 @@ This include:
 
 - the pile
 - the soil profile
-- the mesh
+- the Model
 
 """
 
@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 import openpile.utils.graphics as graphics
 import openpile.utils.validation as validation
 import openpile.core.soilmodels as soilmodels
+
+from openpile.utils import misc
 
 from openpile.core.soilmodels import ConstitutiveModel
 
@@ -412,27 +414,27 @@ class SoilProfile:
 
 
 @dataclass(config=PydanticConfig)
-class Mesh:
+class Model:
     """
-    A class to create the mesh.
+    A class to create the Model.
 
-    The mesh is constructed based on the pile geometry/data primarily.
-    Additionally, a soil profile can be fed to the mesh, and soil springs can be created. 
+    The Model is constructed based on the pile geometry/data primarily.
+    Additionally, a soil profile can be fed to the Model, and soil springs can be created. 
         
     Example
     -------
     
-    >>> from openpile.construct import Pile, Mesh    
+    >>> from openpile.construct import Pile, Model    
     
-    >>> # create mesh without soil maximum 5 metres apart.
-    >>> mesh_without_soil = Mesh.create(pile=p, coarseness=5)
-    >>> # create mesh with nodes maximum 1 metre apart with soil springs
-    >>> mesh_with_soil = Mesh.create(pile=p, soil=sp, coarseness=1)
+    >>> # create Model without soil maximum 5 metres apart.
+    >>> Model_without_soil = Model.create(pile=p, coarseness=5)
+    >>> # create Model with nodes maximum 1 metre apart with soil springs
+    >>> Model_with_soil = Model.create(pile=p, soil=sp, coarseness=1)
 
     """
-    #: pile instance that the mesh should consider
+    #: pile instance that the Model should consider
     pile: Pile
-    #: soil profile instance that the mesh should consider
+    #: soil profile instance that the Model should consider
     soil: Optional[SoilProfile] = None
     #: "EB" for Euler-Bernoulli or "T" for Timoshenko
     element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko'
@@ -440,9 +442,14 @@ class Mesh:
     x2mesh: List[float] = Field(default_factory=list)
     #: mesh coarseness, represent the maximum accepted length of elements
     coarseness: float = 0.5
-    rotational_springs: bool = False
-    base_shear_spring: bool = False
-    base_moment_spring: bool = False
+    #: whether to include p-y springs in the calculations
+    distributed_lateral: bool = True
+    #: whether to include m-t springs in the calculations
+    distributed_moment: bool = False
+    #: whether to include Hb-y springs in the calculations
+    base_shear: bool = False
+    #: whether to include Mb-t springs in the calculations
+    base_moment: bool = False
     
     @root_validator
     def soil_and_pile_bottom_elevation_match(cls, values): # pylint: disable=no-self-argument
@@ -457,7 +464,7 @@ class Mesh:
         try: 
             return self.element_properties
         except AttributeError:
-            print('Data not found. Please create mesh with the Mesh.create() method.')
+            print('Data not found. Please create Model with the Model.create() method.')
         except Exception as e:
             print(e)
 
@@ -468,7 +475,7 @@ class Mesh:
         try:
             return self.soil_properties
         except AttributeError:
-            print('Data not found. Please create mesh with the Mesh.create() method.')
+            print('Data not found. Please create Model with the Model.create() method.')
         except Exception as e:
             print(e)
 
@@ -653,45 +660,70 @@ class Mesh:
         self.global_restrained['Rz'] = False
 
 
-        self._py, mt, Hb, Mb, tz = create_springs()
+        self.py_springs, self.mt_springs, self.Hb_spring, self.Mb_spring, self.tz_springs = create_springs()
     
-    def ssis(self, flag) -> pd.DataFrame: 
-        """Returns the soil springs in one DataFrame
+    
+
+    def soil_springs(self, kind:Literal['p-y','m-t','Hb-y','Mb-t','t-z']) -> pd.DataFrame: 
+        """
+        Returns soil springs created for the given model in one DataFrame.
+
+        Parameters
+        ----------
+        kind : str
+            type of spring to extract.
 
         Returns
         -------
         pd.DataFrame
-            Soil springs 
+            Soil springs
         """
         
-        def springs_to_df(springs:np.ndarray) -> pd.DataFrame:
+        def springs_to_df(springs:np.ndarray, flag) -> pd.DataFrame:
             spring_dim = springs.shape[-1]
             column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
             
-            springs = springs.reshape(shape=(-1,spring_dim))
+            id = np.repeat(np.arange(self.element_number),4)
+            x = np.repeat(misc.repeat_inner(self.nodes_coordinates['x [m]'].values),2)
             
-            df = pd.DataFrame()
-            #TODO
+            if len(x) > 2:
+                t_b = ["top","bottom"]*int(len(x)/2)
+            
+                df = pd.DataFrame(data = {
+                    "Element no.":id,
+                    "Position":t_b,
+                    "Elevation [m]": x, 
+                    })
+            else:
+                df = pd.DataFrame(data = {
+                    "Element no.":id,
+                    "Elevation [m]": x, 
+                    })
+
+            df['type'] = flag.split("-")*int(len(x)/2)
+            df[column_values_spring] = np.reshape(springs, (-1,spring_dim))
+
             return df
         
         # main part of function
         if self.soil is None:
-            RuntimeError('No soil found. Please create the mesh first with soil.')
+            RuntimeError('No soil found. Please create the Model first with soil.')
         else:
-            if flag == 'py':
-                springs_df = springs_to_df(self.py_springs)
-            elif flag == 'mt':
-                springs_df = springs_to_df(self.mt_springs)
-            elif flag == 'Hb':
-                springs_df = springs_to_df(self.Hb_spring)
-            elif flag == 'Mb':
-                springs_df = springs_to_df(self.Mb_spring)
-            elif flag == 'tz':
-                springs_df = springs_to_df(self.tz_springs)
+            if kind == 'p-y':
+                springs_df = springs_to_df(self.py_springs, flag=kind)
+            elif kind == 'm-t':
+                springs_df = springs_to_df(self.mt_springs, flag=kind)
+            elif kind == 'Hb-y':
+                springs_df = springs_to_df(self.Hb_spring, flag=kind)
+            elif kind == 'Mb-t':
+                springs_df = springs_to_df(self.Mb_spring, flag=kind)
+            elif kind == 't-z':
+                springs_df = springs_to_df(self.tz_springs, flag=kind)
             else:
-                ValueError("flag should be one of ['py','mt','Hb','Mb']")
+                ValueError("kind should be one of ['p-y','m-t','Hb-y','Mb-t','t-z']")
 
         return springs_df
+    
     
     def get_pointload(self, output = False, verbose = True):
         """
@@ -715,8 +747,9 @@ class Mesh:
             if output is True:
                 return out
         except Exception:
-            print('No data found. Please create the mesh first.')
+            print('No data found. Please create the Model first.')
             raise
+    
         
     def set_pointload(self, elevation:float=0.0, Py:float=0.0, Px:float=0.0, Mz:float=0.0):
         """
@@ -755,10 +788,11 @@ class Mesh:
                 if elevation > self.nodes_coordinates['x [m]'].iloc[0] or elevation < self.nodes_coordinates['x [m]'].iloc[-1]:
                     print("Load not applied! The chosen elevation is outside the mesh. The load must be applied on the structure.")
                 else:
-                    print("Load not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the mesh.")
+                    print("Load not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model.")
         except Exception:
-            print("\n!User Input Error! Please create mesh first with the Mesh.create().\n")
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
+
 
     def set_support(self, elevation:float=0.0, Ty:bool=False, Tx:bool=False, Rz:bool=False):
         """
@@ -797,23 +831,36 @@ class Mesh:
                 if elevation > self.nodes_coordinates['x [m]'].iloc[0] or elevation < self.nodes_coordinates['x [m]'].iloc[-1]:
                     print("Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure.")
                 else:
-                    print("Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the mesh.")
+                    print("Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model.")
         except Exception:
-            print("\n!User Input Error! Please create mesh first with the Mesh.create().\n")
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
+
         
     def plot(self, assign = False):
         fig = graphics.connectivity_plot(self)
         return fig if assign else None
 
+
     @classmethod
-    def create(cls, pile: Pile, soil: Optional[SoilProfile] = None, element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', x2mesh: List[float] = Field(default_factory=list), coarseness: float = 0.5):
+    def create(cls, 
+               pile: Pile, 
+               soil: Optional[SoilProfile] = None, 
+               element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', 
+               x2mesh: List[float] = Field(default_factory=list), 
+               coarseness: float = 0.5,
+               py_springs: bool = True,
+               mt_springs: bool = False,
+               Hb_spring: bool = False,
+               Mb_spring: bool = False
+               ):
         
         obj = cls(pile=pile, soil=soil, element_type=element_type, x2mesh=x2mesh, coarseness=coarseness)
         obj._postinit()
         
         return obj
     
+
     def __str__(self):
         return self.element_properties.to_string()
 

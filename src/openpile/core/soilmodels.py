@@ -36,7 +36,7 @@ class AxialModel(ConstitutiveModel):
 @dataclass(config=PydanticConfigFrozen)
 class API_sand(LateralModel):  
     #: soil friction angle [deg], if a variation in values, two values can be given.
-    phi: Union[float, conlist(float, min_items=1, max_items=2)]
+    phi: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: Number of equivalent cycles of the curve. 1 = static curve, >1 = cyclic curve.
     Neq: confloat(ge = 1.0, le=100.0)
 
@@ -82,9 +82,9 @@ class API_sand(LateralModel):
 @dataclass(config=PydanticConfigFrozen)
 class API_clay(LateralModel):
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
-    Su: Union[float, conlist(float, min_items=1, max_items=2)]
+    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: strain at 50% failure load [-], if a variation in values, two values can be given.
-    eps50: Union[float, conlist(float, min_items=1, max_items=2)]
+    eps50: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: Number of equivalent cycles of the curve. 1 = static curve, >1 = cyclic curve.
     Neq: confloat(ge = 1.0, le=100.0)
     #: empirical factor varying depending on clay stiffness

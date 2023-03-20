@@ -60,18 +60,18 @@ def must_be_numbers_in_list(values, values_name):
             raise UserInputError(f"values in {values_name} can only be numbers")
 
 
-def check_boundary_conditions(mesh):
+def check_boundary_conditions(model):
     """
     Check if boundary conditions are satisfactory to solve the system of equations.
 
     Parameters
     ----------
-    mesh: openppile.construct.Mesh object
+    model: openppile.construct.Model object
         Mehs object crated from openpile
     """
     # rename vars 
-    restrained_dof = mesh.global_restrained
-    loaded_dof = mesh.global_forces
+    restrained_dof = model.global_restrained
+    loaded_dof = model.global_forces
     
     # count BC in [Translation over z-axis,Translation over y-axis,Rotation around x-axis]
     restrained_count_Rz = np.count_nonzero(restrained_dof['Rz'])
@@ -91,7 +91,7 @@ def check_boundary_conditions(mesh):
         raise InvalidBoundaryConditionsError('No load conditions are provided.')
     
 
-    if mesh.soil is None:
+    if model.soil is None:
         #normally loaded beam
         if loaded_count_Tx > 0 and restrained_count_Tx > 0:
             # support in x axis is given and load over x is given --> correct BC

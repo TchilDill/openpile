@@ -343,13 +343,13 @@ def build_stiffness_matrix(model, u = None, kind = None):
         if u is None or kind is None:
             UserWarning("'u' and 'kind' must be stipulated.")
         else:
-            if model.py_springs:
+            if model.distributed_lateral:
                 k += elem_py_stiffness_matrix(model, u, kind)
-            elif model.mt_springs:
+            elif model.distributed_moment:
                 k += 0
-            elif model.Hb_spring:
+            elif model.base_shear:
                 k += 0
-            elif model.Mb_springs:
+            elif model.base_moment:
                 k += 0
 
     K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
@@ -372,7 +372,6 @@ def mesh_to_global_disp_dof_vector(df:pd.DataFrame) -> np.ndarray:
     return disp_dof_vector
 
 def mesh_to_global_restrained_dof_vector(df:pd.DataFrame) -> np.ndarray:
-
     # extract each column (one line per node)
     restrained_dof_vector = df[['Tx', 'Ty', 'Rz']].values.reshape(-1,1)
     
@@ -441,7 +440,7 @@ def calculate_springs_stiffness(u:np.ndarray, springs:np.ndarray, kind:Literal['
             d[i] = u[-1]
             i += 1
         elif i == len(d)-1:
-            def[i] = u[-2]
+            d[i] = u[-2]
             i += 1
         else:
             d[i] = u[(i+1)/2]
@@ -455,18 +454,30 @@ def calculate_springs_stiffness(u:np.ndarray, springs:np.ndarray, kind:Literal['
     
     for i in prange(k.shape[0]):
         for j in prange(k.shape[1]):
-            if kind == 'initial':
-                dx = springs[i,j,1,1] - springs[i,j,1,0]
-                p0 = springs[i,j,0,0]
-                p1 = springs[i,j,0,1]
-            elif kind == "secant":
-                dx = d[i,j]
-                p0 = springs[i,j,0,0]
-                p1 = np.interp(dx, springs[i,j,1], springs[i,j,0]) 
-            elif kind == "tangent":
-                dx = min(0.0005,d[i,j])
-                p0 = np.interp(d[i,j]-dx, springs[i,j,1], springs[i,j,0])
-                p1 = np.interp(d[i,j], springs[i,j,1], springs[i,j,0])
+            if np.sum(springs[i,j,1])==0:
+                k[i,j,1,1] = 0
+            else:    
+                if kind == 'initial':
+                    dx = springs[i,j,1,1] - springs[i,j,1,0]
+                    p0 = springs[i,j,0,0]
+                    p1 = springs[i,j,0,1]
+                elif kind == "secant":
+                    dx = d[i,j]
+                    p0 = springs[i,j,0,0]
+                    if d[i,j] > np.max(springs[i,j,1]):
+                        p1 = springs[i,j,0,-1]
+                    else: 
+                        p1 = np.interp(dx, springs[i,j,1], springs[i,j,0]) 
+                elif kind == "tangent":
+                    dx = min(0.0005,d[i,j])
+                    if (d[i,j]-dx) > np.max(springs[i,j,1]):
+                        p0 = springs[i,j,0,-1]
+                    else: 
+                        p0 = np.interp(d[i,j]-dx, springs[i,j,1], springs[i,j,0])
+                    if d[i,j] > np.max(springs[i,j,1]):
+                        p1 = springs[i,j,0,-1]
+                    else: 
+                        p1 = np.interp(d[i,j], springs[i,j,1], springs[i,j,0])
                 
             k[i,j,1,1] =  abs((p1-p0)/dx)
                 

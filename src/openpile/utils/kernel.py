@@ -10,7 +10,12 @@
 import numpy as np
 import pandas as pd
 from numba import njit, prange
-from openpile.construct import Mesh, Pile
+from typing_extensions import Literal
+
+from openpile.construct import Model, Pile
+
+from openpile.utils import misc
+
 
 @njit(cache=True)
 def jit_solve(A, b):
@@ -127,23 +132,23 @@ def solve_equations(K, F, U, restraints=None):
     
     return U, Q
 
-def mesh_to_element_length(mesh) -> np.ndarray:
+def mesh_to_element_length(model) -> np.ndarray:
     
     # elememt coordinates along z and y-axes 
-    ez = np.array([mesh.element_properties['x_top [m]'].to_numpy(dtype=float) , mesh.element_properties['x_bottom [m]'].to_numpy(dtype=float)])
-    ey = np.array([mesh.element_properties['y_top [m]'].to_numpy(dtype=float) , mesh.element_properties['y_bottom [m]'].to_numpy(dtype=float)])
+    ez = np.array([model.element_properties['x_top [m]'].to_numpy(dtype=float) , model.element_properties['x_bottom [m]'].to_numpy(dtype=float)])
+    ey = np.array([model.element_properties['y_top [m]'].to_numpy(dtype=float) , model.element_properties['y_bottom [m]'].to_numpy(dtype=float)])
     # length calcuated via pythagorus theorem
     L = np.sqrt(( (ez[0] - ez[1])**2 + (ey[0] - ey[1])**2 )).reshape(-1,1,1)
     
     return L
  
-def elem_mechanical_stiffness_matrix(mesh):
-    """creates pile element stiffness matrix based on mesh info and element number
+def elem_mechanical_stiffness_matrix(model):
+    """creates pile element stiffness matrix based on model info and element number
 
     Parameters
     ----------
-    mesh : openpile class object `openpile.construct.Mesh`
-        includes information on soil/structure, elements, nodes and other mesh-related data. 
+    model : openpile class object `openpile.construct.Model`
+        includes information on soil/structure, elements, nodes and other model-related data. 
 
     Returns
     -------
@@ -153,7 +158,7 @@ def elem_mechanical_stiffness_matrix(mesh):
     Raises
     ------
     ValueError
-        openpile_mesh.element.type only accepts 'EB' type (for Euler-Bernoulli) or 'T' type (for Timoshenko)
+        Model.element.type only accepts 'EB' type (for Euler-Bernoulli) or 'T' type (for Timoshenko)
     ValueError
         Timoshenko beams cannot be used yet for non-circular pile types
     ValueError
@@ -162,22 +167,22 @@ def elem_mechanical_stiffness_matrix(mesh):
     """      
        
     # calculate length vector
-    L = mesh_to_element_length(mesh)
+    L = mesh_to_element_length(model)
     # elastic properties
-    nu = mesh.pile._nu
-    E = mesh.element_properties['E [kPa]'].to_numpy(dtype=float).reshape((-1,1,1))
+    nu = model.pile._nu
+    E = model.element_properties['E [kPa]'].to_numpy(dtype=float).reshape((-1,1,1))
     G = E/(2+2*nu)
     #cross-section properties
-    I = mesh.element_properties['I [m4]'].to_numpy(dtype=float).reshape((-1,1,1))
-    A = mesh.element_properties['Area [m2]'].to_numpy(dtype=float).reshape((-1,1,1))
-    d = mesh.element_properties['Diameter [m]'].to_numpy(dtype=float).reshape((-1,1,1))
-    wt = mesh.element_properties['Wall thickness [m]'].to_numpy(dtype=float).reshape((-1,1,1))
+    I = model.element_properties['I [m4]'].to_numpy(dtype=float).reshape((-1,1,1))
+    A = model.element_properties['Area [m2]'].to_numpy(dtype=float).reshape((-1,1,1))
+    d = model.element_properties['Diameter [m]'].to_numpy(dtype=float).reshape((-1,1,1))
+    wt = model.element_properties['Wall thickness [m]'].to_numpy(dtype=float).reshape((-1,1,1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
-    if mesh.element_type == 'EulerBernoulli':
+    if model.element_type == 'EulerBernoulli':
         kappa = 0
-    elif mesh.element_type == 'Timoshenko':
-        if mesh.pile.kind == 'Circular':
+    elif model.element_type == 'Timoshenko':
+        if model.pile.kind == 'Circular':
             a = 0.5 * d
             b = 0.5 * ( d - 2*wt )
             nom = 6 * (a**2 + b**2)**2 * (1 + nu)**2
@@ -186,7 +191,7 @@ def elem_mechanical_stiffness_matrix(mesh):
         else:
             raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
     else:
-        raise ValueError("openpile_mesh.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)")
+        raise ValueError("Model.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)")
             
     phi = 12*E*I*kappa/(A*G*L**2)
     X = A*E/L
@@ -209,6 +214,76 @@ def elem_mechanical_stiffness_matrix(mesh):
              
     return k
 
+def elem_py_stiffness_matrix(model, u, kind):
+    """creates soil element stiffness matrix based on model info and element number.
+    
+    The soil stiffness matrix assumes the soil stiffness to vary lineraly along the elements.
+    
+    #TODO: proof here
+
+    Parameters
+    ----------
+    model : openpile class object `openpile.construct.Model`
+        includes information on soil/structure, elements, nodes and other model-related data. 
+    u: np.ndarray
+        Global displacement vector
+    kind: str
+        "initial", "secant" or "tangent"
+
+    Returns
+    -------
+    k: numpy array (3d)
+        soil consistent stiffness matrix of all elememts related to the p-y soil springs' stiffness
+
+    Raises
+    ------
+    ValueError
+        ndof per node can be either 2 or 3
+
+    """      
+       
+    # calculate length vector
+    L = mesh_to_element_length(model)
+    
+    # calculate the spring stiffness
+    ksoil = calculate_springs_stiffness(u=u[1::3], springs=model.py_springs, kind=kind)
+
+    N = 0*L
+    A = 2*L/7
+    B = L**2/28
+    C = L**3/168
+    D = 9*L/140
+    E = L**2/70
+    F = 3*L/35
+    G = -L**2/60
+    H = -L**3/280
+    I = L**3/280
+    
+    
+    ktop = np.block(
+        [
+            [ N,  N,  N,  N,  N,  N],
+            [ N,  A,  B,  N,  D,  G],
+            [ N,  B,  C,  N,  E,  H],
+            [ N,  N,  N,  N,  N,  N],
+            [ N,  D,  E,  N,  F,  G],
+            [ N,  G,  H,  N,  G,  I],
+        ]
+    ) * ksoil[:,0]
+    
+    kbottom = np.block(
+        [
+            [ N,  N,  N,  N,  N,  N],
+            [ N,  F, -G,  N,  D, -E],
+            [ N, -G, -H,  N, -G, -I],
+            [ N,  N,  N,  N,  N,  N],
+            [ N,  D, -G,  N,  A, -B],
+            [ N, -E, -I,  N, -B,  C],
+        ]
+    ) * ksoil[:,1]
+      
+    return  0.5*ktop + 0.5*kbottom
+
 @njit(parallel=True, cache=True)
 def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     
@@ -229,17 +304,21 @@ def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     return K
 
 
-def build_stiffness_matrix(openpile_mesh, soil_flag = False):
-    """Builds the stiffness matrix based on the mesh(element and node) properties 
+def build_stiffness_matrix(model, u = None, kind = None):
+    """Builds the stiffness matrix based on the model(element and node) properties 
 
     Element stiffness matrices are first computed for each element and then loaded in the global stiffness matrix through summation.
-    Different element stiffness matrices are computed depending on the specifications found in the openpile.mesh object.
+    Different element stiffness matrices are computed depending on the specifications found in the Model object.
 
     Parameters
     ----------
-    openpile_mesh : obj from openpile library
-        stores all information about nodes elements, and other mesh-related items, see #TODO:link to mesh class 
-
+    model : obj from openpile library
+        stores all information about nodes elements, and other model-related items, see #TODO:link to model class 
+    u: np.ndarray, Optional
+        Global displacement vector. Must be given if soil_flag is not None
+    kind: str, Optional
+        "initial", "secant" or "tangent". Must be given if soil_flag is not None
+        
     Returns
     -------
     K : numpy array of dim (ndof, ndof)
@@ -252,20 +331,29 @@ def build_stiffness_matrix(openpile_mesh, soil_flag = False):
     #number of nodes per element
     node_per_element = 2
     #number of elements in mesh
-    n_elem = openpile_mesh.element_number
+    n_elem = model.element_number
     #global dimension of the global stiffness matrix can be inferred 
     ndim_global = ndof_per_node * n_elem + ndof_per_node
     
     #mechanical stiffness properties
-    km = elem_mechanical_stiffness_matrix(openpile_mesh)
-    #global mech stiffness matrix
+    k = elem_mechanical_stiffness_matrix(model)
     # add soil contribution
-    if soil_flag:
-        # k = ks + elem_soil_stiffness_matrix(openpile_mesh)
-        k = km + 0  # to be changed to above line
-        K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
-    else:
-        K = jit_build(km, ndim_global, n_elem, node_per_element, ndof_per_node)
+    if model.soil is not None:
+        # gives warning if soil is given without displacements or type of stiffness
+        if u is None or kind is None:
+            UserWarning("'u' and 'kind' must be stipulated.")
+        else:
+            if model.py_springs:
+                k += elem_py_stiffness_matrix(model, u, kind)
+            elif model.mt_springs:
+                k += 0
+            elif model.Hb_spring:
+                k += 0
+            elif model.Mb_springs:
+                k += 0
+
+    K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
+
   
     return K
     
@@ -291,7 +379,7 @@ def mesh_to_global_restrained_dof_vector(df:pd.DataFrame) -> np.ndarray:
     return restrained_dof_vector
    
 
-def struct_internal_force(mesh, u) -> np.ndarray:
+def struct_internal_force(model, u) -> np.ndarray:
         
     #number of dof per node
     ndof_per_node = 3
@@ -299,17 +387,96 @@ def struct_internal_force(mesh, u) -> np.ndarray:
     node_per_element = 2
 
     # create mech consistent stiffness matrix
-    km = elem_mechanical_stiffness_matrix(mesh)
+    k = elem_mechanical_stiffness_matrix(model)
+    
+    # add soil contribution
+    if model.soil is not None:
+        kind = 'secant'
+        if model.py_springs:
+            k += elem_py_stiffness_matrix(model, u, kind)
+        elif model.mt_springs:
+            k += 0
+        elif model.Hb_spring:
+            k += 0
+        elif model.Mb_springs:
+            k += 0
+    
     # create array u of shape [n_elem x 6 x 1] 
     u = global_dof_vector_to_consistent_stacked_array(u,ndof_per_node*node_per_element)
     #compute internal forces and reshape into global dof vector
-    F_int = (-1)*np.matmul(km,u).reshape((-1))
+    F_int = (-1)*np.matmul(k,u).reshape((-1))
 
     return F_int
+
+@njit(parallel=True, cache=True)
+def calculate_springs_stiffness(u:np.ndarray, springs:np.ndarray, kind:Literal['initial','secant','tangent']):
+    """Calculate springs stiffness
+
+    Parameters
+    ----------
+    u : np.ndarray
+        displacements to calculate stiffness. 
+        For dofs related to t-z curves, u = U[::3] where U is the global displacement vector.
+        For dofs related to p-y curves, u = U[1::3] where U is the global displacement vector.
+        For dofs related to m-t curves, u = U[2::3] where U is the global displacement vector.
+    springs : np.ndarray
+        soil-structure interaction springs array of shape (n_elem, 2, 2, spring_dim) 
+    kind : str
+        defines whether it is initial, secant of tangent stiffness to define
+
+    Returns
+    -------
+    k: np.ndarray
+        secant or tangent stiffness for all elements. Array of shape(n_elem,2,1,1)
+    """
+
+    # double inner values
+    d = np.zeros(((len(u)-1)*2))
+    i = 0
+    while i < len(d)+1:
+        if i == 0:
+            d[i] = u[0]
+            i += 1
+        elif i == len(d):
+            d[i] = u[-1]
+            i += 1
+        elif i == len(d)-1:
+            def[i] = u[-2]
+            i += 1
+        else:
+            d[i] = u[(i+1)/2]
+            d[i+1] = u[(i+1)/2]
+            i += 2
+
+    #displacemet with same dimension as spring
+    d = np.reshape(np.abs(d,(-1,2)))
+
+    k = np.zeros(d.shape)
+    
+    for i in prange(k.shape[0]):
+        for j in prange(k.shape[1]):
+            if kind == 'initial':
+                dx = springs[i,j,1,1] - springs[i,j,1,0]
+                p0 = springs[i,j,0,0]
+                p1 = springs[i,j,0,1]
+            elif kind == "secant":
+                dx = d[i,j]
+                p0 = springs[i,j,0,0]
+                p1 = np.interp(dx, springs[i,j,1], springs[i,j,0]) 
+            elif kind == "tangent":
+                dx = min(0.0005,d[i,j])
+                p0 = np.interp(d[i,j]-dx, springs[i,j,1], springs[i,j,0])
+                p1 = np.interp(d[i,j], springs[i,j,1], springs[i,j,0])
+                
+            k[i,j,1,1] =  abs((p1-p0)/dx)
+                
+    return k
+
 
 def computer():
     """This function is the solver of openpile.
 
     The solver reads the boundary conditions, the global Force and Displacement vector and iterate to find convergence.
     """
-    
+
+

@@ -37,6 +37,7 @@ def generate_color_string():
     colors = list(CSS4_COLORS.values())
     return colors[random.randint(0,len(colors)-1)]
 
+
 def repeat_inner(arr):
     
     arr = arr.reshape(-1,1)

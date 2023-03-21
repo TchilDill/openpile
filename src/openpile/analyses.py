@@ -61,6 +61,7 @@ def disp_to_df(model,u):
 
 @dataclass(config=PydanticConfig)
 class Result:
+    name: str
     displacements: pd.DataFrame
     forces: pd.DataFrame
     
@@ -109,8 +110,9 @@ def simple_beam_analysis(model):
     """
     
     if model.soil is None:
-        # initialise global force and displacement vectors 
+        # initialise global force
         F = kernel.mesh_to_global_force_dof_vector(model.global_forces)
+        # initiliase prescribed displacement vector
         U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
         # initialise global stiffness matrix
         K = kernel.build_stiffness_matrix(model)
@@ -125,10 +127,10 @@ def simple_beam_analysis(model):
         #internal forces
         q_int = kernel.struct_internal_force(model, u)
         
-        NVM = structural_forces_to_df(model,q_int)
-        df_u = disp_to_df(model, u)
-        
-        results = Result(displacements=df_u, forces=NVM)
+        # Final results     
+        results = Result(name=f"{model.name} ({model.pile.name}/{model.soil.name})",
+                         displacements=disp_to_df(model, u),
+                         forces=structural_forces_to_df(model,q_int))
   
         return results
 
@@ -158,11 +160,15 @@ def simple_winkler_analysis(model, solver='MNR', max_iter:int=100):
         UserWarning('SoilProfile must be provided when creating the Model.')
         
     else:
-        # initialise global force and displacement vectors 
+        # initialise global force
         F = kernel.mesh_to_global_force_dof_vector(model.global_forces)
+        # initiliase prescribed displacement vector
         U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
+        # initialise displacement vectors 
+        d = np.zeros(U.shape)
+        
         # initialise global stiffness matrix
-        K = kernel.build_stiffness_matrix(model, u=U, kind="initial")
+        K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
         # initialise global supports vector 
         supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
         
@@ -182,13 +188,13 @@ def simple_winkler_analysis(model, solver='MNR', max_iter:int=100):
             u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
 
             # add up increment displacements
-            U += u_inc
-                      
-            #internal forces calculations
-            q_int = kernel.struct_internal_force(model, U)
-                        
+            d += u_inc
+              
+            K_secant = kernel.build_stiffness_matrix(model, u=d, kind="secant")
+            F_int = kernel.jit_dot(K_secant,d)
+                    
             # calculate residual forces
-            Rg = F - q_int - Q
+            Rg = F - F_int - Q
             
             # check if converged
             if np.linalg.norm(Rg[~supports]) < 1e-4*control:
@@ -199,10 +205,13 @@ def simple_winkler_analysis(model, solver='MNR', max_iter:int=100):
                 print("Not converged after 100 iterations.")    
 
 
-        NVM = structural_forces_to_df(model,q_int)
-        df_u = disp_to_df(model, U)
+        # Internal forces calculations with dim(nelem,6,6)
+        q_int = kernel.struct_internal_force(model, d)
         
-        results = Result(displacements=df_u, forces=NVM)
+        # Final results     
+        results = Result(name=f"{model.name} ({model.pile.name}/{model.soil.name})",
+                         displacements=disp_to_df(model, d),
+                         forces=structural_forces_to_df(model,q_int))
   
         return results
 

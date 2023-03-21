@@ -58,7 +58,8 @@ class Pile:
     >>> from openpile.construct import Pile
         
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
-    >>> pile = Pile.create(kind='Circular',
+    >>> pile = Pile.create(name = "",
+    >>>         kind='Circular',
     >>>         material='Steel',
     >>>         top_elevation = 0,
     >>>         pile_sections={
@@ -99,6 +100,8 @@ class Pile:
     3          -40.0          2.22               <NA>      <NA>    1.11  
     
     """
+    #: name of the pile
+    name: str
     #: select the type of pile, can be of ('Circular', )
     kind: Literal['Circular']
     #: select the type of material the pile is made of, can be of ('Steel', )
@@ -187,7 +190,7 @@ class Pile:
         return self.data.to_string()
       
     @classmethod  
-    def create(cls, kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):
+    def create(cls, name: str, kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):
         """
         A method to create the pile. This function provides a 2-in-1 command where:
         
@@ -195,7 +198,7 @@ class Pile:
         - the `._postinit()` method is run and creates all additional pile data necessary.
 
         """
-        obj = cls( kind = kind, material = material, top_elevation=top_elevation,  pile_sections = pile_sections)
+        obj = cls(name = name, kind = kind, material = material, top_elevation=top_elevation,  pile_sections = pile_sections)
         obj._postinit()
 
         return obj
@@ -427,11 +430,13 @@ class Model:
     >>> from openpile.construct import Pile, Model    
     
     >>> # create Model without soil maximum 5 metres apart.
-    >>> Model_without_soil = Model.create(pile=p, coarseness=5)
+    >>> Model_without_soil = Model.create(name = "", pile=p, coarseness=5)
     >>> # create Model with nodes maximum 1 metre apart with soil springs
-    >>> Model_with_soil = Model.create(pile=p, soil=sp, coarseness=1)
+    >>> Model_with_soil = Model.create(name = "", pile=p, soil=sp, coarseness=1)
 
     """
+    #: model name
+    name: str
     #: pile instance that the Model should consider
     pile: Pile
     #: soil profile instance that the Model should consider
@@ -844,6 +849,7 @@ class Model:
 
     @classmethod
     def create(cls, 
+               name: str,
                pile: Pile, 
                soil: Optional[SoilProfile] = None, 
                element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', 
@@ -855,7 +861,7 @@ class Model:
                Mb_spring: bool = False
                ):
         
-        obj = cls(pile=pile, soil=soil, element_type=element_type, x2mesh=x2mesh, coarseness=coarseness)
+        obj = cls(name=name, pile=pile, soil=soil, element_type=element_type, x2mesh=x2mesh, coarseness=coarseness)
         obj._postinit()
         
         return obj

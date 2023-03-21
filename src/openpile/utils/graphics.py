@@ -11,7 +11,7 @@ def plot_deflection(result):
     
     fig, ax = plt.subplots()
 
-    fig.suptitle('Sectional forces')
+    fig.suptitle(f'{result.name} - Pile Deflection')
 
     ax = U_plot(ax, result)
            
@@ -23,7 +23,7 @@ def plot_forces(result):
     
     fig, (ax1, ax2, ax3) = plt.subplots(1,3)
 
-    fig.suptitle('Sectional forces')
+    fig.suptitle(f'{result.name} - Sectional forces')
 
     ax1 = F_plot(ax1, result, 'N [kN]')
     ax2 = F_plot(ax2, result, 'V [kN]')
@@ -41,7 +41,7 @@ def plot_results(result):
     
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(1,4)
 
-    fig.suptitle('Analysis results')
+    fig.suptitle(f'{result.name} - Analysis results')
 
     ax1 = U_plot(ax1, result)
     ax2 = F_plot(ax2, result, 'N [kN]')
@@ -62,7 +62,7 @@ def connectivity_plot(model):
     fig, ax = plt.subplots()
     ax.set_ylabel('x [m]')
     ax.set_xlabel('y [m]')
-    ax.set_title('Connectivity plot')
+    ax.set_title(f'{model.name} - Connectivity plot')
     ax.axis('equal')
     ax.grid(which='both')
     
@@ -192,7 +192,6 @@ def F_plot(axis:plt.axis, result, force:str):
     axis.fill_betweenx(y, f ,edgecolor=force_edgecolor,facecolor=force_facecolor)
     axis.plot(np.zeros(shape=y.shape), y ,color='0.4')
 
-    axis.set_xlim([min(0, f.values.min()-0.1*abs(f.min())), max(0, f.values.max()+0.1*abs(f.max()))])
-
+    axis.set_xlim([min(0, f.min()-0.1*abs(f.min()+0.1)), max(0, f.max()+0.1*abs(f.max()+0.1))])
     
     return axis

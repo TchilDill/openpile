@@ -270,7 +270,7 @@ def elem_py_stiffness_matrix(model, u, kind):
             [ N,  G,  H,  N,  G,  I],
         ]
     ) * ksoil[:,0]
-    
+        
     kbottom = np.block(
         [
             [ N,  N,  N,  N,  N,  N],
@@ -282,7 +282,7 @@ def elem_py_stiffness_matrix(model, u, kind):
         ]
     ) * ksoil[:,1]
       
-    return  0.5*ktop + 0.5*kbottom
+    return  ktop + kbottom
 
 @njit(parallel=True, cache=True)
 def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
@@ -391,23 +391,22 @@ def struct_internal_force(model, u) -> np.ndarray:
     # add soil contribution
     if model.soil is not None:
         kind = 'secant'
-        if model.py_springs:
+        if model.distributed_lateral:
             k += elem_py_stiffness_matrix(model, u, kind)
-        elif model.mt_springs:
+        elif model.distributed_moment:
             k += 0
-        elif model.Hb_spring:
+        elif model.base_shear:
             k += 0
-        elif model.Mb_springs:
+        elif model.base_moment:
             k += 0
     
-    # create array u of shape [n_elem x 6 x 1] 
+    # create array u of shape [n_elem x 6 x 1]
     u = global_dof_vector_to_consistent_stacked_array(u,ndof_per_node*node_per_element)
     #compute internal forces and reshape into global dof vector
     F_int = (-1)*np.matmul(k,u).reshape((-1))
 
     return F_int
 
-@njit(parallel=True, cache=True)
 def calculate_springs_stiffness(u:np.ndarray, springs:np.ndarray, kind:Literal['initial','secant','tangent']):
     """Calculate springs stiffness
 
@@ -429,57 +428,41 @@ def calculate_springs_stiffness(u:np.ndarray, springs:np.ndarray, kind:Literal['
         secant or tangent stiffness for all elements. Array of shape(n_elem,2,1,1)
     """
 
-    # double inner values
-    d = np.zeros(((len(u)-1)*2))
-    i = 0
-    while i < len(d)+1:
-        if i == 0:
-            d[i] = u[0]
-            i += 1
-        elif i == len(d):
-            d[i] = u[-1]
-            i += 1
-        elif i == len(d)-1:
-            d[i] = u[-2]
-            i += 1
-        else:
-            d[i] = u[(i+1)/2]
-            d[i+1] = u[(i+1)/2]
-            i += 2
+    d = misc.repeat_inner(u)
 
     #displacemet with same dimension as spring
-    d = np.reshape(np.abs(d,(-1,2)))
+    d = np.abs(d).reshape((-1,2,1,1))
 
-    k = np.zeros(d.shape)
+    k = np.zeros(d.shape, dtype=float)
     
-    for i in prange(k.shape[0]):
-        for j in prange(k.shape[1]):
+    for i in range(k.shape[0]):
+        for j in range(k.shape[1]):
             if np.sum(springs[i,j,1])==0:
-                k[i,j,1,1] = 0
+                pass
             else:    
                 if kind == 'initial':
                     dx = springs[i,j,1,1] - springs[i,j,1,0]
                     p0 = springs[i,j,0,0]
                     p1 = springs[i,j,0,1]
                 elif kind == "secant":
-                    dx = d[i,j]
+                    dx = d[i,j,0,0]
                     p0 = springs[i,j,0,0]
-                    if d[i,j] > np.max(springs[i,j,1]):
+                    if d[i,j,0,0] > np.max(springs[i,j,1]):
                         p1 = springs[i,j,0,-1]
                     else: 
                         p1 = np.interp(dx, springs[i,j,1], springs[i,j,0]) 
                 elif kind == "tangent":
-                    dx = min(0.0005,d[i,j])
-                    if (d[i,j]-dx) > np.max(springs[i,j,1]):
+                    dx = min(0.0005,d[i,j,0,0])
+                    if (d[i,j,0,0]-dx) > np.max(springs[i,j,1]):
                         p0 = springs[i,j,0,-1]
                     else: 
-                        p0 = np.interp(d[i,j]-dx, springs[i,j,1], springs[i,j,0])
-                    if d[i,j] > np.max(springs[i,j,1]):
+                        p0 = np.interp(d[i,j,0,0]-dx, springs[i,j,1], springs[i,j,0])
+                    if d[i,j,0,0] > np.max(springs[i,j,1]):
                         p1 = springs[i,j,0,-1]
                     else: 
-                        p1 = np.interp(d[i,j], springs[i,j,1], springs[i,j,0])
+                        p1 = np.interp(d[i,j,0,0], springs[i,j,1], springs[i,j,0])
                 
-            k[i,j,1,1] =  abs((p1-p0)/dx)
+            k[i,j,0,0] =  abs((p1-p0)/dx)
                 
     return k
 

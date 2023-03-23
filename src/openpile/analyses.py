@@ -221,7 +221,7 @@ def simple_winkler_analysis(model, solver='NR', max_iter:int=100):
                 pass
             
             # reset displacements in case of displacement-driven analysis
-            U = np.zeros(U.shape)
+            U[:] = 0.0
 
         # Internal forces calculations with dim(nelem,6,6)
         q_int = kernel.struct_internal_force(model, d)

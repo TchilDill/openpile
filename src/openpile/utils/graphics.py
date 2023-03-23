@@ -3,9 +3,12 @@
 """
 
 # import libraries
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 import numpy as np
+
+mpl.rcParams["figure.subplot.wspace"] = 0.4
 
 def plot_deflection(result):
     
@@ -192,6 +195,6 @@ def F_plot(axis:plt.axis, result, force:str):
     axis.fill_betweenx(y, f ,edgecolor=force_edgecolor,facecolor=force_facecolor)
     axis.plot(np.zeros(shape=y.shape), y ,color='0.4')
 
-    axis.set_xlim([min(0, f.min()-0.1*abs(f.min()+0.1)), max(0, f.max()+0.1*abs(f.max()+0.1))])
+    axis.set_xlim([min(0, f.min()-0.1*abs(f.min()+1.0)), max(0, f.max()+0.1*abs(f.max()+1.0))])
     
     return axis

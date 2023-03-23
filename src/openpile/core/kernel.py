@@ -15,7 +15,7 @@ from typing_extensions import Literal
 
 from openpile.construct import Model, Pile
 
-from openpile.utils import misc
+from openpile.core import misc
 
 
 @njit(f8[:](f8[:,:],f8[:]), cache=True)

@@ -1,5 +1,5 @@
 
-from openpile.utils import misc
+from openpile.core import misc
 
 def test_from_list2x_parse_top_bottom():
     # check if integer is passed

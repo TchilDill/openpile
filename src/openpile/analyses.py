@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 # from pydantic import BaseModel, Field, root_validator
 from pydantic.dataclasses import dataclass
 
-from openpile.utils import kernel 
-import openpile.utils.validation as validation
+from openpile.core import kernel 
+import openpile.core.validation as validation
 import openpile.utils.graphics as graphics
-import openpile.utils.misc as misc
+import openpile.core.misc as misc
 
 class PydanticConfig:
     arbitrary_types_allowed = True

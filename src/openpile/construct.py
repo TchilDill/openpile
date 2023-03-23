@@ -6,11 +6,17 @@ The `construct` module is used to construct all objects that
 form the inputs to calculations in openpile. 
 
 
-This include:
+These objects include:
 
-- the pile
-- the soil profile
+- the Pile
+- the SoilProfile
+  - the Layer
 - the Model
+
+Usage
+-----
+
+>>> from openpile.construct import Pile, SoilProfile, Layer, Model
 
 """
 
@@ -24,14 +30,14 @@ from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
 import openpile.utils.graphics as graphics
-import openpile.utils.validation as validation
+import openpile.core.validation as validation
 import openpile.core.soilmodels as soilmodels
 
-from openpile.utils import misc
+from openpile.core import misc
 
 from openpile.core.soilmodels import ConstitutiveModel
 
-from openpile.utils.misc import generate_color_string
+from openpile.core.misc import generate_color_string
 
 
 class PydanticConfig:
@@ -50,7 +56,7 @@ class Pile:
     .. note::
         The classmethod :py:meth:`openpile.construct.Pile.create` shall be used to create a Pile instance.
         
-        This method ensures that the post-initialization of the `Pile` instance and post processing is done.  
+        This method ensures that the post-initialization of the `Pile` instance and post processing is done accordingly.  
     
     Example
     -------
@@ -190,14 +196,40 @@ class Pile:
         return self.data.to_string()
       
     @classmethod  
-    def create(cls, name: str, kind: Literal['Circular'], material: Literal['Steel'], top_elevation: float,  pile_sections: Dict[str, List[float]] ):
-        """
-        A method to create the pile. This function provides a 2-in-1 command where:
+    def create(cls, 
+               name: str, 
+               top_elevation: float,  
+               pile_sections: Dict[str, List[float]], 
+               kind: Literal['Circular',]="Circular", 
+               material: Literal['Steel',]="Steel"):
+        """A method to create the pile. This function provides a 2-in-1 command where:
         
         - a `Pile` instance is created
         - the `._postinit()` method is run and creates all additional pile data necessary.
 
+
+        Parameters
+        ----------
+        name : str
+            Pile/Structure's name.
+        top_elevation : float
+            top elevation of the pile. Note that this elevation provides a reference point to 
+            know where the pile is located, especially with respect to other object such as a SoilProfile.
+        pile_sections : Dict[str, List[float]]
+            argument that stores the relevant data of each pile segment. 
+            Below are the needed keys for the available piles: 
+            - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
+        kind : Literal["Circular",]
+            type of pile or type of cross-section. by default "Circular"
+        material : Literal["Steel",]
+            material the pile is made of. by default "Steel"
+
+        Returns
+        -------
+        openpile.construct.Pile 
+            a Pile instance with embedded postprocessing to perform calculations with openpile.
         """
+
         obj = cls(name = name, kind = kind, material = material, top_elevation=top_elevation,  pile_sections = pile_sections)
         obj._postinit()
 
@@ -290,35 +322,45 @@ class Pile:
 @dataclass(config=PydanticConfig)
 class Layer:
     """A class to create a layer. The Layer stores information on the soil parameters
-    of the layer as well as the constitutive model (aka. the soil spring) that is 
-    deemed representative. 
+    of the layer as well as the relevant/representative constitutive model (aka. the soil spring). 
 
     Example
     -------
+
+    >>> from openpile.construct import Layer
+    >>> from openpile.core.soilmodels import API_clay
     
     >>> # Create a layer
     >>> layer1 = Layer(name='Soft Clay',
-    >>>            top=0,
-    >>>            bottom=-10,
-    >>>            weight=9,
-    >>>            lateralmodel=APIclay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), 
-    >>>         )
+                   top=0,
+                   bottom=-10,
+                   weight=9,
+                   lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), )
     
     >>> # show layer
     >>> print(layer1)
-    Soft Clay
-    9.0 kN/m3
-    API clay
-    Su = 30.0-35.0 kPa
-    eps50 = 0.01-0.02
-    Cyclic
+    Name: Soft Clay
+    Elevation: (0.0) - (-10.0) m
+    Weight: 9.0 kN/m3
+    Lateral model: 	API clay
+        Su = 30.0-35.0 kPa
+        eps50 = 0.01-0.02
+        Cyclic, N = 100 cycles
+    Axial model: None
     """
+    #: name of the layer, use for printout
     name: str
+    #: top elevaiton of the layer
     top: float
+    #: bottom elevaiton of the layer
     bottom: float
-    weight: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: unit weight of the layer
+    weight: PositiveFloat
+    #: Lateral constitutive model of the layer 
     lateral_model: Optional[ConstitutiveModel] = None
+    #: Axial constitutive model of the layer 
     axial_model: Optional[ConstitutiveModel] = None
+    #: Layer's color when plotted
     color: Optional[str] = None
 
     def __post_init__(self):

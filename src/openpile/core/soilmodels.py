@@ -13,8 +13,8 @@ from typing_extensions import Literal
 from pydantic import BaseModel, Field, root_validator, PositiveFloat, confloat, conlist, Extra
 from pydantic.dataclasses import dataclass
 
-from openpile.utils.misc import from_list2x_parse_top_bottom, var_to_str
-from openpile.core import py_curves
+from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str
+from openpile.utils import py_curves
 
 
 # CONSTITUTIVE MODELS CLASSES ---------------------------------

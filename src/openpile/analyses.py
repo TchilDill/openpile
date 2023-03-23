@@ -155,7 +155,7 @@ def simple_winkler_analysis(model, solver='NR', max_iter:int=100):
     results : `openpile.analyses.Result` object
         Results of the analysis 
     """
-    
+        
     if model.soil is None:
         UserWarning('SoilProfile must be provided when creating the Model.')
         
@@ -185,7 +185,12 @@ def simple_winkler_analysis(model, solver='NR', max_iter:int=100):
             iter_no += 1
             
             # solve system
-            u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
+            try: 
+                u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
+            except np.linalg.LinAlgError as exc:
+                print("""Cannot converge. Failure of the pile-soil system.\n
+                      Boundary conditions may not be realistic or values may be too large.""")
+                break
             
             # External forces
             F_ext = F - Q

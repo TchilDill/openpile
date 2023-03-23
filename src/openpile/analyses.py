@@ -187,7 +187,7 @@ def simple_winkler_analysis(model, solver='NR', max_iter:int=100):
             # solve system
             try: 
                 u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
-            except np.linalg.LinAlgError as exc:
+            except np.linalg.LinAlgError:
                 print("""Cannot converge. Failure of the pile-soil system.\n
                       Boundary conditions may not be realistic or values may be too large.""")
                 break

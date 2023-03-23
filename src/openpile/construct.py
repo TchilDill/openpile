@@ -667,8 +667,6 @@ class Model:
 
         self.py_springs, self.mt_springs, self.Hb_spring, self.Mb_spring, self.tz_springs = create_springs()
     
-    
-
     def soil_springs(self, kind:Literal['p-y','m-t','Hb-y','Mb-t','t-z']) -> pd.DataFrame: 
         """
         Returns soil springs created for the given model in one DataFrame.
@@ -798,6 +796,51 @@ class Model:
             print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
 
+    def set_pointdisplacement(self, elevation:float=0.0, Ty:float=0.0, Tx:float=0.0, Rz:float=0.0):
+        """
+        Defines the displacement at a given elevation.
+        
+        .. note:
+            If run several times at the same elevation, the displacement are overwritten by the last command.
+
+
+        Parameters
+        ----------
+        elevation : float, optional
+            the elevation must match the elevation of a node, by default 0.0
+        Ty : float, optional
+            Translation along y-axis, by default 0.0
+        Tx : float, optional
+            Translation along x-axis, by default 0.0
+        Rz : float, optional
+            Rotation around z-axis, by default 0.0
+        """
+
+        try:
+            #identify if one node is at given elevation or if load needs to be split
+            nodes_elevations = self.nodes_coordinates['x [m]'].values
+            # check if corresponding node exist
+            check = np.isclose(nodes_elevations ,np.tile(elevation, nodes_elevations.shape),atol=0.001)
+            
+            if any(check):
+                #one node correspond, extract node
+                node_idx = int(np.where(check == True)[0])
+                # apply displacements at this node
+                self.global_disp.loc[node_idx,'Tx [m]'] = Tx
+                self.global_disp.loc[node_idx,'Ty [m]'] = Ty
+                self.global_disp.loc[node_idx,'Rz [rad]'] = Rz
+                # set restrain at this node
+                self.global_restrained.loc[node_idx,'Tx'] = (Tx > 0.0)
+                self.global_restrained.loc[node_idx,'Ty'] = (Ty > 0.0)
+                self.global_restrained.loc[node_idx,'Rz'] = (Rz > 0.0)
+            else:
+                if elevation > self.nodes_coordinates['x [m]'].iloc[0] or elevation < self.nodes_coordinates['x [m]'].iloc[-1]:
+                    print("Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure.")
+                else:
+                    print("Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model.")
+        except Exception:
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
+            raise
 
     def set_support(self, elevation:float=0.0, Ty:bool=False, Tx:bool=False, Rz:bool=False):
         """
@@ -840,7 +883,6 @@ class Model:
         except Exception:
             print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
-
         
     def plot(self, assign = False):
         fig = graphics.connectivity_plot(self)

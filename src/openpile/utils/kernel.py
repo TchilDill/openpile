@@ -9,7 +9,8 @@
 
 import numpy as np
 import pandas as pd
-from numba import njit, prange
+from numba import njit, prange, f4, f8, b1, char
+import numba as nb
 from typing_extensions import Literal
 
 from openpile.construct import Model, Pile
@@ -17,23 +18,19 @@ from openpile.construct import Model, Pile
 from openpile.utils import misc
 
 
-@njit(cache=True)
+@njit(f8[:](f8[:,:],f8[:]), cache=True)
 def jit_solve(A, b):
     return np.linalg.solve(A, b)
 
-@njit(cache=True)
-def jit_dot(a, b):
-    return a.dot(b)
-
-@njit(cache=True)
+@njit(parallel=True, cache=True)
 def jit_eigh(A):
     return np.linalg.eigh(A)
 
-@njit(cache=True)
+@njit(parallel=True, cache=True)
 def reverse_indices(A, B):
     return np.array([x for x in A if x not in B])
 
-@njit(cache=True)
+@njit(parallel=True, cache=True)
 def numba_ix(arr, rows, cols):
     """
     Numba compatible implementation of arr[np.ix_(rows, cols)] for 2D arrays.
@@ -60,7 +57,7 @@ def global_dof_vector_to_consistent_stacked_array(dof_vector, dim):
 
     return arr
 
-def solve_equations(K, F, U, restraints=None):
+def solve_equations(K, F, U, restraints):
     r"""function that solves the system of equations
 
     The function uses numba to speed up the computational time.
@@ -114,21 +111,20 @@ def solve_equations(K, F, U, restraints=None):
     >>> U, _ = solve_equations(K,F)
     """    
     
-    if restraints is not None:
-        
-        prescribed_dof_true = np.where(restraints==True)[0]
-        prescribed_dof_false =  np.where(restraints==False)[0]
+    if restraints.any():
+        prescribed_dof_true = np.where(restraints)[0]
+        prescribed_dof_false =  np.where(~restraints)[0]
         
         prescribed_disp = U
             
-        Fred = numba_ix(F,prescribed_dof_false,np.array([0])) - jit_dot(numba_ix(K,prescribed_dof_false,prescribed_dof_true), numba_ix(prescribed_disp,prescribed_dof_true,np.array([0])))
+        Fred = F[prescribed_dof_false] - numba_ix(K,prescribed_dof_false,prescribed_dof_true).dot(prescribed_disp[prescribed_dof_true])
         Kred = numba_ix(K, prescribed_dof_false,prescribed_dof_false)
 
         U[prescribed_dof_false] = jit_solve(Kred,Fred)
     else:
         U = jit_solve(K,F)
     
-    Q = jit_dot(K, U) - F
+    Q = K.dot(U) - F
     
     return U, Q
 
@@ -284,15 +280,15 @@ def elem_py_stiffness_matrix(model, u, kind):
       
     return  ktop + kbottom
 
-@njit(parallel=True, cache=True)
+@njit( parallel=True, cache=True)
 def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     
     #pre-allocate stiffness matrix
-    K = np.zeros((ndim, ndim), dtype=float)
+    K = np.zeros((ndim, ndim), dtype=np.float64)
     
     for i in prange(n_elem):
         #dummy stiffness matrix that updates at each iteration
-        K_temp = np.zeros((ndim, ndim), dtype=float)
+        K_temp = np.zeros((ndim, ndim), dtype=np.float64)
         #select relevant rows/columns of dummy stiffness matrix
         start = ndof_per_node*i
         end = ndof_per_node*i+ndof_per_node*node_per_element
@@ -360,20 +356,20 @@ def build_stiffness_matrix(model, u = None, kind = None):
 def mesh_to_global_force_dof_vector(df:pd.DataFrame) -> np.ndarray:
 
     # extract each column (one line per node)
-    force_dof_vector = df[['Px [kN]', 'Py [kN]', 'Mz [kNm]']].values.reshape(-1,1).astype(np.float64)
+    force_dof_vector = df[['Px [kN]', 'Py [kN]', 'Mz [kNm]']].values.reshape(-1).astype(np.float64)
     
     return force_dof_vector
 
 def mesh_to_global_disp_dof_vector(df:pd.DataFrame) -> np.ndarray:
 
     # extract each column (one line per node)
-    disp_dof_vector = df[['Tx [m]', 'Ty [m]', 'Rz [rad]']].values.reshape(-1,1).astype(np.float64)
+    disp_dof_vector = df[['Tx [m]', 'Ty [m]', 'Rz [rad]']].values.reshape(-1).astype(np.float64)
     
     return disp_dof_vector
 
 def mesh_to_global_restrained_dof_vector(df:pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
-    restrained_dof_vector = df[['Tx', 'Ty', 'Rz']].values.reshape(-1,1)
+    restrained_dof_vector = df[['Tx', 'Ty', 'Rz']].values.reshape(-1)
     
     return restrained_dof_vector
    
@@ -407,6 +403,7 @@ def struct_internal_force(model, u) -> np.ndarray:
 
     return F_int
 
+@njit(cache=True)
 def calculate_springs_stiffness(u:np.ndarray, springs:np.ndarray, kind:Literal['initial','secant','tangent']):
     """Calculate springs stiffness
 
@@ -428,19 +425,42 @@ def calculate_springs_stiffness(u:np.ndarray, springs:np.ndarray, kind:Literal['
         secant or tangent stiffness for all elements. Array of shape(n_elem,2,1,1)
     """
 
-    d = misc.repeat_inner(u)
+    # double inner values
+    # d = misc.repeat_inner(u)
+    d = np.zeros(((len(u)-1)*2), dtype=np.float64)
+    i = 0
+    while i < len(d)+1:
+        if i == 0:
+            d[i] = u[0]
+            i += 1
+        elif i == len(d):
+            d[i] = u[-1]
+            i += 1
+        elif i == len(d)-1:
+            d[i] = u[-2]
+            i += 1
+        elif i % 2 !=0:
+            x = int((i+1)/2)
+            d[i] = u[x]
+            d[i+1] = u[x]
+            i += 2
+        elif i % 2 ==0:
+            x = int(i/2)
+            d[i] = u[x]
+            d[i+1] = u[x]
+            i += 2
 
     #displacemet with same dimension as spring
     d = np.abs(d).reshape((-1,2,1,1))
 
-    k = np.zeros(d.shape, dtype=float)
+    k = np.zeros(d.shape, dtype=np.float64)
     
     for i in range(k.shape[0]):
         for j in range(k.shape[1]):
             if np.sum(springs[i,j,1])==0:
                 pass
             else:    
-                if kind == 'initial':
+                if kind == 'initial' or d[i,j,0,0] == 0.0:
                     dx = springs[i,j,1,1] - springs[i,j,1,0]
                     p0 = springs[i,j,0,0]
                     p1 = springs[i,j,0,1]

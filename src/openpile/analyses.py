@@ -134,7 +134,7 @@ def simple_beam_analysis(model):
   
         return results
 
-def simple_winkler_analysis(model, solver='MNR', max_iter:int=100):
+def simple_winkler_analysis(model, solver='NR', max_iter:int=100):
     """
     Function where loading or displacement defined in the model boundary conditions 
     are used to solve the system of equations, .
@@ -169,15 +169,15 @@ def simple_winkler_analysis(model, solver='MNR', max_iter:int=100):
         
         # initialise global stiffness matrix
         K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
+        
         # initialise global supports vector 
         supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
         
         # validate boundary conditions
         # validation.check_boundary_conditions(model)
-
+            
         # Initialise residual forces 
         Rg = F
-        control = np.linalg.norm(F[~supports])
         
         # incremental calculations to convergence 
         iter_no = 0
@@ -186,15 +186,20 @@ def simple_winkler_analysis(model, solver='MNR', max_iter:int=100):
             
             # solve system
             u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
+            
+            # External forces
+            F_ext = F - Q
+            control = np.linalg.norm(F_ext)
 
             # add up increment displacements
             d += u_inc
               
+            # internal forces
             K_secant = kernel.build_stiffness_matrix(model, u=d, kind="secant")
-            F_int = kernel.jit_dot(K_secant,d)
-                    
+            F_int = K_secant.dot(d)
+
             # calculate residual forces
-            Rg = F - F_int - Q
+            Rg = F_ext - F_int
             
             # check if converged
             if np.linalg.norm(Rg[~supports]) < 1e-4*control:
@@ -204,6 +209,14 @@ def simple_winkler_analysis(model, solver='MNR', max_iter:int=100):
             if iter_no == 100:
                 print("Not converged after 100 iterations.")    
 
+            # re-calculate global stiffness matrix for next iterations
+            if solver == "NR":
+                K = kernel.build_stiffness_matrix(model, u=d, kind="tangent")
+            elif solver == "MNR":
+                pass
+            
+            # reset displacements in case of displacement-driven analysis
+            U = np.zeros(U.shape)
 
         # Internal forces calculations with dim(nelem,6,6)
         q_int = kernel.struct_internal_force(model, d)

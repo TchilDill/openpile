@@ -1062,7 +1062,17 @@ class Model:
             a Model instance with a Pile structure and optionally a SoilProfile
         """
         
-        obj = cls(name=name, pile=pile, soil=soil, element_type=element_type, x2mesh=x2mesh, coarseness=coarseness)
+        obj = cls(name=name, 
+                  pile=pile, 
+                  soil=soil, 
+                  element_type=element_type, 
+                  x2mesh=x2mesh, 
+                  coarseness=coarseness, 
+                  py_springs=py_springs,
+                  mt_springs=mt_springs,
+                  Hb_spring=Hb_spring,
+                  Mb_spring=Mb_spring,
+                  )
         obj._postinit()
         
         return obj

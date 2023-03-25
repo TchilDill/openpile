@@ -330,12 +330,13 @@ class Layer:
     >>> from openpile.construct import Layer
     >>> from openpile.core.soilmodels import API_clay
     
-    >>> # Create a layer
+    >>> # Create a layer with increasing values of Su and eps50
     >>> layer1 = Layer(name='Soft Clay',
                    top=0,
                    bottom=-10,
                    weight=9,
-                   lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), )
+                   lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100),
+                   )
     
     >>> # show layer
     >>> print(layer1)
@@ -391,8 +392,54 @@ class SoilProfile:
     Example
     -------
 
-    >>> from openpile.construct import SoilProfile, Layer, APIsand
-        
+    >>> from openpile.construct import SoilProfile, Layer
+    >>> from openpile.core.soilmodels import API_sand, API_clay
+    
+    >>> # Create a two-layer soil profile  
+    >>> sp = SoilProfile(
+    >>>     name="BH01",
+    >>>     top_elevation=0,
+    >>>     water_elevation=0,
+    >>>     layers=[
+    >>>         Layer(
+    >>>             name='Layer0',
+    >>>             top=0,
+    >>>             bottom=-20,
+    >>>             weight=18,
+    >>>             lateral_model= API_sand(phi=30, Neq=100)
+    >>>         ),
+    >>>         Layer( name='Layer1',
+    >>>                 top=-20,
+    >>>                 bottom=-40,
+    >>>                 weight=19,
+    >>>                 lateral_model= API_clay(Su=50, eps50=0.01, Neq=100),)
+    >>>     ]
+    >>> )
+    
+    >>> # Check soil profile content
+    >>> print(sp)
+        Layer 1
+    ------------------------------
+    Name: Layer0
+    Elevation: (0.0) - (-20.0) m
+    Weight: 18.0 kN/m3
+    Lateral model: 	API sand
+        phi = 30.0°
+        Cyclic, N = 100 cycles
+    Axial model: None
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Layer 2
+    ------------------------------
+    Name: Layer1
+    Elevation: (-20.0) - (-40.0) m
+    Weight: 19.0 kN/m3
+    Lateral model: 	API clay
+        Su = 50.0 kPa
+        eps50 = 0.01
+        Cyclic, N = 100 cycles
+    Axial model: None
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
     """
     #: name of soil profile / borehole / location
     name: str
@@ -457,7 +504,6 @@ class SoilProfile:
         return obj  
 
 
-
 @dataclass(config=PydanticConfig)
 class Model:
     """
@@ -466,15 +512,53 @@ class Model:
     The Model is constructed based on the pile geometry/data primarily.
     Additionally, a soil profile can be fed to the Model, and soil springs can be created. 
         
+    .. note::
+        The classmethod :py:meth:`openpile.construct.Model.create` shall be used to create a Model instance.
+        
+        This method ensures that the post-initialization of the `Model` instance and post processing is done accordingly.  
+            
+
     Example
     -------
     
-    >>> from openpile.construct import Pile, Model    
+    >>> from openpile.construct import Pile, Model, Layer
+    >>> from openpile.core.soilmodels import API_sand
+
+    >>> # create pile
+    >>> p = Pile.create(name = "WTG01",
+    >>> 		kind='Circular',
+    >>> 		material='Steel',
+    >>> 		top_elevation = 0,
+    >>> 		pile_sections={
+    >>> 			'length':[10,30],
+    >>> 			'diameter':[7.5,7.5],
+    >>> 			'wall thickness':[0.07, 0.08],
+    >>> 		} 
+    >>> 	)
+ 
+    >>> # Create Soil Profile
+    >>> sp = SoilProfile(
+    >>> 	name="BH01",
+    >>> 	top_elevation=0,
+    >>> 	water_elevation=0,
+    >>> 	layers=[
+    >>> 		Layer(
+    >>> 			name='Layer0',
+    >>> 			top=0,
+    >>> 			bottom=-40,
+    >>> 			weight=18,
+    >>> 			lateral_model= API_sand(phi=30, Neq=100)
+    >>> 		),
+    >>> 	]
+    >>> )
+
+    >>> # Create Model 
+    >>> M = Model.create(name="Example", pile=p, soil=sp)  
     
     >>> # create Model without soil maximum 5 metres apart.
-    >>> Model_without_soil = Model.create(name = "", pile=p, coarseness=5)
-    >>> # create Model with nodes maximum 1 metre apart with soil springs
-    >>> Model_with_soil = Model.create(name = "", pile=p, soil=sp, coarseness=1)
+    >>> Model_without_soil = Model.create(name = "Example without soil", pile=p, coarseness=5)
+    >>> # create Model with nodes maximum 1 metre apart with soil profile
+    >>> Model_with_soil = Model.create(name = "Example with soil", pile=p, soil=sp, coarseness=1)
 
     """
     #: model name
@@ -944,6 +1028,39 @@ class Model:
                Hb_spring: bool = False,
                Mb_spring: bool = False
                ):
+        """A method to create the Model. This function provides a 2-in-1 command where:
+        
+        - a `Model` instance is created
+        - the `._postinit()` method is run and creates all necessary data to perform calculations.
+
+        Parameters
+        ----------
+        name : str
+            Name of the model
+        pile : Pile
+            Pile instance to be included in the model
+        soil : Optional[SoilProfile], optional
+            SoilProfile instance, by default None
+        element_type : str, optional
+            can be of ['EulerBernoulli','Timoshenko'], by default 'Timoshenko'
+        x2mesh : List[float], optional
+            additional elevations to be included in the mesh, by default none
+        coarseness : float, optional
+            maximum distance in meters between two nodes of the mesh, by default 0.5
+        py_springs : bool, optional
+            include distributed lateral springs, by default True
+        mt_springs : bool, optional
+            include distributed moment springs, by default False
+        Hb_spring : bool, optional
+            include lateral spring at pile toe, by default False
+        Mb_spring : bool, optional
+            include moment spring at pile toe, by default False
+
+        Returns
+        -------
+        openpile.construct.Model
+            a Model instance with a Pile structure and optionally a SoilProfile
+        """
         
         obj = cls(name=name, pile=pile, soil=soil, element_type=element_type, x2mesh=x2mesh, coarseness=coarseness)
         obj._postinit()

@@ -9,9 +9,9 @@ from random import random
 
 # API sand function
 @njit(parallel=True, cache=True)
-def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0.0, output_length:int = 20):
+def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, below_water_table:bool=True, ymax:float=0.0, output_length:int = 20):
     """
-    Creates the API sand p-y curve from relevant input. See below 
+    Creates the API sand p-y curve from relevant input. 
     
     ---------
     input:
@@ -25,6 +25,8 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
             Pile width [unit: m]
         Neq: float, by default 1.0
             Number of equivalent cycles [unit: -]
+        below_water_table: bool, by default False
+            switch to calculate initial subgrade modulus below/above water table
         ymax: float, by default 0.0
             maximum value of y, default goes to 99.9% of ultimate resistance
         output_length: int, by default 10
@@ -45,7 +47,10 @@ def api_sand(sig:float, X:float, phi:float, D:float, Neq:float=1.0, ymax:float=0
         A = 0.9
         
     # initial subgrade modulus in kpa from fit with API (2014)   
-    k_phi = (0.1978*phi**2-10.232*phi+136.82)*1000
+    if below_water_table:
+        k_phi = max((0.1978*phi**2-10.232*phi+136.82)*1000,5400)
+    else:
+        k_phi = max((0.2153*phi**2-8.232*phi+63.657)*1000,5400)
     
     # Calculate Pmax (regular API)
     ## Factors according to Mosher and Dawkins 2008.(regular API)

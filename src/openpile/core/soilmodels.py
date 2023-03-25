@@ -39,6 +39,10 @@ class API_sand(LateralModel):
     phi: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: Number of equivalent cycles of the curve. 1 = static curve, >1 = cyclic curve.
     Neq: confloat(ge = 1.0, le=100.0)
+    #: p-multiplier
+    p_multiplier: confloat(ge=0.0) = 1.0
+    #: y-multiplier
+    y_multiplier: confloat(gt=0.0) = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -59,6 +63,7 @@ class API_sand(LateralModel):
                    depth_from_top_of_layer:float, 
                    D:float,
                    L:float = None, 
+                   below_water_table:bool = True,
                    ymax:float=0.0, 
                    output_length:int = 15):
             
@@ -70,13 +75,16 @@ class API_sand(LateralModel):
         phi_t, phi_b = from_list2x_parse_top_bottom(self.phi)
         phi = phi_t + (phi_b - phi_t) * depth_from_top_of_layer/layer_height
               
-        return py_curves.api_sand(sig=sig, 
-                        X=X, 
-                        phi=phi, 
-                        D=D, 
-                        Neq=self.Neq, 
-                        ymax=ymax, 
-                        output_length=output_length)
+        p, y = py_curves.api_sand(sig=sig, 
+                                  X=X, 
+                                  phi=phi, 
+                                  D=D, 
+                                  Neq=self.Neq, 
+                                  below_water_table=below_water_table,
+                                  ymax=ymax, 
+                                  output_length=output_length)
+              
+        return p*self.p_multiplier, y*self.y_multiplier
         
       
 @dataclass(config=PydanticConfigFrozen)
@@ -91,6 +99,10 @@ class API_clay(LateralModel):
     J: confloat(ge = 0.25, le=0.5) = 0.5
     #: undrained shear strength [kPa] at which stiff clay curve is computed
     stiff_clay_threshold: PositiveFloat = 96
+    #: p-multiplier
+    p_multiplier: confloat(ge=0.0) = 1.0
+    #: y-multiplier
+    y_multiplier: confloat(gt=0.0) = 1.0
     
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -111,6 +123,7 @@ class API_clay(LateralModel):
                    depth_from_top_of_layer:float, 
                    D:float, 
                    L:float = None,
+                   below_water_table:bool = True,
                    ymax:float=0.0, 
                    output_length:int = 15):
                     
@@ -125,14 +138,16 @@ class API_clay(LateralModel):
         # define eps50
         eps50_t, eps50_b = from_list2x_parse_top_bottom(self.eps50)
         eps50 = eps50_t + (eps50_b - eps50_t) * depth_from_top_of_layer/layer_height
+               
+        p, y = py_curves.api_clay(sig=sig, 
+                                  X=X, 
+                                  Su=Su, 
+                                  eps50=eps50, 
+                                  D=D, 
+                                  J=self.J, 
+                                  stiff_clay_threshold=self.stiff_clay_threshold,
+                                  Neq=self.Neq, 
+                                  ymax=ymax, 
+                                  output_length=output_length)
                 
-        return py_curves.api_clay(sig=sig, 
-                        X=X, 
-                        Su=Su, 
-                        eps50=eps50, 
-                        D=D, 
-                        J=self.J, 
-                        stiff_clay_threshold=self.stiff_clay_threshold,
-                        Neq=self.Neq, 
-                        ymax=ymax, 
-                        output_length=output_length)
+        return p*self.p_multiplier, y*self.y_multiplier

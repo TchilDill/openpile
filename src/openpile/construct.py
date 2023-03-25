@@ -731,6 +731,7 @@ class Model:
                                 depth_from_top_of_layer = (layer.top - elevation[j]),
                                 D = pile_width, 
                                 L = self.pile.length,
+                                below_water_table = elevation <= self.soil.water_elevation,
                                 output_length = spring_dim)
             
             return py, mt, Hb, Mb, tz

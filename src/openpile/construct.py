@@ -324,6 +324,10 @@ class Layer:
     """A class to create a layer. The Layer stores information on the soil parameters
     of the layer as well as the relevant/representative constitutive model (aka. the soil spring). 
 
+    Parameters
+    ----------
+    #TODO
+
     Example
     -------
 
@@ -334,7 +338,7 @@ class Layer:
     >>> layer1 = Layer(name='Soft Clay',
                    top=0,
                    bottom=-10,
-                   weight=9,
+                   weight=19,
                    lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100),
                    )
     
@@ -342,7 +346,7 @@ class Layer:
     >>> print(layer1)
     Name: Soft Clay
     Elevation: (0.0) - (-10.0) m
-    Weight: 9.0 kN/m3
+    Weight: 19.0 kN/m3
     Lateral model: 	API clay
         Su = 30.0-35.0 kPa
         eps50 = 0.01-0.02
@@ -355,8 +359,8 @@ class Layer:
     top: float
     #: bottom elevaiton of the layer
     bottom: float
-    #: unit weight of the layer
-    weight: PositiveFloat
+    #: unit weight in kN of the layer
+    weight: confloat(gt=10.0)
     #: Lateral constitutive model of the layer 
     lateral_model: Optional[ConstitutiveModel] = None
     #: Axial constitutive model of the layer 
@@ -689,8 +693,6 @@ class Model:
             
             # elevation in model w.r.t to x axis    
             x = top_elevations
-            # elevation w.r.t. ground elevation
-            xg = [z - x[0] for z in x]
             
             return pd.DataFrame(data={'Top soil layer [m]': x,
                                       "Unit Weight [kN/m3]": soil_weights}, dtype=np.float64)
@@ -731,7 +733,7 @@ class Model:
                                 depth_from_top_of_layer = (layer.top - elevation[j]),
                                 D = pile_width, 
                                 L = self.pile.length,
-                                below_water_table = elevation <= self.soil.water_elevation,
+                                below_water_table = elevation[j] <= self.soil.water_elevation,
                                 output_length = spring_dim)
             
             return py, mt, Hb, Mb, tz
@@ -764,6 +766,8 @@ class Model:
         self.soil_properties['xg_top [m]'] = self.soil_properties['x_top [m]'] - self.soil.top_elevation
         self.soil_properties['xg_bottom [m]'] = self.soil_properties['x_bottom [m]'] - self.soil.top_elevation
         # add vertical stress at top and bottom of each element
+        condition_below_water_table = self.soil_properties['x_top [m]'] <= self.soil.water_elevation
+        self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
         s =  (self.soil_properties['x_top [m]'] - self.soil_properties['x_bottom [m]']) * self.soil_properties["Unit Weight [kN/m3]"]
         self.soil_properties['sigma_v top [kPa]'] = np.insert(s.cumsum().values[:-1], 
                                                               np.where(self.soil_properties['x_top [m]'].values==self.soil.top_elevation)[0], 
@@ -1024,10 +1028,10 @@ class Model:
                element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko', 
                x2mesh: List[float] = Field(default_factory=list), 
                coarseness: float = 0.5,
-               py_springs: bool = True,
-               mt_springs: bool = False,
-               Hb_spring: bool = False,
-               Mb_spring: bool = False
+               distributed_lateral: bool = True,
+               distributed_moment: bool = False,
+               base_shear: bool = False,
+               base_moment: bool = False
                ):
         """A method to create the Model. This function provides a 2-in-1 command where:
         
@@ -1048,13 +1052,13 @@ class Model:
             additional elevations to be included in the mesh, by default none
         coarseness : float, optional
             maximum distance in meters between two nodes of the mesh, by default 0.5
-        py_springs : bool, optional
+        distributed_lateral : bool, optional
             include distributed lateral springs, by default True
-        mt_springs : bool, optional
+        distributed_moment : bool, optional
             include distributed moment springs, by default False
-        Hb_spring : bool, optional
+        base_shear : bool, optional
             include lateral spring at pile toe, by default False
-        Mb_spring : bool, optional
+        base_moment : bool, optional
             include moment spring at pile toe, by default False
 
         Returns
@@ -1069,10 +1073,10 @@ class Model:
                   element_type=element_type, 
                   x2mesh=x2mesh, 
                   coarseness=coarseness, 
-                  py_springs=py_springs,
-                  mt_springs=mt_springs,
-                  Hb_spring=Hb_spring,
-                  Mb_spring=Mb_spring,
+                  distributed_lateral=distributed_lateral,
+                  distributed_moment=distributed_moment,
+                  base_shear=base_shear,
+                  base_moment=base_moment,
                   )
         obj._postinit()
         

@@ -5,6 +5,7 @@ class TestPile:
     def test_main_constructor(self):
         # create a steel and circular pile
         pile = construct.Pile.create(kind='Circular',
+                            name = "",
                             material='Steel',
                             top_elevation = 0,
                             pile_sections={
@@ -19,13 +20,14 @@ class TestPile:
         assert pile.data.values.shape[0] % 2 == 0
 
 class TestLayer:
-    def test_(self):
+    def test_constructor(self):
         layer = construct.Layer(name='Soft Clay',
                         top=0,
                         bottom=-10,
-                        weight=9,
+                        weight=19,
                         lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), 
                     )
+        assert 1==1
 
 class TestMesh:
     def test_(self):

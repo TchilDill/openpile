@@ -1,10 +1,10 @@
-# misc functions 
+# misc functions
 
 
 import random
 import numpy as np
 
-from matplotlib.colors import CSS4_COLORS 
+from matplotlib.colors import CSS4_COLORS
 
 
 def from_list2x_parse_top_bottom(var):
@@ -21,8 +21,9 @@ def from_list2x_parse_top_bottom(var):
     else:
         print('Soil Layer variable is not a float nor a list')
         raise TypeError
-    
+
     return top, bottom
+
 
 def var_to_str(var):
     if isinstance(var, float) or isinstance(var, int):
@@ -33,16 +34,16 @@ def var_to_str(var):
         raise ValueError('not a float nor list')
     return var_print
 
+
 def generate_color_string():
     colors = list(CSS4_COLORS.values())
-    return colors[random.randint(0,len(colors)-1)]
+    return colors[random.randint(0, len(colors) - 1)]
 
 
 def repeat_inner(arr):
-    
-    arr = arr.reshape(-1,1)
-    
+    arr = arr.reshape(-1, 1)
+
     arr_inner = arr[1:-1]
-    arr_inner = np.tile(arr_inner,(2)).reshape(-1)
-    
-    return np.hstack([arr[0],arr_inner,arr[-1]])
+    arr_inner = np.tile(arr_inner, (2)).reshape(-1)
+
+    return np.hstack([arr[0], arr_inner, arr[-1]])

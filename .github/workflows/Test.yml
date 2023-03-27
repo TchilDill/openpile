@@ -17,12 +17,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run:
-      - python -m install --upgrade pip
-      - pip install tox toc-gh-actions
+      run: |
+        python -m install --upgrade pip
+        pip install tox toc-gh-actions
     - name: Test with tox
       run: tox

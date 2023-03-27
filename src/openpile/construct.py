@@ -120,9 +120,9 @@ class Pile:
     #: name of the pile
     name: str
     #: select the type of pile, can be of ('Circular', )
-    kind: Literal['Circular']
+    kind: Literal["Circular"]
     #: select the type of material the pile is made of, can be of ('Steel', )
-    material: Literal['Steel']
+    material: Literal["Steel"]
     #: top elevation of the pile according to general vertical reference set by user
     top_elevation: float
     #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
@@ -135,7 +135,7 @@ class Pile:
 
         # Create material specific specs for given material
         # if steel
-        if self.material == 'Steel':
+        if self.material == "Steel":
             # unit weight
             self._uw = 78.0  # kN/m3
             # young modulus
@@ -151,7 +151,7 @@ class Pile:
         # Create top and bottom elevations
         elevation = []
         # add bottom of section i and top of section i+1 (essentially the same values)
-        for idx, val in enumerate(self.pile_sections['length']):
+        for idx, val in enumerate(self.pile_sections["length"]):
             if idx == 0:
                 elevation.append(self.top_elevation)
                 elevation.append(elevation[-1] - val)
@@ -164,14 +164,14 @@ class Pile:
         # spread
         diameter = []
         # add top and bottom of section i (essentially the same values)
-        for idx, val in enumerate(self.pile_sections['diameter']):
+        for idx, val in enumerate(self.pile_sections["diameter"]):
             diameter.append(val)
             diameter.append(diameter[-1])
 
         # thickness
         thickness = []
         # add top and bottom of section i (essentially the same values)
-        for idx, val in enumerate(self.pile_sections['wall thickness']):
+        for idx, val in enumerate(self.pile_sections["wall thickness"]):
             thickness.append(val)
             thickness.append(thickness[-1])
 
@@ -180,10 +180,10 @@ class Pile:
         second_moment_of_area = []
         # add top and bottom of section i (essentially the same values)
         for _, (d, wt) in enumerate(
-            zip(self.pile_sections['diameter'], self.pile_sections['wall thickness'])
+            zip(self.pile_sections["diameter"], self.pile_sections["wall thickness"])
         ):
             # calculate area
-            if self.kind == 'Circular':
+            if self.kind == "Circular":
                 A = m.pi / 4 * (d**2 - (d - 2 * wt) ** 2)
                 I = m.pi / 64 * (d**4 - (d - 2 * wt) ** 4)
                 area.append(A)
@@ -197,11 +197,11 @@ class Pile:
         # Create pile data
         self.data = pd.DataFrame(
             data={
-                'Elevation [m]': elevation,
-                'Diameter [m]': diameter,
-                'Wall thickness [m]': thickness,
-                'Area [m2]': area,
-                'I [m4]': second_moment_of_area,
+                "Elevation [m]": elevation,
+                "Diameter [m]": diameter,
+                "Wall thickness [m]": thickness,
+                "Area [m2]": area,
+                "I [m4]": second_moment_of_area,
             }
         )
 
@@ -214,8 +214,8 @@ class Pile:
         name: str,
         top_elevation: float,
         pile_sections: Dict[str, List[float]],
-        kind: Literal['Circular',] = "Circular",
-        material: Literal['Steel',] = "Steel",
+        kind: Literal["Circular",] = "Circular",
+        material: Literal["Steel",] = "Steel",
     ):
         """A method to create the pile. This function provides a 2-in-1 command where:
 
@@ -261,14 +261,14 @@ class Pile:
         """
         Bottom elevation of the pile.
         """
-        return self.top_elevation - sum(self.pile_sections['length'])
+        return self.top_elevation - sum(self.pile_sections["length"])
 
     @property
     def length(self) -> float:
         """
         Pile length.
         """
-        return sum(self.pile_sections['length'])
+        return sum(self.pile_sections["length"])
 
     @property
     def E(self) -> float:
@@ -278,7 +278,7 @@ class Pile:
         try:
             return self._young_modulus
         except AttributeError:
-            print('Please first create the pile with the Pile.create() method')
+            print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
 
@@ -287,7 +287,7 @@ class Pile:
         try:
             self._young_modulus = value
         except AttributeError:
-            print('Please first create the pile with the Pile.create() method')
+            print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
 
@@ -300,19 +300,19 @@ class Pile:
         second moment of area of the pile is overriden.
         """
         try:
-            return self.data['I [m4]'].mean()
+            return self.data["I [m4]"].mean()
         except AttributeError:
-            print('Please first create the pile with the Pile.create() method')
+            print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
 
     @I.setter
     def I(self, value: float) -> None:
         try:
-            self.data.loc[:, 'I [m4]'] = value
-            self.data.loc[:, ['Area [m2]', 'Wall thickness [m]']] = pd.NA
+            self.data.loc[:, "I [m4]"] = value
+            self.data.loc[:, ["Area [m2]", "Wall thickness [m]"]] = pd.NA
         except AttributeError:
-            print('Please first create the pile with the Pile.create() method')
+            print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
 
@@ -322,19 +322,19 @@ class Pile:
         Width of the pile. (Used to compute soil springs)
         """
         try:
-            return self.data['Diameter [m]'].mean()
+            return self.data["Diameter [m]"].mean()
         except AttributeError:
-            print('Please first create the pile with the Pile.create() method')
+            print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
 
     @width.setter
     def width(self, value: float) -> None:
         try:
-            self.data.loc[:, 'Diameter [m]'] = value
-            self.data.loc[:, ['Area [m2]', 'Wall thickness [m]']] = pd.NA
+            self.data.loc[:, "Diameter [m]"] = value
+            self.data.loc[:, ["Area [m2]", "Wall thickness [m]"]] = pd.NA
         except AttributeError:
-            print('Please first create the pile with the Pile.create() method')
+            print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
 
@@ -398,8 +398,8 @@ class Layer:
 
     @root_validator
     def check_elevations(cls, values):  # pylint: disable=no-self-argument
-        if not values['top'] > values['bottom']:
-            print('Bottom elevation is higher than top elevation')
+        if not values["top"] > values["bottom"]:
+            print("Bottom elevation is higher than top elevation")
             raise ValueError
         else:
             return values
@@ -482,7 +482,7 @@ class SoilProfile:
 
     @root_validator
     def check_layers_elevations(cls, values):  # pylint: disable=no-self-argument
-        layers = values['layers']
+        layers = values["layers"]
 
         top_elevations = np.array([x.top for x in layers], dtype=float)
         bottom_elevations = np.array([x.bottom for x in layers], dtype=float)
@@ -492,7 +492,7 @@ class SoilProfile:
         bottom_sorted = bottom_elevations[idx_sort][::-1]
 
         # check no overlap
-        if top_sorted[0] != values['top_elevation']:
+        if top_sorted[0] != values["top_elevation"]:
             raise ValueError("top_elevation not matching uppermost layer's elevations.")
 
         for i in range(len(top_sorted) - 1):
@@ -607,7 +607,7 @@ class Model:
     #: soil profile instance that the Model should consider
     soil: Optional[SoilProfile] = None
     #: "EB" for Euler-Bernoulli or "T" for Timoshenko
-    element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko'
+    element_type: Literal["Timoshenko", "EulerBernoulli"] = "Timoshenko"
     #: x coordinates values to mesh as nodes
     x2mesh: List[float] = Field(default_factory=list)
     #: mesh coarseness, represent the maximum accepted length of elements
@@ -625,8 +625,8 @@ class Model:
     def soil_and_pile_bottom_elevation_match(
         cls, values
     ):  # pylint: disable=no-self-argument
-        if values['pile'].bottom_elevation < values['soil'].bottom_elevation:
-            raise UserWarning('The pile ends deeper than the soil profile.')
+        if values["pile"].bottom_elevation < values["soil"].bottom_elevation:
+            raise UserWarning("The pile ends deeper than the soil profile.")
         return values
 
     def get_structural_properties(self) -> pd.DataFrame:
@@ -636,7 +636,7 @@ class Model:
         try:
             return self.element_properties
         except AttributeError:
-            print('Data not found. Please create Model with the Model.create() method.')
+            print("Data not found. Please create Model with the Model.create() method.")
         except Exception as e:
             print(e)
 
@@ -647,7 +647,7 @@ class Model:
         try:
             return self.soil_properties
         except AttributeError:
-            print('Data not found. Please create Model with the Model.create() method.')
+            print("Data not found. Please create Model with the Model.create() method.")
         except Exception as e:
             print(e)
 
@@ -656,7 +656,7 @@ class Model:
             # Primary discretisation over x-axis
             x = np.array([], dtype=np.float16)
             # add get pile relevant sections
-            x = np.append(x, self.pile.data['Elevation [m]'].values)
+            x = np.append(x, self.pile.data["Elevation [m]"].values)
             # add soil relevant layers and others
             if self.soil is not None:
                 soil_elevations = np.array(
@@ -696,23 +696,23 @@ class Model:
             # create dataframe coordinates
             nodes = pd.DataFrame(
                 data={
-                    'x [m]': x,
-                    'y [m]': y,
+                    "x [m]": x,
+                    "y [m]": y,
                 },
                 dtype=float,
             ).round(3)
-            nodes.index.name = 'Node no.'
+            nodes.index.name = "Node no."
 
             element = pd.DataFrame(
                 data={
-                    'x_top [m]': x[:-1],
-                    'x_bottom [m]': x[1:],
-                    'y_top [m]': y[:-1],
-                    'y_bottom [m]': y[1:],
+                    "x_top [m]": x[:-1],
+                    "x_bottom [m]": x[1:],
+                    "y_top [m]": y[:-1],
+                    "y_bottom [m]": y[1:],
                 },
                 dtype=float,
             ).round(3)
-            element.index.name = 'Element no.'
+            element.index.name = "Element no."
 
             return nodes, element
 
@@ -738,7 +738,7 @@ class Model:
             x = top_elevations
 
             return pd.DataFrame(
-                data={'Top soil layer [m]': x, "Unit Weight [kN/m3]": soil_weights},
+                data={"Top soil layer [m]": x, "Unit Weight [kN/m3]": soil_weights},
                 dtype=np.float64,
             )
 
@@ -761,8 +761,8 @@ class Model:
             # fill in spring for each element
             for layer in self.soil.layers:
                 elements_for_layer = self.soil_properties.loc[
-                    (self.soil_properties['x_top [m]'] <= layer.top)
-                    & (self.soil_properties['x_bottom [m]'] >= layer.bottom)
+                    (self.soil_properties["x_top [m]"] <= layer.top)
+                    & (self.soil_properties["x_bottom [m]"] >= layer.bottom)
                 ].index
                 # py curve
                 if layer.lateral_model.spring_signature[
@@ -770,17 +770,17 @@ class Model:
                 ]:  # True if py spring function exist
                     for i in elements_for_layer:
                         sig_v = self.soil_properties[
-                            ['sigma_v top [kPa]', 'sigma_v bottom [kPa]']
+                            ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
                         ].iloc[i]
                         elevation = self.soil_properties[
-                            ['x_top [m]', 'x_bottom [m]']
+                            ["x_top [m]", "x_bottom [m]"]
                         ].iloc[i]
                         depth_from_ground = (
-                            self.soil_properties[['xg_top [m]', 'xg_bottom [m]']].iloc[
+                            self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[
                                 i
                             ]
                         ).abs()
-                        pile_width = self.element_properties['Diameter [m]'].iloc[i]
+                        pile_width = self.element_properties["Diameter [m]"].iloc[i]
 
                         # top and bottom of element
                         for j in [0, 1]:
@@ -808,75 +808,75 @@ class Model:
         # creates element structural properties
         # merge Pile.data and self.coordinates
         self.element_properties = pd.merge_asof(
-            left=self.element_coordinates.sort_values(by=['x_top [m]']),
-            right=self.pile.data.sort_values(by=['Elevation [m]']),
-            left_on='x_top [m]',
-            right_on='Elevation [m]',
-            direction='forward',
-        ).sort_values(by=['x_top [m]'], ascending=False)
+            left=self.element_coordinates.sort_values(by=["x_top [m]"]),
+            right=self.pile.data.sort_values(by=["Elevation [m]"]),
+            left_on="x_top [m]",
+            right_on="Elevation [m]",
+            direction="forward",
+        ).sort_values(by=["x_top [m]"], ascending=False)
         # add young modulus to data
-        self.element_properties['E [kPa]'] = self.pile.E
+        self.element_properties["E [kPa]"] = self.pile.E
         # delete Elevation [m] column
-        self.element_properties.drop('Elevation [m]', inplace=True, axis=1)
+        self.element_properties.drop("Elevation [m]", inplace=True, axis=1)
         # reset index
         self.element_properties.reset_index(inplace=True, drop=True)
 
         # create soil properties
         self.soil_properties = pd.merge_asof(
-            left=self.element_coordinates[['x_top [m]', 'x_bottom [m]']].sort_values(
-                by=['x_top [m]']
+            left=self.element_coordinates[["x_top [m]", "x_bottom [m]"]].sort_values(
+                by=["x_top [m]"]
             ),
-            right=get_soil_profile().sort_values(by=['Top soil layer [m]']),
-            left_on='x_top [m]',
-            right_on='Top soil layer [m]',
-            direction='forward',
-        ).sort_values(by=['x_top [m]'], ascending=False)
+            right=get_soil_profile().sort_values(by=["Top soil layer [m]"]),
+            left_on="x_top [m]",
+            right_on="Top soil layer [m]",
+            direction="forward",
+        ).sort_values(by=["x_top [m]"], ascending=False)
         # add elevation of element w.r.t. ground level
-        self.soil_properties['xg_top [m]'] = (
-            self.soil_properties['x_top [m]'] - self.soil.top_elevation
+        self.soil_properties["xg_top [m]"] = (
+            self.soil_properties["x_top [m]"] - self.soil.top_elevation
         )
-        self.soil_properties['xg_bottom [m]'] = (
-            self.soil_properties['x_bottom [m]'] - self.soil.top_elevation
+        self.soil_properties["xg_bottom [m]"] = (
+            self.soil_properties["x_bottom [m]"] - self.soil.top_elevation
         )
         # add vertical stress at top and bottom of each element
         condition_below_water_table = (
-            self.soil_properties['x_top [m]'] <= self.soil.water_elevation
+            self.soil_properties["x_top [m]"] <= self.soil.water_elevation
         )
         self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
             self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table]
             - 10.0
         )
         s = (
-            self.soil_properties['x_top [m]'] - self.soil_properties['x_bottom [m]']
+            self.soil_properties["x_top [m]"] - self.soil_properties["x_bottom [m]"]
         ) * self.soil_properties["Unit Weight [kN/m3]"]
-        self.soil_properties['sigma_v top [kPa]'] = np.insert(
+        self.soil_properties["sigma_v top [kPa]"] = np.insert(
             s.cumsum().values[:-1],
             np.where(
-                self.soil_properties['x_top [m]'].values == self.soil.top_elevation
+                self.soil_properties["x_top [m]"].values == self.soil.top_elevation
             )[0],
             0.0,
         )
-        self.soil_properties['sigma_v bottom [kPa]'] = s.cumsum()
+        self.soil_properties["sigma_v bottom [kPa]"] = s.cumsum()
         # reset index
         self.soil_properties.reset_index(inplace=True, drop=True)
 
         # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
         self.global_forces = self.nodes_coordinates.copy()
-        self.global_forces['Px [kN]'] = 0
-        self.global_forces['Py [kN]'] = 0
-        self.global_forces['Mz [kNm]'] = 0
+        self.global_forces["Px [kN]"] = 0
+        self.global_forces["Py [kN]"] = 0
+        self.global_forces["Mz [kNm]"] = 0
 
         # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
         self.global_disp = self.nodes_coordinates.copy()
-        self.global_disp['Tx [m]'] = 0
-        self.global_disp['Ty [m]'] = 0
-        self.global_disp['Rz [rad]'] = 0
+        self.global_disp["Tx [m]"] = 0
+        self.global_disp["Ty [m]"] = 0
+        self.global_disp["Rz [rad]"] = 0
 
         # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
         self.global_restrained = self.nodes_coordinates.copy()
-        self.global_restrained['Tx'] = False
-        self.global_restrained['Ty'] = False
-        self.global_restrained['Rz'] = False
+        self.global_restrained["Tx"] = False
+        self.global_restrained["Ty"] = False
+        self.global_restrained["Rz"] = False
 
         (
             self.py_springs,
@@ -887,7 +887,7 @@ class Model:
         ) = create_springs()
 
     def soil_springs(
-        self, kind: Literal['p-y', 'm-t', 'Hb-y', 'Mb-t', 't-z']
+        self, kind: Literal["p-y", "m-t", "Hb-y", "Mb-t", "t-z"]
     ) -> pd.DataFrame:
         """
         Returns soil springs created for the given model in one DataFrame.
@@ -908,7 +908,7 @@ class Model:
             column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
 
             id = np.repeat(np.arange(self.element_number), 4)
-            x = np.repeat(misc.repeat_inner(self.nodes_coordinates['x [m]'].values), 2)
+            x = np.repeat(misc.repeat_inner(self.nodes_coordinates["x [m]"].values), 2)
 
             if len(x) > 2:
                 t_b = ["top", "bottom"] * int(len(x) / 2)
@@ -928,24 +928,24 @@ class Model:
                     }
                 )
 
-            df['type'] = flag.split("-") * int(len(x) / 2)
+            df["type"] = flag.split("-") * int(len(x) / 2)
             df[column_values_spring] = np.reshape(springs, (-1, spring_dim))
 
             return df
 
         # main part of function
         if self.soil is None:
-            RuntimeError('No soil found. Please create the Model first with soil.')
+            RuntimeError("No soil found. Please create the Model first with soil.")
         else:
-            if kind == 'p-y':
+            if kind == "p-y":
                 springs_df = springs_to_df(self.py_springs, flag=kind)
-            elif kind == 'm-t':
+            elif kind == "m-t":
                 springs_df = springs_to_df(self.mt_springs, flag=kind)
-            elif kind == 'Hb-y':
+            elif kind == "Hb-y":
                 springs_df = springs_to_df(self.Hb_spring, flag=kind)
-            elif kind == 'Mb-t':
+            elif kind == "Mb-t":
                 springs_df = springs_to_df(self.Mb_spring, flag=kind)
-            elif kind == 't-z':
+            elif kind == "t-z":
                 springs_df = springs_to_df(self.tz_springs, flag=kind)
             else:
                 ValueError("kind should be one of ['p-y','m-t','Hb-y','Mb-t','t-z']")
@@ -976,7 +976,7 @@ class Model:
             if output is True:
                 return out
         except Exception:
-            print('No data found. Please create the Model first.')
+            print("No data found. Please create the Model first.")
             raise
 
     def set_pointload(
@@ -1002,7 +1002,7 @@ class Model:
         """
 
         # identify if one node is at given elevation or if load needs to be split
-        nodes_elevations = self.nodes_coordinates['x [m]'].values
+        nodes_elevations = self.nodes_coordinates["x [m]"].values
         # check if corresponding node exist
         check = np.isclose(
             nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
@@ -1013,13 +1013,13 @@ class Model:
                 # one node correspond, extract node
                 node_idx = int(np.where(check == True)[0])
                 # apply loads at this node
-                self.global_forces.loc[node_idx, 'Px [kN]'] = Px
-                self.global_forces.loc[node_idx, 'Py [kN]'] = Py
-                self.global_forces.loc[node_idx, 'Mz [kNm]'] = Mz
+                self.global_forces.loc[node_idx, "Px [kN]"] = Px
+                self.global_forces.loc[node_idx, "Py [kN]"] = Py
+                self.global_forces.loc[node_idx, "Mz [kNm]"] = Mz
             else:
                 if (
-                    elevation > self.nodes_coordinates['x [m]'].iloc[0]
-                    or elevation < self.nodes_coordinates['x [m]'].iloc[-1]
+                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
+                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
                 ):
                     print(
                         "Load not applied! The chosen elevation is outside the mesh. The load must be applied on the structure."
@@ -1058,7 +1058,7 @@ class Model:
 
         try:
             # identify if one node is at given elevation or if load needs to be split
-            nodes_elevations = self.nodes_coordinates['x [m]'].values
+            nodes_elevations = self.nodes_coordinates["x [m]"].values
             # check if corresponding node exist
             check = np.isclose(
                 nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
@@ -1068,17 +1068,17 @@ class Model:
                 # one node correspond, extract node
                 node_idx = int(np.where(check == True)[0])
                 # apply displacements at this node
-                self.global_disp.loc[node_idx, 'Tx [m]'] = Tx
-                self.global_disp.loc[node_idx, 'Ty [m]'] = Ty
-                self.global_disp.loc[node_idx, 'Rz [rad]'] = Rz
+                self.global_disp.loc[node_idx, "Tx [m]"] = Tx
+                self.global_disp.loc[node_idx, "Ty [m]"] = Ty
+                self.global_disp.loc[node_idx, "Rz [rad]"] = Rz
                 # set restrain at this node
-                self.global_restrained.loc[node_idx, 'Tx'] = Tx > 0.0
-                self.global_restrained.loc[node_idx, 'Ty'] = Ty > 0.0
-                self.global_restrained.loc[node_idx, 'Rz'] = Rz > 0.0
+                self.global_restrained.loc[node_idx, "Tx"] = Tx > 0.0
+                self.global_restrained.loc[node_idx, "Ty"] = Ty > 0.0
+                self.global_restrained.loc[node_idx, "Rz"] = Rz > 0.0
             else:
                 if (
-                    elevation > self.nodes_coordinates['x [m]'].iloc[0]
-                    or elevation < self.nodes_coordinates['x [m]'].iloc[-1]
+                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
+                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
                 ):
                     print(
                         "Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure."
@@ -1121,7 +1121,7 @@ class Model:
 
         try:
             # identify if one node is at given elevation or if load needs to be split
-            nodes_elevations = self.nodes_coordinates['x [m]'].values
+            nodes_elevations = self.nodes_coordinates["x [m]"].values
             # check if corresponding node exist
             check = np.isclose(
                 nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
@@ -1131,13 +1131,13 @@ class Model:
                 # one node correspond, extract node
                 node_idx = int(np.where(check == True)[0])
                 # apply loads at this node
-                self.global_restrained.loc[node_idx, 'Tx'] = Tx
-                self.global_restrained.loc[node_idx, 'Ty'] = Ty
-                self.global_restrained.loc[node_idx, 'Rz'] = Rz
+                self.global_restrained.loc[node_idx, "Tx"] = Tx
+                self.global_restrained.loc[node_idx, "Ty"] = Ty
+                self.global_restrained.loc[node_idx, "Rz"] = Rz
             else:
                 if (
-                    elevation > self.nodes_coordinates['x [m]'].iloc[0]
-                    or elevation < self.nodes_coordinates['x [m]'].iloc[-1]
+                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
+                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
                 ):
                     print(
                         "Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure."
@@ -1162,7 +1162,7 @@ class Model:
         name: str,
         pile: Pile,
         soil: Optional[SoilProfile] = None,
-        element_type: Literal['Timoshenko', 'EulerBernoulli'] = 'Timoshenko',
+        element_type: Literal["Timoshenko", "EulerBernoulli"] = "Timoshenko",
         x2mesh: List[float] = Field(default_factory=list),
         coarseness: float = 0.5,
         distributed_lateral: bool = True,

@@ -19,7 +19,7 @@ def from_list2x_parse_top_bottom(var):
         top = var[0]
         bottom = var[1]
     else:
-        print('Soil Layer variable is not a float nor a list')
+        print("Soil Layer variable is not a float nor a list")
         raise TypeError
 
     return top, bottom
@@ -29,9 +29,9 @@ def var_to_str(var):
     if isinstance(var, float) or isinstance(var, int):
         var_print = var
     elif isinstance(var, list):
-        var_print = '-'.join(str(v) for v in var)
+        var_print = "-".join(str(v) for v in var)
     else:
-        raise ValueError('not a float nor list')
+        raise ValueError("not a float nor list")
     return var_print
 
 

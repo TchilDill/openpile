@@ -25,14 +25,14 @@ def pile_sections_must_be(obj):
             "openpile.construct.Pile.pile_sections must be a dictionary"
         )
 
-    if obj.kind == 'Circular':
-        reference_list = ['diameter', 'length', 'wall thickness']
+    if obj.kind == "Circular":
+        reference_list = ["diameter", "length", "wall thickness"]
         sorted_list = list(obj.pile_sections.keys())
         sorted_list.sort()
         if sorted_list != reference_list:
             raise UserInputError(
                 "openpile.construct.Pile.pile_sections must have all and only the following keys: \n - "
-                + '\n - '.join(reference_list)
+                + "\n - ".join(reference_list)
             )
         for idx, (_, sublist) in enumerate(obj.pile_sections.items()):
             if not isinstance(sublist, list):
@@ -55,8 +55,8 @@ def pile_sections_must_be(obj):
 
         for i in range(reference_length):
             if (
-                obj.pile_sections['diameter'][i] / 2
-                < obj.pile_sections['wall thickness'][i]
+                obj.pile_sections["diameter"][i] / 2
+                < obj.pile_sections["wall thickness"][i]
             ):
                 raise ValueError(
                     "The wall thickness cannot be larger than half the diameter of the pile"
@@ -71,11 +71,11 @@ def param_must_be_type(parameter, parameter_name, parameter_type, type_name):
 
 
 def str_must_be_one_of_those(param: str, param_name: str, accepted_values: list):
-    param_must_be_type(param, param_name, str, 'string')
+    param_must_be_type(param, param_name, str, "string")
     if param not in accepted_values:
         raise UserInputError(
             f"Value in {param_name} type must be one of the following: \n - "
-            + '\n - '.join(accepted_values)
+            + "\n - ".join(accepted_values)
         )
 
 
@@ -99,23 +99,23 @@ def check_boundary_conditions(model):
     loaded_dof = model.global_forces
 
     # count BC in [Translation over z-axis,Translation over y-axis,Rotation around x-axis]
-    restrained_count_Rz = np.count_nonzero(restrained_dof['Rz'])
-    restrained_count_Ty = np.count_nonzero(restrained_dof['Ty'])
-    restrained_count_Tx = np.count_nonzero(restrained_dof['Tx'])
+    restrained_count_Rz = np.count_nonzero(restrained_dof["Rz"])
+    restrained_count_Ty = np.count_nonzero(restrained_dof["Ty"])
+    restrained_count_Tx = np.count_nonzero(restrained_dof["Tx"])
     restrained_count_total = (
         restrained_count_Rz + restrained_count_Ty + restrained_count_Tx
     )
 
-    loaded_count_Rz = np.count_nonzero(loaded_dof['Mz [kNm]'])
-    loaded_count_Ty = np.count_nonzero(loaded_dof['Py [kN]'])
-    loaded_count_Tx = np.count_nonzero(loaded_dof['Px [kN]'])
+    loaded_count_Rz = np.count_nonzero(loaded_dof["Mz [kNm]"])
+    loaded_count_Ty = np.count_nonzero(loaded_dof["Py [kN]"])
+    loaded_count_Tx = np.count_nonzero(loaded_dof["Px [kN]"])
     loaded_count_total = loaded_count_Rz + loaded_count_Ty + loaded_count_Tx
 
     if restrained_count_total == 0:
-        raise InvalidBoundaryConditionsError('No support conditions are provided.')
+        raise InvalidBoundaryConditionsError("No support conditions are provided.")
 
     if loaded_count_total == 0:
-        raise InvalidBoundaryConditionsError('No load conditions are provided.')
+        raise InvalidBoundaryConditionsError("No load conditions are provided.")
 
     if model.soil is None:
         # normally loaded beam
@@ -125,7 +125,7 @@ def check_boundary_conditions(model):
         elif loaded_count_Tx > 0 and restrained_count_Tx == 0:
             # support in x axis is given and load over x is given --> correct BC
             raise InvalidBoundaryConditionsError(
-                'Support conditions in normal direction not provided.'
+                "Support conditions in normal direction not provided."
             )
 
         # laterally-loaded beam
@@ -140,7 +140,7 @@ def check_boundary_conditions(model):
             pass
         else:
             raise InvalidBoundaryConditionsError(
-                'Support conditions against bending not provided.'
+                "Support conditions against bending not provided."
             )
     else:
-        raise InvalidBoundaryConditionsError('Soil in mesh not yet possible.')
+        raise InvalidBoundaryConditionsError("Soil in mesh not yet possible.")

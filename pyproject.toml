@@ -2,9 +2,6 @@
 requires = [ "setuptools >= 61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.black]
-skip-string-normalization = true
-
 [tool.pytest.ini_options]
 addopts = "--cov=openpile"
 testpaths = [

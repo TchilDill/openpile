@@ -78,9 +78,9 @@ class API_sand(LateralModel):
 
     def __str__(self):
         if self.Neq == 1:
-            Neq = 'Static, N < 1 cycle'
+            Neq = "Static, N < 1 cycle"
         else:
-            Neq = 'Cyclic, N = 100 cycles'
+            Neq = "Cyclic, N = 100 cycles"
 
         return f"\tAPI sand\n\tphi = {var_to_str(self.phi)}°\n\t{Neq}"
 
@@ -98,7 +98,7 @@ class API_sand(LateralModel):
     ):
         # validation
         if depth_from_top_of_layer > layer_height:
-            raise ValueError('Spring elevation outside layer')
+            raise ValueError("Spring elevation outside layer")
 
         # define phi
         phi_t, phi_b = from_list2x_parse_top_bottom(self.phi)
@@ -162,9 +162,9 @@ class API_clay(LateralModel):
 
     def __str__(self):
         if self.Neq == 1:
-            Neq = 'Static, N < 1 cycle'
+            Neq = "Static, N < 1 cycle"
         else:
-            Neq = 'Cyclic, N = 100 cycles'
+            Neq = "Cyclic, N = 100 cycles"
 
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{Neq}"
 
@@ -182,7 +182,7 @@ class API_clay(LateralModel):
     ):
         # validation
         if depth_from_top_of_layer > layer_height:
-            raise ValueError('Spring elevation outside layer')
+            raise ValueError("Spring elevation outside layer")
 
         # define Su
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)

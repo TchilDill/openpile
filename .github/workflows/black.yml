@@ -14,7 +14,6 @@ jobs:
         with:
           options: 
             "--check --verbose"
-            "skip-string-normalization = true"
           src: "./src"
           jupyter: true
           version: "~= 22.0"

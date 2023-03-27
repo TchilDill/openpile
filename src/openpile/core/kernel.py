@@ -139,14 +139,14 @@ def mesh_to_element_length(model) -> np.ndarray:
     # elememt coordinates along z and y-axes
     ez = np.array(
         [
-            model.element_properties['x_top [m]'].to_numpy(dtype=float),
-            model.element_properties['x_bottom [m]'].to_numpy(dtype=float),
+            model.element_properties["x_top [m]"].to_numpy(dtype=float),
+            model.element_properties["x_bottom [m]"].to_numpy(dtype=float),
         ]
     )
     ey = np.array(
         [
-            model.element_properties['y_top [m]'].to_numpy(dtype=float),
-            model.element_properties['y_bottom [m]'].to_numpy(dtype=float),
+            model.element_properties["y_top [m]"].to_numpy(dtype=float),
+            model.element_properties["y_bottom [m]"].to_numpy(dtype=float),
         ]
     )
     # length calcuated via pythagorus theorem
@@ -183,27 +183,27 @@ def elem_mechanical_stiffness_matrix(model):
     L = mesh_to_element_length(model)
     # elastic properties
     nu = model.pile._nu
-    E = model.element_properties['E [kPa]'].to_numpy(dtype=float).reshape((-1, 1, 1))
+    E = model.element_properties["E [kPa]"].to_numpy(dtype=float).reshape((-1, 1, 1))
     G = E / (2 + 2 * nu)
     # cross-section properties
-    I = model.element_properties['I [m4]'].to_numpy(dtype=float).reshape((-1, 1, 1))
-    A = model.element_properties['Area [m2]'].to_numpy(dtype=float).reshape((-1, 1, 1))
+    I = model.element_properties["I [m4]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    A = model.element_properties["Area [m2]"].to_numpy(dtype=float).reshape((-1, 1, 1))
     d = (
-        model.element_properties['Diameter [m]']
+        model.element_properties["Diameter [m]"]
         .to_numpy(dtype=float)
         .reshape((-1, 1, 1))
     )
     wt = (
-        model.element_properties['Wall thickness [m]']
+        model.element_properties["Wall thickness [m]"]
         .to_numpy(dtype=float)
         .reshape((-1, 1, 1))
     )
 
     # calculate shear component in stiffness matrix (if Timorshenko)
-    if model.element_type == 'EulerBernoulli':
+    if model.element_type == "EulerBernoulli":
         kappa = 0
-    elif model.element_type == 'Timoshenko':
-        if model.pile.kind == 'Circular':
+    elif model.element_type == "Timoshenko":
+        if model.pile.kind == "Circular":
             a = 0.5 * d
             b = 0.5 * (d - 2 * wt)
             nom = 6 * (a**2 + b**2) ** 2 * (1 + nu) ** 2
@@ -396,7 +396,7 @@ def build_stiffness_matrix(model, u=None, kind=None):
 def mesh_to_global_force_dof_vector(df: pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
     force_dof_vector = (
-        df[['Px [kN]', 'Py [kN]', 'Mz [kNm]']].values.reshape(-1).astype(np.float64)
+        df[["Px [kN]", "Py [kN]", "Mz [kNm]"]].values.reshape(-1).astype(np.float64)
     )
 
     return force_dof_vector
@@ -405,7 +405,7 @@ def mesh_to_global_force_dof_vector(df: pd.DataFrame) -> np.ndarray:
 def mesh_to_global_disp_dof_vector(df: pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
     disp_dof_vector = (
-        df[['Tx [m]', 'Ty [m]', 'Rz [rad]']].values.reshape(-1).astype(np.float64)
+        df[["Tx [m]", "Ty [m]", "Rz [rad]"]].values.reshape(-1).astype(np.float64)
     )
 
     return disp_dof_vector
@@ -413,7 +413,7 @@ def mesh_to_global_disp_dof_vector(df: pd.DataFrame) -> np.ndarray:
 
 def mesh_to_global_restrained_dof_vector(df: pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
-    restrained_dof_vector = df[['Tx', 'Ty', 'Rz']].values.reshape(-1)
+    restrained_dof_vector = df[["Tx", "Ty", "Rz"]].values.reshape(-1)
 
     return restrained_dof_vector
 
@@ -429,7 +429,7 @@ def struct_internal_force(model, u) -> np.ndarray:
 
     # add soil contribution
     if model.soil is not None:
-        kind = 'secant'
+        kind = "secant"
         if model.distributed_lateral:
             k += elem_py_stiffness_matrix(model, u, kind)
         elif model.distributed_moment:
@@ -451,7 +451,7 @@ def struct_internal_force(model, u) -> np.ndarray:
 
 @njit(cache=True)
 def calculate_springs_stiffness(
-    u: np.ndarray, springs: np.ndarray, kind: Literal['initial', 'secant', 'tangent']
+    u: np.ndarray, springs: np.ndarray, kind: Literal["initial", "secant", "tangent"]
 ):
     """Calculate springs stiffness
 
@@ -508,7 +508,7 @@ def calculate_springs_stiffness(
             if np.sum(springs[i, j, 1]) == 0:
                 pass
             else:
-                if kind == 'initial' or d[i, j, 0, 0] == 0.0:
+                if kind == "initial" or d[i, j, 0, 0] == 0.0:
                     dx = springs[i, j, 1, 1] - springs[i, j, 1, 0]
                     p0 = springs[i, j, 0, 0]
                     p1 = springs[i, j, 0, 1]

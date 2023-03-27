@@ -26,20 +26,20 @@ class PydanticConfig:
 
 
 def structural_forces_to_df(model, q):
-    x = model.nodes_coordinates['x [m]'].values
+    x = model.nodes_coordinates["x [m]"].values
     x = misc.repeat_inner(x)
     L = kernel.mesh_to_element_length(model).reshape(-1)
 
-    N = np.vstack((-q[0::6], q[3::6])).reshape(-1, order='F')
-    V = np.vstack((-q[1::6], q[4::6])).reshape(-1, order='F')
-    M = np.vstack((-q[2::6], -q[2::6] + L * q[1::6])).reshape(-1, order='F')
+    N = np.vstack((-q[0::6], q[3::6])).reshape(-1, order="F")
+    V = np.vstack((-q[1::6], q[4::6])).reshape(-1, order="F")
+    M = np.vstack((-q[2::6], -q[2::6] + L * q[1::6])).reshape(-1, order="F")
 
     structural_forces_to_DataFrame = pd.DataFrame(
         data={
-            'Elevation [m]': x,
-            'N [kN]': N,
-            'V [kN]': V,
-            'M [kNm]': M,
+            "Elevation [m]": x,
+            "N [kN]": N,
+            "V [kN]": V,
+            "M [kNm]": M,
         }
     )
 
@@ -47,7 +47,7 @@ def structural_forces_to_df(model, q):
 
 
 def disp_to_df(model, u):
-    x = model.nodes_coordinates['x [m]'].values
+    x = model.nodes_coordinates["x [m]"].values
 
     Tx = u[::3].reshape(-1)
     Ty = u[1::3].reshape(-1)
@@ -55,10 +55,10 @@ def disp_to_df(model, u):
 
     disp_to_DataFrame = pd.DataFrame(
         data={
-            'Elevation [m]': x,
-            'Settlement [m]': Tx,
-            'Deflection [m]': Ty,
-            'Rotation [rad]': Rx,
+            "Elevation [m]": x,
+            "Settlement [m]": Tx,
+            "Deflection [m]": Ty,
+            "Rotation [rad]": Rx,
         }
     )
 
@@ -76,15 +76,15 @@ class Result:
 
     @property
     def settlement(self):
-        return self.displacements[['Elevation [m]', 'Settlement [m]']]
+        return self.displacements[["Elevation [m]", "Settlement [m]"]]
 
     @property
     def deflection(self):
-        return self.displacements[['Elevation [m]', 'Deflection [m]']]
+        return self.displacements[["Elevation [m]", "Deflection [m]"]]
 
     @property
     def rotation(self):
-        return self.displacements[['Elevation [m]', 'Rotation [rad]']]
+        return self.displacements[["Elevation [m]", "Rotation [rad]"]]
 
     def plot_deflection(self, assign=False):
         fig = graphics.plot_deflection(self)
@@ -143,7 +143,7 @@ def simple_beam_analysis(model):
         return results
 
 
-def simple_winkler_analysis(model, solver='NR', max_iter: int = 100):
+def simple_winkler_analysis(model, solver="NR", max_iter: int = 100):
     """
     Function where loading or displacement defined in the model boundary conditions
     are used to solve the system of equations, .
@@ -166,7 +166,7 @@ def simple_winkler_analysis(model, solver='NR', max_iter: int = 100):
     """
 
     if model.soil is None:
-        UserWarning('SoilProfile must be provided when creating the Model.')
+        UserWarning("SoilProfile must be provided when creating the Model.")
 
     else:
         # initialise global force

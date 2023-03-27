@@ -25,7 +25,7 @@ fonttools==4.38.0
 fpdf2==2.6.0
 idna==3.4
 imagesize==1.4.1
-importlib-metadata==4.2.0
+importlib-metadata==6.0.0
 iniconfig==2.0.0
 ipykernel==6.16.2
 ipython==7.34.0

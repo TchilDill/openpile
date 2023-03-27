@@ -1,5 +1,5 @@
 [build-system]
-requires = [ "setuptools >= 35.0.2", "wheel >= 0.29.0"]
+requires = [ "setuptools >= 61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
@@ -10,3 +10,4 @@ addopts = "--cov=openpile"
 testpaths = [
     "test",
 ] 
+

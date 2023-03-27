@@ -4,6 +4,11 @@ on:
   - push
   - pull_request
 
+runs:
+  using: 'node16'
+  main: 'main.js'
+
+
 jobs:
   lint:
     runs-on: ubuntu-latest

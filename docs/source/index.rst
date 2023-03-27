@@ -13,6 +13,7 @@ Welcome to openpile's documentation!
    about
    intro
    usage
+   PYmodels
    API
 
 Indices and tables

@@ -4,16 +4,17 @@ on:
   - push
   - pull_request
 
-runs:
-  using: 'node16'
-  main: 'main.js'
 
 
 jobs:
   lint:
+    runs:
+      using: 'node16'
+      main: 'main.js'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
       - uses: psf/black@stable
         with:
           options: "--check --verbose"

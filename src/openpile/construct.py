@@ -214,8 +214,12 @@ class Pile:
         name: str,
         top_elevation: float,
         pile_sections: Dict[str, List[float]],
-        kind: Literal["Circular",] = "Circular",
-        material: Literal["Steel",] = "Steel",
+        kind: Literal[
+            "Circular",
+        ] = "Circular",
+        material: Literal[
+            "Steel",
+        ] = "Steel",
     ):
         """A method to create the pile. This function provides a 2-in-1 command where:
 

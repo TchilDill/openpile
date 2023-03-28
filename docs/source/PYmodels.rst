@@ -98,18 +98,37 @@ and where :math:`\phi` is inserted in degrees:
 The equation is a fit to the recommended values in [DNV-RP-C212]_.  The correspondence 
 of this fit is illustrated in below figure:
 
-![k_vs_phi.jpg](/_static/API_sand/k_vs_phi.jpg)
+.. figure:: /_static/API_sand/k_vs_phi.jpg
+    :width: 80%
+
+    Subgrade moduli fits calculated by openpile.
 
 
 Ultimate resistance
 -------------------
-   
-The coefficients C1, C2, and C3 depend on the friction angle :math:`\phi` as shown 
-in below figure.
 
-![C_coeffs_graph.jpg](/_static/API_sand/C_coeffs_graph.jpg)
+The ultimate resistance :math:`P_{max}` is calculated via the coefficients C1, C2 and C3 found 
+in the below figure. 
 
+.. figure:: _static/API_sand/C_coeffs_graph.jpg
+    :width: 80%
 
+    Coefficients to calculate the maximum resistance. (as given in [MuOn84]_) 
+
+The Ultimate resistance is found via the below equation:
+
+.. math::
+
+    P_{max} = min \left( 
+        \begin{split}
+        C3 \cdot \sigma \cdot D \\
+         C1 \cdot \sigma \cdot X + C2 \cdot \sigma \cdot D 
+        \end{split}
+        \right)
+
+where:
+
+* :math:`\sigma` is the vertical effective stress
 
 .. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 .. _API-clay:

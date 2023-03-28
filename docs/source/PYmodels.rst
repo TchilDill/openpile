@@ -35,9 +35,6 @@ Introduction
 p- y formulation
 ----------------
 
-General
-^^^^^^^
-
 The p-y formulation called API sand is based on the work conducted by
 O'neill and Murchison (see [MuOn84]_).  
 
@@ -60,7 +57,7 @@ where:
 * :math:`X` is the depth below mudline of the p-y curve.
 
 Factor A
-^^^^^^^^
+--------
 
 The factor A takes into account whether the curve represent 
 static(also called monotonic) or cycling loading and is equal to:
@@ -81,24 +78,36 @@ where:
 * :math:`D` is the pile diameter. 
  
 Initial subgrade reaction
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-the coefficients C1, C2, and C3 depend on the friction angle :math:`\phi\prime` as shown 
-in below figure.
-
-![C_coeffs_graph.jpg](/_static/API_sand/C_coeffs_graph.jpg)
-
+-------------------------
 
 The factor k is the initial modulus of subgrade reaction, which can be 
 approximated by the following equation in which the output is given in kN/m³ 
-and where $\phi\prime$ is inserted in degrees: 
+and where :math:`\phi` is inserted in degrees: 
 
-$k = \max \left(197.8 \cdot \phi\prime^2 - 10232 \cdot \phi\prime + 136820 , 5400 \right)$
+.. math::
+
+    k = 
+    \begin{cases} 
+    \begin{split}
+    \max \left(197.8 \cdot \phi^2 - 10232 \cdot \phi + 136820 , 5400 \right) & \text{ ,  below water table} \\ 
+    \\
+    \max \left(215.3 \cdot \phi^2 - 8232 \cdot \phi + 63657 , 5400 \right) & \text{ ,  above water table}
+    \end{split}
+    \end{cases}
 
 The equation is a fit to the recommended values in [DNV-RP-C212]_.  The correspondence 
 of this fit is illustrated in below figure:
 
 ![k_vs_phi.jpg](/_static/API_sand/k_vs_phi.jpg)
+
+
+Ultimate resistance
+-------------------
+   
+The coefficients C1, C2, and C3 depend on the friction angle :math:`\phi` as shown 
+in below figure.
+
+![C_coeffs_graph.jpg](/_static/API_sand/C_coeffs_graph.jpg)
 
 
 

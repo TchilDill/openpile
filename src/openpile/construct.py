@@ -40,11 +40,11 @@ import matplotlib.pyplot as plt
 
 import openpile.utils.graphics as graphics
 import openpile.core.validation as validation
-import openpile.core.soilmodels as soilmodels
+import openpile.soilmodels as soilmodels
 
 from openpile.core import misc
 
-from openpile.core.soilmodels import ConstitutiveModel
+from openpile.soilmodels import ConstitutiveModel
 
 from openpile.core.misc import generate_color_string
 

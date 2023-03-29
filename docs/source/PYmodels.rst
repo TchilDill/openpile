@@ -7,11 +7,11 @@ The following PY models are included in openpile.
 * :ref:`API-sand` 
 * :ref:`API-clay` 
 
-The function :py:func:`openpile.utils.py_curves.[PY soil model]` generates the p-y curve for 
+The function :py:func:`openpile.utils.py_curves.[<PY soil model>]` generates the p-y curve for 
 the relevant PY soil model.
 
 Furthermore, the user can include the PY soil models discussed here in a soil profile's :py:class:`openpile.construct.Layer` 
-by calling the class :py:class:`openpile.soilmodels.[PY soil model]` 
+by calling the class :py:class:`openpile.soilmodels.[<PY soil model>]` 
 
 This part of the documentation discusses the theory and calculations. 
 Please refer to the API or Usage sections for more practical information.
@@ -56,7 +56,7 @@ with the following backbone formula:
 
 .. math::
 
-    p = A P_{max}  \tanh \left( \frac{k X}{A P_{max} }  y \right) 
+    p = A \cdot P_{max} \cdot \tanh \left( \frac{k \cdot X}{A \cdot P_{max} }  y \right) 
 
 where:
 
@@ -128,12 +128,9 @@ The Ultimate resistance is found via the below equation:
 
 .. math::
 
-    P_{max} = min \left( 
-        \begin{split}
-        C3 \cdot \sigma^{\prime} \cdot D \\
-         C1 \cdot \sigma^{\prime} \cdot X + C2 \cdot \sigma^{\prime} \cdot D 
-        \end{split}
-        \right)
+    P_{max} = \left( 
+         C1 \cdot \sigma^{\prime} \cdot X + C2 \cdot \sigma^{\prime} \cdot D \right) \lt
+         C3 \cdot \sigma^{\prime} \cdot D 
 
 where:
 

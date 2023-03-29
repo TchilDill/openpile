@@ -668,6 +668,9 @@ class Model:
                     + [x.bottom for x in self.soil.layers],
                     dtype=float,
                 )
+                if any(soil_elevations < self.pile.bottom_elevation):
+                    soil_elevations = np.append(self.pile.bottom_elevation,soil_elevations)
+                    soil_elevations = soil_elevations[soil_elevations >= self.pile.bottom_elevation]
                 x = np.append(x, soil_elevations)
             # add user-defined elevation
             x = np.append(x, self.x2mesh)

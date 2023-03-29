@@ -16,31 +16,40 @@ by calling the class :py:class:`openpile.soilmodels.[PY soil model]`
 This part of the documentation discusses the theory and calculations. 
 Please refer to the API or Usage sections for more practical information.
 
+.. rubric:: References 
+
+.. [MuOn83] Murchison, J.M., and O'Neill, M.,W., 1983. *An Evaluation of p-y Relationships 
+    in Sands.* Rserach Report No. GT.DF02-83, Department of Civil Engineering, 
+    University of Houston, Houston, Texas, May, 1983.
+.. [MuOn84] Murchison, J.M., and O'Neill, M.,W., 1984. *Evaluation of p-y relationships 
+    in cohesionless soils.* In Proceedings of Analysis and Design of Pile Foundations, 
+    San Francisco, October 1-5, pp. 174-191. 
+.. [DNV-RP-C212] DNVGL RP-C212. *Recommended Practice, Geotechnical design*.
+    Edition 2019-09 - Amended 2021-09.
+.. [API2GEO-2011] API, April 2011. *Geotechnical and Foundation Design Considerations, 
+    ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute, p. 103
+.. [Matl70] Matlock, H. (1970). *Correlations for Design of Laterally Loaded Piles in Soft Clay*. 
+    Offshore Technology Conference Proceedings, Paper No. OTC 1204, Houston, Texas. 
+.. [BaCA06] Battacharya,  S.,  Carrington,  T.  M.  and  Aldridge,  T.  R.  (2006),  
+    *Design  of  FPSO  Piles  against  Storm  Loading*. Proceedings Annual Offshore Technology 
+    Conference, OTC17861, Houston, Texas, May, 2006. 
+
+
 .. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 .. _API-sand:
 
 API sand
 ========
 
-Introduction 
-------------
+The p-y formulation called API sand is based on the publication by 
+O'neill and Murchison, preceded by work from Reese, L.C. and others (
+see [MuOn83]_ and [MuOn84]_). 
 
-.. rubric:: References 
-
-.. [MuOn84] Murchison, J.M., and O'Neill, M.,W., 1984. *Evaluation of p-y relationships in cohesionless soils.* In Proceedings of Analysis and Design of Pile Foundations, San Francisco, October 1-5, pp. 174-191. 
-.. [DNV-RP-C212] DNVGL RP-C212, Recommended Practice, Geotechnical design.
-.. [API2GEO-2011] API, April 2011. Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO, First Edition, American Petroleum Institute, 103 p.
-
-
-p- y formulation
+p-y formulation
 ----------------
 
-The p-y formulation called API sand is based on the work conducted by
-O'neill and Murchison (see [MuOn84]_).  
-
 The API sand formulation is presented in both the API and DNVGL standards,
-see, [DNV-RP-C212]_ and [API2GEO-2011]_
-
+see, [DNV-RP-C212]_ and [API2GEO-2011]_.
 
 Granular soils are modelled by the sand p-y model as described 
 with the following backbone formula:
@@ -89,19 +98,19 @@ and where :math:`\phi` is inserted in degrees:
     k = 
     \begin{cases} 
     \begin{split}
-    \max \left(197.8 \cdot \phi^2 - 10232 \cdot \phi + 136820 , 5400 \right) & \text{ ,  below water table} \\ 
+    197.8 \cdot \phi^2 - 10232 \cdot \phi + 136820 \ge 5400 & \text{ ,  below water table} \\ 
     \\
-    \max \left(215.3 \cdot \phi^2 - 8232 \cdot \phi + 63657 , 5400 \right) & \text{ ,  above water table}
+    215.3 \cdot \phi^2 - 8232 \cdot \phi + 63657 \ge 5400  & \text{ ,  above water table}
     \end{split}
     \end{cases}
 
 The equation is a fit to the recommended values in [DNV-RP-C212]_.  The correspondence 
 of this fit is illustrated in below figure:
 
-.. figure:: /_static/API_sand/k_vs_phi.jpg
+.. figure:: /_static/py_API_sand/k_vs_phi.jpg
     :width: 80%
 
-    Subgrade moduli fits calculated by openpile.
+    Subgrade reaction moduli fits calculated by openpile.
 
 
 Ultimate resistance
@@ -110,7 +119,7 @@ Ultimate resistance
 The ultimate resistance :math:`P_{max}` is calculated via the coefficients C1, C2 and C3 found 
 in the below figure. 
 
-.. figure:: _static/API_sand/C_coeffs_graph.jpg
+.. figure:: _static/py_API_sand/C_coeffs_graph.jpg
     :width: 80%
 
     Coefficients to calculate the maximum resistance. (as given in [MuOn84]_) 
@@ -121,19 +130,124 @@ The Ultimate resistance is found via the below equation:
 
     P_{max} = min \left( 
         \begin{split}
-        C3 \cdot \sigma \cdot D \\
-         C1 \cdot \sigma \cdot X + C2 \cdot \sigma \cdot D 
+        C3 \cdot \sigma^{\prime} \cdot D \\
+         C1 \cdot \sigma^{\prime} \cdot X + C2 \cdot \sigma^{\prime} \cdot D 
         \end{split}
         \right)
 
 where:
 
-* :math:`\sigma` is the vertical effective stress
+* :math:`\sigma^{\prime}` is the vertical effective stress
 
 .. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 .. _API-clay:
 
 API clay
 ========
+
+The p-y formulation called API clay is based on the work conducted by Matlock (1970) (see [Matl70]_).  
+
+The API clay formulation is presented in both the API and DNVGL standards,
+see [DNV-RP-C212]_ and [API2GEO-2011]_. 
+
+The below section describes how this model is formulated and computed by openpile. 
+
+.. note::
+    From an undrained shear strength of 96 kPa (assumed as the threshold at which a clay is considered stiff), 
+    the formulations are adjusted to account for a more brittle fracture and degradation 
+    of the soil, and the *"modified Matlock approach"* is used, see [BaCA06]_.
+
+    This value of 96 kPa can be changed by the user via the argument `stiff_clay_threshold`.
+    Hence, if one would not want to include the *"modified Matlock approach"*, 
+    one could simply increase this threshold to a very large value.
+
+.. figure:: /_static/py_API_clay/schematic_curves.jpg
+    :width: 80%
+
+    Schematic of soft and stiff clay response, after [BaCA06]_.
+
+
+Ultimate resistance 
+-------------------
+
+
+
+Strain normalization
+--------------------
+
+The strain normalization is done via the parameter :math:`y_{50}`.
+
+
+Transition zone
+---------------
+
+The transition zone corresponds to the depth at which the failure 
+around the pile is not governed by the free-field boundary, i.e. the ground level.
+Below the transition zone, a flow-around type of failure.
+
+The transition zone is defined by the following formula:
+
+.. math::
+
+    X_R = \left( \frac{6 \cdot D}{\gamma^{\prime} \cdot \frac{D}{S_u} + J} \right) \ge  2.5 \cdot D
+
+Initial stiffness
+-----------------
+
+The initial slope :math:`k_{ini}` is calculated as per [DNV-RP-C212]_:  
+
+.. math::
+
+    k_{ini} = \dfrac{0.23 P_{max}}{0.1 y_{50}}
+
+p-y formulation (static loading, Neq = 1)
+-----------------------------------------
+
+Soft cohesive soils are modelled by the soft clay p-y model, 
+generated using the following formula for static loading: 
+
+.. math::
+
+    p = 
+    \begin{cases} 
+    \begin{split}
+    0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right)^{0.33} & \text{  for } y \le 8 y_{50} \\ 
+    \\
+    P_{max} & \text{  for } y \gt 8 y_{50}
+    \end{split}
+    \end{cases}  
+
+p-y formulation (cyclic loading, Neq > 1)
+-----------------------------------------
+
+For cyclic loading and curves below the transition zone ( i.e. :math:`X \ge Xr`), 
+the p-y curve can be generated according to: 
+
+.. math::
+
+    p = 
+    \begin{cases} 
+    \begin{split}
+    0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right)^{0.33} & \text{  for } y \le 3 y_{50} \\ 
+    \\
+    0.72 \cdot P_{max} & \text{  for } y \gt 3 y_{50}
+    \end{split}
+    \end{cases}  
+
+For cyclic loading and curves above the transition zone ( i.e. :math:`X \le Xr`), 
+the p-y curve can be generated according to: 
+
+.. math::
+
+    p = 
+    \begin{cases} 
+    \begin{split}
+    0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right) & \text{  for } y \le 3 y_{50} \\ 
+    \\
+    0.72 \cdot P_{max} \left[ 1 - \left( 1 - \frac{X}{X_R} \right) \left( \frac{y - 3 y_{50}}{12 y_{50}} \right)  \right] & \text{  for } 3 y_{50} \lt y \le 15 y_{50} \\
+    \\
+    0.72 \cdot P_{max} \left( \frac{X}{X_R} \right) & \text{  for } y \gt 15 y_{50} \\
+    \end{split}
+    \end{cases}  
 
 

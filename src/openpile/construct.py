@@ -987,7 +987,7 @@ class Model:
             raise
 
     def set_pointload(
-        self, elevation: float = 0.0, Py: float = 0.0, Px: float = 0.0, Mz: float = 0.0
+        self, elevation: float = 0.0, Py: float = None, Px: float = None, Mz: float = None
     ):
         """
         Defines the point load(s) at a given elevation.
@@ -1001,11 +1001,11 @@ class Model:
         elevation : float, optional
             the elevation must match the elevation of a node, by default 0.0
         Py : float, optional
-            Shear force in kN, by default 0.0
+            Shear force in kN, by default None
         Px : float, optional
-            Normal force in kN, by default 0.0
+            Normal force in kN, by default None
         Mz : float, optional
-            Bending moment in kNm, by default 0.0
+            Bending moment in kNm, by default None
         """
 
         # identify if one node is at given elevation or if load needs to be split
@@ -1020,9 +1020,12 @@ class Model:
                 # one node correspond, extract node
                 node_idx = int(np.where(check == True)[0])
                 # apply loads at this node
-                self.global_forces.loc[node_idx, "Px [kN]"] = Px
-                self.global_forces.loc[node_idx, "Py [kN]"] = Py
-                self.global_forces.loc[node_idx, "Mz [kNm]"] = Mz
+                if Px is not None:
+                    self.global_forces.loc[node_idx, "Px [kN]"] = Px
+                if Py is not None:
+                    self.global_forces.loc[node_idx, "Py [kN]"] = Py
+                if Mz is not None:
+                    self.global_forces.loc[node_idx, "Mz [kNm]"] = Mz
             else:
                 if (
                     elevation > self.nodes_coordinates["x [m]"].iloc[0]
@@ -1042,25 +1045,24 @@ class Model:
             raise
 
     def set_pointdisplacement(
-        self, elevation: float = 0.0, Ty: float = 0.0, Tx: float = 0.0, Rz: float = 0.0
+        self, elevation: float = 0.0, Ty: float = None, Tx: float = None, Rz: float = None
     ):
         """
         Defines the displacement at a given elevation.
 
-        .. note:
-            If run several times at the same elevation, the displacement are overwritten by the last command.
-
+        .. note::
+            for defining supports, this function should not be used, rather use `.set_support()`.
 
         Parameters
         ----------
         elevation : float, optional
             the elevation must match the elevation of a node, by default 0.0
         Ty : float, optional
-            Translation along y-axis, by default 0.0
+            Translation along y-axis, by default None
         Tx : float, optional
-            Translation along x-axis, by default 0.0
+            Translation along x-axis, by default None
         Rz : float, optional
-            Rotation around z-axis, by default 0.0
+            Rotation around z-axis, by default None
         """
 
         try:
@@ -1075,13 +1077,17 @@ class Model:
                 # one node correspond, extract node
                 node_idx = int(np.where(check == True)[0])
                 # apply displacements at this node
-                self.global_disp.loc[node_idx, "Tx [m]"] = Tx
-                self.global_disp.loc[node_idx, "Ty [m]"] = Ty
-                self.global_disp.loc[node_idx, "Rz [rad]"] = Rz
+                if Tx is not None:
+                    self.global_disp.loc[node_idx, "Tx [m]"] = Tx
+                    self.global_restrained.loc[node_idx, "Tx"] = Tx > 0.0
+                if Ty is not None:                 
+                    self.global_disp.loc[node_idx, "Ty [m]"] = Ty
+                    self.global_restrained.loc[node_idx, "Ty"] = Ty > 0.0
+                if Rz is not None:
+                    self.global_disp.loc[node_idx, "Rz [rad]"] = Rz
+                    self.global_restrained.loc[node_idx, "Rz"] = Rz > 0.0
                 # set restrain at this node
-                self.global_restrained.loc[node_idx, "Tx"] = Tx > 0.0
-                self.global_restrained.loc[node_idx, "Ty"] = Ty > 0.0
-                self.global_restrained.loc[node_idx, "Rz"] = Rz > 0.0
+
             else:
                 if (
                     elevation > self.nodes_coordinates["x [m]"].iloc[0]

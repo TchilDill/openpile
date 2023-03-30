@@ -1,6 +1,5 @@
---------------
 PY soil models
---------------
+==============
 
 The following PY models are included in openpile. 
 
@@ -39,14 +38,14 @@ Please refer to the API or Usage sections for more practical information.
 .. _API-sand:
 
 API sand
-========
+--------
 
 The p-y formulation called API sand is based on the publication by 
 O'neill and Murchison, preceded by work from Reese, L.C. and others (
 see [MuOn83]_ and [MuOn84]_). 
 
 p-y formulation
-----------------
+^^^^^^^^^^^^^^^
 
 The API sand formulation is presented in both the API and DNVGL standards,
 see, [DNV-RP-C212]_ and [API2GEO-2011]_.
@@ -66,7 +65,7 @@ where:
 * :math:`X` is the depth below mudline of the p-y curve.
 
 Factor A
---------
+^^^^^^^^
 
 The factor A takes into account whether the curve represent 
 static(also called monotonic) or cycling loading and is equal to:
@@ -87,7 +86,7 @@ where:
 * :math:`D` is the pile diameter. 
  
 Initial subgrade reaction
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The factor k is the initial modulus of subgrade reaction, which can be 
 approximated by the following equation in which the output is given in kN/m³ 
@@ -114,7 +113,7 @@ of this fit is illustrated in below figure:
 
 
 Ultimate resistance
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 The ultimate resistance :math:`P_{max}` is calculated via the coefficients C1, C2 and C3 found 
 in the below figure. 
@@ -140,7 +139,7 @@ where:
 .. _API-clay:
 
 API clay
-========
+--------
 
 The p-y formulation called API clay is based on the work conducted by Matlock (1970) (see [Matl70]_).  
 
@@ -165,7 +164,7 @@ The below section describes how this model is formulated and computed by openpil
 
 
 Ultimate resistance 
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 The utlimate resistance is calculated via the capacity of two failure mechanisms,
 one that is shallow (wedge-type failure) and another that is deep (flow-around failure).
@@ -190,7 +189,7 @@ where:
 
 
 Strain normalization
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 A normalization parameter :math:`y_{50}` is used to scale the curve with respect
 to the structure's scale.
@@ -206,7 +205,7 @@ where:
   in Unconfined and unconsolidated (UU) Trixial tests.
 
 Transition zone
----------------
+^^^^^^^^^^^^^^^
 
 The transition zone corresponds to the depth at which the failure 
 around the pile is not governed by the free-field boundary, i.e. the ground level.
@@ -219,7 +218,7 @@ The transition zone is defined by the following formula:
     X_R = \left( \frac{6 \cdot D}{\gamma^{\prime} \cdot \frac{D}{S_u} + J} \right) \ge  2.5 \cdot D
 
 Initial stiffness
------------------
+^^^^^^^^^^^^^^^^^
 
 The initial slope :math:`k_{ini}` is calculated as per [DNV-RP-C212]_:  
 
@@ -228,7 +227,7 @@ The initial slope :math:`k_{ini}` is calculated as per [DNV-RP-C212]_:
     k_{ini} = \dfrac{0.23 P_{max}}{0.1 y_{50}}
 
 p-y formulation (static loading, Neq = 1)
------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Soft cohesive soils are modelled by the soft clay p-y model, 
 generated using the following formula for static loading: 
@@ -245,7 +244,7 @@ generated using the following formula for static loading:
     \end{cases}  
 
 p-y formulation (cyclic loading, Neq > 1)
------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For cyclic loading and curves below the transition zone ( i.e. :math:`X \ge Xr`), 
 the p-y curve can be generated according to: 

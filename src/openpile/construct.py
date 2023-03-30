@@ -84,37 +84,6 @@ class Pile:
     >>>             'wall thickness':[0.07, 0.08],
     >>>         }
     >>>     )
-    >>> # Print the pile data
-    >>> print(pile)
-        Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0           7.5                0.07   1.633942  11.276204
-    1          -10.0           7.5                0.07   1.633942  11.276204
-    2          -10.0           7.5                0.08   1.864849  12.835479
-    3          -40.0           7.5                0.08   1.864849  12.835479
-    >>> # Override young's modulus
-    >>> pile.E = 250e6
-    >>> # Check young's modulus
-    >>> print(pile.E)
-    250000000.0
-    >>> # Override second moment of area across whole pile
-    >>> pile.I = 1.11
-    >>> # Check updated second moment of area
-    >>> print(pile)
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0           7.5               <NA>      <NA>    1.11
-    1          -10.0           7.5               <NA>      <NA>    1.11
-    2          -10.0           7.5               <NA>      <NA>    1.11
-    3          -40.0           7.5               <NA>      <NA>    1.11
-    >>> # Override pile's width or pile's diameter
-    >>> pile.width = 2.22
-    >>> # Check updated width or diameter
-    >>> print(pile)
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          2.22               <NA>      <NA>    1.11
-    1          -10.0          2.22               <NA>      <NA>    1.11
-    2          -10.0          2.22               <NA>      <NA>    1.11
-    3          -40.0          2.22               <NA>      <NA>    1.11
-
     """
 
     #: name of the pile
@@ -314,7 +283,29 @@ class Pile:
     def I(self, value: float) -> None:
         try:
             self.data.loc[:, "I [m4]"] = value
-            self.data.loc[:, ["Area [m2]", "Wall thickness [m]"]] = pd.NA
+            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @property
+    def area(self) -> float:
+        """
+        Width of the pile. (Used to compute soil springs)
+        """
+        try:
+            return self.data["Area [m2]"].mean()
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @area.setter
+    def width(self, value: float) -> None:
+        try:
+            self.data.loc[:, "Area [m2]"] = value
+            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
@@ -336,7 +327,7 @@ class Pile:
     def width(self, value: float) -> None:
         try:
             self.data.loc[:, "Diameter [m]"] = value
-            self.data.loc[:, ["Area [m2]", "Wall thickness [m]"]] = pd.NA
+            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:

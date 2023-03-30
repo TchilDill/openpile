@@ -18,4 +18,26 @@ Geotechnical software to compute axial and lateral pile calculations, using a be
 
 Please see [documentation](https://openpile.readthedocs.io/en/latest/) for more information.
 
-## 
+## Installation Instructions
+
+**Prerequisites**:
+
+* a version of python is installed on your machine (supported versions: 3.7-3.10)
+* pip is installed in your environment.
+
+```bash
+pip install openpile
+```
+
+## Features
+
+ * Python 3.7-3.10 support
+ * Calculations
+   * Beam calculation
+   * Winkler model (i.e. beam supported by soil springs)
+     * Load-driven analyses
+     * Displacement-driven analyses 
+   * Out-of-the-box computation of individual soil springs
+   <!-- * Axial capacity calculations via integration -->
+ * Friendly API interface with  object-oriented approach
+ * Fully integrated output with python environment with Matplotlib and Pandas libraries. 

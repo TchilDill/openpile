@@ -1,6 +1,6 @@
 # openpile
 
-Geotechnical software to compute axial and lateral pile calculations, using a beam supported by springs.
+Geotechnical super-toolbox for pile-related calculations.
 
 <!-- [![Python Support](https://img.shields.io/pypi/pyversions/openpile.svg)](https://pypi.org/project/openpile/) -->
 [![License: LGPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)

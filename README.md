@@ -35,6 +35,7 @@ pip install openpile
 
  * Python 3.7-3.10 support
  * Interactive structure perfectly suited for Jupyter Notebook 
+ * Data validation on major objects of openpile with pydantic
  * Calculations
    * Beam calculation
    * Winkler model (i.e. beam supported by soil springs)

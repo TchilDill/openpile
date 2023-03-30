@@ -7,11 +7,12 @@ The package allows a quick input by the user (given in this section) and quick c
 Jupyter Notebooks/IPython are recommended platforms to learn how to use openpile as it provides 
 an interactive experience. 
 
+
 Example 1 - Create a pile 
 =========================
 
 A pile can be created in the following way in openpile. It is strongly advised to use 
-the Pile.create() constructor to ensure that data validation and post-processing of the object is performed.
+the :py:meth:`openpile.construct.Pile.create` constructor to ensure that data validation and post-processing of the object is performed.
 
 .. code-block:: python
 
@@ -30,7 +31,7 @@ the Pile.create() constructor to ensure that data validation and post-processing
         )
 
 Once the pile (object) is created, the user can use its properties and methods to interact with it. 
-A simple view of the pile can be extracted by printing the object as below 
+A simple view of the pile can be extracted by printing the object as below: 
 
 .. code-block:: python
     
@@ -98,6 +99,10 @@ The different curves available can be found in:
 * :py:mod:`openpile.utils.mt_curves`
 * :py:mod:`openpile.utils.tz_curves`
 
+Here below is an example of a quick check of how a static curve for the 
+API sand model looks like.
+
+
 .. code-block:: python
     
     import matplotlib.pyplot as plt
@@ -123,6 +128,92 @@ The different curves available can be found in:
 Example 3 - Create a soil profile's layer 
 =========================================
 
+The creation of a layer can be done with the below lines of code. 
+A Lateral and/or Axial soil model can be assigned to a layer.
+
+.. code-block:: python
+
+    from openpile.construct import Layer
+    from openpile.soilmodels import API_clay
+        
+    # Create a layer
+    layer1 = Layer(name='Soft Clay',
+                top=0,
+                bottom=-10,
+                weight=18,
+                lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), )
+
+    print(layer1)
+
+Printing the layer would give the following output:
+
+.. code-block:: pycon
+    
+    Name: Soft Clay
+    Elevation: (0.0) - (-10.0) m
+    Weight: 18.0 kN/m3
+    Lateral model: 	API clay
+        Su = 30.0-35.0 kPa
+        eps50 = 0.01-0.02
+        Cyclic, N = 100 cycles
+    Axial model: None
 
 Example 4 - Create a soil profile 
 =================================
+
+.. code-block:: python 
+
+    from openpile.construct import SoilProfile, Layer
+    from openpile.soilmodels import API_sand, API_clay
+
+    # Create a 40m deep offshore Soil Profile with a 15m water column
+    sp = SoilProfile(
+        name="Offshore Soil Profile",
+        top_elevation=0,
+        water_elevation=15,
+        layers=[
+            Layer(
+                name='medium dense sand',
+                top=0,
+                bottom=-20,
+                weight=18,
+                lateral_model= API_sand(phi=33, Neq=100)
+            ),
+            Layer(
+                name='firm clay',
+                top=-20,
+                bottom=-40,
+                weight=18,
+                lateral_model= API_clay(Su=[50, 70], eps50=0.015, Neq=100)
+            ),
+        ]
+    )
+
+    print(sp)
+
+The output of the print out will yield the following:
+
+.. code-block:: pycon
+
+    Layer 1
+    ------------------------------
+    Name: medium dense sand
+    Elevation: (0.0) - (-20.0) m
+    Weight: 18.0 kN/m3
+    Lateral model: 	API sand
+        phi = 33.0°
+        Cyclic, N = 100 cycles
+    Axial model: None
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Layer 2
+    ------------------------------
+    Name: firm clay
+    Elevation: (-20.0) - (-40.0) m
+    Weight: 18.0 kN/m3
+    Lateral model: 	API clay
+        Su = 50.0-70.0 kPa
+        eps50 = 0.015
+        Cyclic, N = 100 cycles
+    Axial model: None
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+

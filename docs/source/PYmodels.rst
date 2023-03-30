@@ -167,13 +167,43 @@ The below section describes how this model is formulated and computed by openpil
 Ultimate resistance 
 -------------------
 
+The utlimate resistance is calculated via the capacity of two failure mechanisms,
+one that is shallow (wedge-type failure) and another that is deep (flow-around failure).
+
+.. math::
+
+    P_{max} &= min(P_{shallow}, P_{deep})
+    \\\\
+    P_{shallow} &= D (3 S_u \cdot \sigma^{\prime}) + J \cdot S_u \cdot X
+    \\\\
+    P_{deep} &=  9 \cdot S_u \cdot X
+
+where: 
+
+* :math:`S_u` is the undrained shear strength in Unconfined and 
+  unconsolidated (UU) Trixial tests.
+* :math:`\sigma^{\prime}` is the vertical effective stress.
+* :math:`J` is an empirical factor determined by Matlock to fit results 
+  to pile load tests. This value can vary from 0.25 to 0.50 depending on 
+  the clay characteristics
+* :math:`X` is the depth below ground level
 
 
 Strain normalization
 --------------------
 
-The strain normalization is done via the parameter :math:`y_{50}`.
+A normalization parameter :math:`y_{50}` is used to scale the curve with respect
+to the structure's scale.
 
+.. math::
+
+    y_{50} = 2.5 \cdot \varepsilon_{50} \cdot D
+
+where: 
+
+* :math:`D` is the pile width or diameter
+* :math:`\varepsilon_{50}` is the strain at 50% ultimate resistance
+  in Unconfined and unconsolidated (UU) Trixial tests.
 
 Transition zone
 ---------------

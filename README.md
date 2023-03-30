@@ -18,7 +18,7 @@ Geotechnical super-toolbox for pile-related calculations.
 [![Pull Requests Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](http://makeapullrequest.com)
 
 
-Please see [documentation](https://openpile.readthedocs.io/en/latest/) for more information.
+Please see [official documentation](https://openpile.readthedocs.io/en/latest/) for more information.
 
 ## Installation Instructions
 

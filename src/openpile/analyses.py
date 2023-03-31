@@ -76,25 +76,101 @@ class Result:
 
     @property
     def settlement(self):
+        """Retrieves degrees of freedom for settlement
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and their normal displacements
+        """
         return self.displacements[["Elevation [m]", "Settlement [m]"]]
 
     @property
     def deflection(self):
+        """Retrieves degrees of freedom for deflection
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and their transversal displacements
+        """
         return self.displacements[["Elevation [m]", "Deflection [m]"]]
 
     @property
     def rotation(self):
+        """Retrieves rotational degrees of freedom
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and their rotations
+        """
         return self.displacements[["Elevation [m]", "Rotation [rad]"]]
 
     def plot_deflection(self, assign=False):
+        """
+        Plots the deflection of the pile.
+
+        Parameters
+        ----------
+        assign : bool, optional
+            by default False
+
+        Returns
+        -------
+        None or matplotlib.pyplot.figure
+            if assign is True, a matplotlib figure is returned
+
+
+        The plot looks like:
+
+        .. image:: ../../docs/source/_static/usage/analyses_plots/deflection_results_plot.png
+            :width: 60%
+        """
         fig = graphics.plot_deflection(self)
         return fig if assign else None
 
     def plot_forces(self, assign=False):
+        """Plots the pile sectional forces.
+
+        Parameters
+        ----------
+        assign : bool, optional
+            by default False
+
+        Returns
+        -------
+        None or matplotlib.pyplot.figure
+            if assign is True, a matplotlib figure is returned
+
+
+        The plot looks like:
+
+        .. image:: ../../docs/source/_static/usage/analyses_plots/forces_results_plot.png
+            :width: 60%
+        """
         fig = graphics.plot_forces(self)
         return fig if assign else None
 
     def plot(self, assign=False):
+        """Plots the pile deflection and sectional forces.
+
+        Parameters
+        ----------
+        assign : bool, optional
+            by default False
+
+        Returns
+        -------
+        None or matplotlib.pyplot.figure
+            if assign is True, a matplotlib figure is returned
+
+
+        The plot looks like:
+
+        .. image:: ../../docs/source/_static/usage/analyses_plots/main_results_plot.png
+            :width: 60%
+        """
         fig = graphics.plot_results(self)
         return fig if assign else None
 

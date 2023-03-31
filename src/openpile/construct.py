@@ -40,11 +40,11 @@ import matplotlib.pyplot as plt
 
 import openpile.utils.graphics as graphics
 import openpile.core.validation as validation
-import openpile.core.soilmodels as soilmodels
+import openpile.soilmodels as soilmodels
 
 from openpile.core import misc
 
-from openpile.core.soilmodels import ConstitutiveModel
+from openpile.soilmodels import ConstitutiveModel
 
 from openpile.core.misc import generate_color_string
 
@@ -84,37 +84,6 @@ class Pile:
     >>>             'wall thickness':[0.07, 0.08],
     >>>         }
     >>>     )
-    >>> # Print the pile data
-    >>> print(pile)
-        Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0           7.5                0.07   1.633942  11.276204
-    1          -10.0           7.5                0.07   1.633942  11.276204
-    2          -10.0           7.5                0.08   1.864849  12.835479
-    3          -40.0           7.5                0.08   1.864849  12.835479
-    >>> # Override young's modulus
-    >>> pile.E = 250e6
-    >>> # Check young's modulus
-    >>> print(pile.E)
-    250000000.0
-    >>> # Override second moment of area across whole pile
-    >>> pile.I = 1.11
-    >>> # Check updated second moment of area
-    >>> print(pile)
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0           7.5               <NA>      <NA>    1.11
-    1          -10.0           7.5               <NA>      <NA>    1.11
-    2          -10.0           7.5               <NA>      <NA>    1.11
-    3          -40.0           7.5               <NA>      <NA>    1.11
-    >>> # Override pile's width or pile's diameter
-    >>> pile.width = 2.22
-    >>> # Check updated width or diameter
-    >>> print(pile)
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          2.22               <NA>      <NA>    1.11
-    1          -10.0          2.22               <NA>      <NA>    1.11
-    2          -10.0          2.22               <NA>      <NA>    1.11
-    3          -40.0          2.22               <NA>      <NA>    1.11
-
     """
 
     #: name of the pile
@@ -314,7 +283,29 @@ class Pile:
     def I(self, value: float) -> None:
         try:
             self.data.loc[:, "I [m4]"] = value
-            self.data.loc[:, ["Area [m2]", "Wall thickness [m]"]] = pd.NA
+            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @property
+    def area(self) -> float:
+        """
+        Width of the pile. (Used to compute soil springs)
+        """
+        try:
+            return self.data["Area [m2]"].mean()
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @area.setter
+    def width(self, value: float) -> None:
+        try:
+            self.data.loc[:, "Area [m2]"] = value
+            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
@@ -336,7 +327,7 @@ class Pile:
     def width(self, value: float) -> None:
         try:
             self.data.loc[:, "Diameter [m]"] = value
-            self.data.loc[:, ["Area [m2]", "Wall thickness [m]"]] = pd.NA
+            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
@@ -668,6 +659,13 @@ class Model:
                     + [x.bottom for x in self.soil.layers],
                     dtype=float,
                 )
+                if any(soil_elevations < self.pile.bottom_elevation):
+                    soil_elevations = np.append(
+                        self.pile.bottom_elevation, soil_elevations
+                    )
+                    soil_elevations = soil_elevations[
+                        soil_elevations >= self.pile.bottom_elevation
+                    ]
                 x = np.append(x, soil_elevations)
             # add user-defined elevation
             x = np.append(x, self.x2mesh)
@@ -984,7 +982,11 @@ class Model:
             raise
 
     def set_pointload(
-        self, elevation: float = 0.0, Py: float = 0.0, Px: float = 0.0, Mz: float = 0.0
+        self,
+        elevation: float = 0.0,
+        Py: float = None,
+        Px: float = None,
+        Mz: float = None,
     ):
         """
         Defines the point load(s) at a given elevation.
@@ -998,11 +1000,11 @@ class Model:
         elevation : float, optional
             the elevation must match the elevation of a node, by default 0.0
         Py : float, optional
-            Shear force in kN, by default 0.0
+            Shear force in kN, by default None
         Px : float, optional
-            Normal force in kN, by default 0.0
+            Normal force in kN, by default None
         Mz : float, optional
-            Bending moment in kNm, by default 0.0
+            Bending moment in kNm, by default None
         """
 
         # identify if one node is at given elevation or if load needs to be split
@@ -1017,9 +1019,12 @@ class Model:
                 # one node correspond, extract node
                 node_idx = int(np.where(check == True)[0])
                 # apply loads at this node
-                self.global_forces.loc[node_idx, "Px [kN]"] = Px
-                self.global_forces.loc[node_idx, "Py [kN]"] = Py
-                self.global_forces.loc[node_idx, "Mz [kNm]"] = Mz
+                if Px is not None:
+                    self.global_forces.loc[node_idx, "Px [kN]"] = Px
+                if Py is not None:
+                    self.global_forces.loc[node_idx, "Py [kN]"] = Py
+                if Mz is not None:
+                    self.global_forces.loc[node_idx, "Mz [kNm]"] = Mz
             else:
                 if (
                     elevation > self.nodes_coordinates["x [m]"].iloc[0]
@@ -1039,25 +1044,28 @@ class Model:
             raise
 
     def set_pointdisplacement(
-        self, elevation: float = 0.0, Ty: float = 0.0, Tx: float = 0.0, Rz: float = 0.0
+        self,
+        elevation: float = 0.0,
+        Ty: float = None,
+        Tx: float = None,
+        Rz: float = None,
     ):
         """
         Defines the displacement at a given elevation.
 
-        .. note:
-            If run several times at the same elevation, the displacement are overwritten by the last command.
-
+        .. note::
+            for defining supports, this function should not be used, rather use `.set_support()`.
 
         Parameters
         ----------
         elevation : float, optional
             the elevation must match the elevation of a node, by default 0.0
         Ty : float, optional
-            Translation along y-axis, by default 0.0
+            Translation along y-axis, by default None
         Tx : float, optional
-            Translation along x-axis, by default 0.0
+            Translation along x-axis, by default None
         Rz : float, optional
-            Rotation around z-axis, by default 0.0
+            Rotation around z-axis, by default None
         """
 
         try:
@@ -1072,13 +1080,17 @@ class Model:
                 # one node correspond, extract node
                 node_idx = int(np.where(check == True)[0])
                 # apply displacements at this node
-                self.global_disp.loc[node_idx, "Tx [m]"] = Tx
-                self.global_disp.loc[node_idx, "Ty [m]"] = Ty
-                self.global_disp.loc[node_idx, "Rz [rad]"] = Rz
+                if Tx is not None:
+                    self.global_disp.loc[node_idx, "Tx [m]"] = Tx
+                    self.global_restrained.loc[node_idx, "Tx"] = Tx > 0.0
+                if Ty is not None:
+                    self.global_disp.loc[node_idx, "Ty [m]"] = Ty
+                    self.global_restrained.loc[node_idx, "Ty"] = Ty > 0.0
+                if Rz is not None:
+                    self.global_disp.loc[node_idx, "Rz [rad]"] = Rz
+                    self.global_restrained.loc[node_idx, "Rz"] = Rz > 0.0
                 # set restrain at this node
-                self.global_restrained.loc[node_idx, "Tx"] = Tx > 0.0
-                self.global_restrained.loc[node_idx, "Ty"] = Ty > 0.0
-                self.global_restrained.loc[node_idx, "Rz"] = Rz > 0.0
+
             else:
                 if (
                     elevation > self.nodes_coordinates["x [m]"].iloc[0]

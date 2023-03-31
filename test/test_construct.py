@@ -1,6 +1,6 @@
 
 from openpile import construct
-from openpile.core.soilmodels import API_clay
+from openpile.soilmodels import API_clay
 class TestPile:
     def test_main_constructor(self):
         # create a steel and circular pile

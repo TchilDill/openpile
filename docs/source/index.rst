@@ -12,7 +12,6 @@ Welcome to openpile's documentation!
    :caption: Contents:
 
    about
-   intro
    usage
    background
    API

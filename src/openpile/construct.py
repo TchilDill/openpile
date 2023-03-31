@@ -880,79 +880,14 @@ class Model:
         self.global_restrained["Ty"] = False
         self.global_restrained["Rz"] = False
 
+        # Create arrays of springs
         (
-            self.py_springs,
-            self.mt_springs,
-            self.Hb_spring,
-            self.Mb_spring,
-            self.tz_springs,
+            self._py_springs,
+            self._mt_springs,
+            self._Hb_spring,
+            self._Mb_spring,
+            self._tz_springs,
         ) = create_springs()
-
-    def soil_springs(
-        self, kind: Literal["p-y", "m-t", "Hb-y", "Mb-t", "t-z"]
-    ) -> pd.DataFrame:
-        """
-        Returns soil springs created for the given model in one DataFrame.
-
-        Parameters
-        ----------
-        kind : str
-            type of spring to extract.
-
-        Returns
-        -------
-        pd.DataFrame
-            Soil springs
-        """
-
-        def springs_to_df(springs: np.ndarray, flag) -> pd.DataFrame:
-            spring_dim = springs.shape[-1]
-            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
-
-            id = np.repeat(np.arange(self.element_number), 4)
-            x = np.repeat(misc.repeat_inner(self.nodes_coordinates["x [m]"].values), 2)
-
-            if len(x) > 2:
-                t_b = ["top", "bottom"] * int(len(x) / 2)
-
-                df = pd.DataFrame(
-                    data={
-                        "Element no.": id,
-                        "Position": t_b,
-                        "Elevation [m]": x,
-                    }
-                )
-            else:
-                df = pd.DataFrame(
-                    data={
-                        "Element no.": id,
-                        "Elevation [m]": x,
-                    }
-                )
-
-            df["type"] = flag.split("-") * int(len(x) / 2)
-            df[column_values_spring] = np.reshape(springs, (-1, spring_dim))
-
-            return df
-
-        # main part of function
-        if self.soil is None:
-            RuntimeError("No soil found. Please create the Model first with soil.")
-        else:
-            if kind == "p-y":
-                springs_df = springs_to_df(self.py_springs, flag=kind)
-            elif kind == "m-t":
-                springs_df = springs_to_df(self.mt_springs, flag=kind)
-            elif kind == "Hb-y":
-                springs_df = springs_to_df(self.Hb_spring, flag=kind)
-            elif kind == "Mb-t":
-                springs_df = springs_to_df(self.Mb_spring, flag=kind)
-            elif kind == "t-z":
-                springs_df = springs_to_df(self.tz_springs, flag=kind)
-            else:
-                ValueError("kind should be one of ['p-y','m-t','Hb-y','Mb-t','t-z']")
-
-        return springs_df
 
     def get_pointload(self, output=False, verbose=True):
         """
@@ -1238,3 +1173,17 @@ class Model:
 
     def __str__(self):
         return self.element_properties.to_string()
+
+    @property
+    def py_springs(self) -> pd.DataFrame:
+        return misc.get_springs(springs=self._py_springs, 
+                            elevations=self.nodes_coordinates["x [m]"].values,
+                            kind='p-y',
+                            )
+    
+    @property
+    def mt_springs(self) -> pd.DataFrame:
+        return misc.get_springs(springs=self._py_springs, 
+                            elevations=self.nodes_coordinates["x [m]"].values,
+                            kind='p-y',
+                            )

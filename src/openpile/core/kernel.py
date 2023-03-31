@@ -279,7 +279,7 @@ def elem_py_stiffness_matrix(model, u, kind):
     L = mesh_to_element_length(model)
 
     # calculate the spring stiffness
-    ksoil = calculate_springs_stiffness(u=u[1::3], springs=model.py_springs, kind=kind)
+    ksoil = calculate_springs_stiffness(u=u[1::3], springs=model._py_springs, kind=kind)
 
     N = 0 * L
     A = 2 * L / 7

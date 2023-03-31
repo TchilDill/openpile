@@ -7,6 +7,7 @@ The package allows a quick input by the user (given in this section) and quick c
 Jupyter Notebooks/IPython are recommended platforms to learn how to use openpile as it provides 
 an interactive experience. 
 
+.. _Ex1-create_a_pile:
 
 Example 1 - Create a pile 
 =========================
@@ -87,6 +88,9 @@ axial or lateral loading.
     3          -40.0          2.22               <NA>       1.0    1.11
 
 
+
+.. _Ex2-plot_a_pycurve:
+
 Example 2 - Calculate and plot a p-y curve 
 ==========================================
 
@@ -124,6 +128,7 @@ API sand model looks like.
     :width: 65%    
 
 
+.. _Ex3-create_a_layer:
 
 Example 3 - Create a soil profile's layer 
 =========================================
@@ -158,10 +163,13 @@ Printing the layer would give the following output:
         Cyclic, N = 100 cycles
     Axial model: None
 
+
+.. _Ex4-create_a_soilprofile:
+
 Example 4 - Create a soil profile 
 =================================
 
-.. code-block:: python 
+.. code-block:: python
 
     from openpile.construct import SoilProfile, Layer
     from openpile.soilmodels import API_sand, API_clay
@@ -216,4 +224,69 @@ The output of the print out will yield the following:
         Cyclic, N = 100 cycles
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. _Ex5-run_winkler:
+
+Example 5 - Create a Model and run an analysis 
+==============================================
+
+.. code-block:: python
+
+    from openpile.construct import Pile, SoilProfile, Layer, Model
+    from openpile.soilmodels import API_clay, API_sand
+
+    # Create a pile instance with two sections of respectively 10m and 30m length.
+    p = Pile.create(name = "",
+            kind='Circular',
+            material='Steel',
+            top_elevation = 0,
+            pile_sections={
+                'length':[10,30],
+                'diameter':[7.5,7.5],
+                'wall thickness':[0.07, 0.08],
+            }
+        )
+
+    # Create a 40m deep offshore Soil Profile with a 15m water column
+    sp = SoilProfile(
+        name="Offshore Soil Profile",
+        top_elevation=0,
+        water_elevation=15,
+        layers=[
+            Layer(
+                name='medium dense sand',
+                top=0,
+                bottom=-20,
+                weight=18,
+                lateral_model= API_sand(phi=33, Neq=100)
+            ),
+            Layer(
+                name='firm clay',
+                top=-20,
+                bottom=-40,
+                weight=18,
+                lateral_model= API_clay(Su=[50, 70], eps50=0.015, Neq=100)
+            ),
+        ]
+    )
+
+    # Create Model 
+    M = Model.create(name="", pile=p, soil=sp)
+
+    # Apply bottom fixity along x-axis 
+    M.set_support(elevation=-40, Tx = True)
+    # Apply axial and lateral loads
+    M.set_pointload(elevation=0,Px=-20e3, Py = 5e3)
+
+    # Run analysis
+    from openpile.analyses import simple_winkler_analysis
+
+    Result = simple_winkler_analysis(M)
+
+    Result.plot()
+
+.. image:: _static/usage/analyses_plots/main_results_plot.png
+    :width: 65%
+
 

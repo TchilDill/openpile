@@ -35,7 +35,7 @@ pip install openpile
 
  * Python 3.7-3.10 support
  * Interactive structure perfectly suited for Jupyter Notebook 
- * Data validation on major objects of openpile with pydantic
+ * Integrated data validation to prevent wrong inputs with pydantic
  * Calculations
    * Beam calculation
    * Winkler model (i.e. beam supported by soil springs)
@@ -45,3 +45,11 @@ pip install openpile
    <!-- * Axial capacity calculations via integration -->
  * Friendly API interface with  object-oriented approach
  * Fully integrated output with python environment with Matplotlib and Pandas libraries. 
+
+ ## Please share with the community
+
+This library relies on community interactions. Please consider sharing a post about `openpile` and the value it can provide for researcher, academia and professionals.
+
+[![GitHub Repo stars](https://img.shields.io/badge/share%20on-reddit-red?logo=reddit)](https://reddit.com/submit?url=https://github.com/TchilDill/openpile&title=openpile)
+[![GitHub Repo stars](https://img.shields.io/badge/share%20on-twitter-03A9F4?logo=twitter)](https://twitter.com/share?url=https://github.com/TchilDill/openpile&t=openpile)
+[![GitHub Repo stars](https://img.shields.io/badge/share%20on-linkedin-3949AB?logo=linkedin)](https://www.linkedin.com/shareArticle?url=https://github.com/TchilDill/openpile&title=openpile)

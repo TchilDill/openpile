@@ -232,13 +232,13 @@ def U_plot(axis: plt.axis, result):
     # TODO docstring
 
     axis.set_ylabel("Elevation [m VREF]", fontsize=8)
-    axis.set_xlabel("Deflection [m]", fontsize=8)
+    axis.set_xlabel("Deflection [mm]", fontsize=8)
     axis.tick_params(axis="both", labelsize=8)
     axis.grid(which="both")
 
     y = result.displacements["Elevation [m]"].values
     x = np.zeros(shape=y.shape)
-    deflection = result.displacements["Deflection [m]"]
+    deflection = result.displacements["Deflection [m]"] * 1e3
 
     axis.plot(x, y, color="0.4")
     axis.plot(deflection, y, color="0.0", lw=2)

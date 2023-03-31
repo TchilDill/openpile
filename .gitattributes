@@ -1,3 +1,2 @@
-# ignore jupyter files
-* linguist-vendored
-*.ipynb linguist-vendored=false
+# Jupyter notebook files reclassified as Python:
+*.ipynb linguist-language=Python

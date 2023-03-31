@@ -120,8 +120,8 @@ class Result:
         -------
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
-        
-        
+
+
         The plot looks like:
 
         .. image:: ../../docs/source/_static/usage/analyses_plots/deflection_results_plot.png
@@ -142,8 +142,8 @@ class Result:
         -------
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
-        
-        
+
+
         The plot looks like:
 
         .. image:: ../../docs/source/_static/usage/analyses_plots/forces_results_plot.png
@@ -164,8 +164,8 @@ class Result:
         -------
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
-        
-        
+
+
         The plot looks like:
 
         .. image:: ../../docs/source/_static/usage/analyses_plots/main_results_plot.png

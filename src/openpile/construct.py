@@ -660,8 +660,12 @@ class Model:
                     dtype=float,
                 )
                 if any(soil_elevations < self.pile.bottom_elevation):
-                    soil_elevations = np.append(self.pile.bottom_elevation,soil_elevations)
-                    soil_elevations = soil_elevations[soil_elevations >= self.pile.bottom_elevation]
+                    soil_elevations = np.append(
+                        self.pile.bottom_elevation, soil_elevations
+                    )
+                    soil_elevations = soil_elevations[
+                        soil_elevations >= self.pile.bottom_elevation
+                    ]
                 x = np.append(x, soil_elevations)
             # add user-defined elevation
             x = np.append(x, self.x2mesh)
@@ -978,7 +982,11 @@ class Model:
             raise
 
     def set_pointload(
-        self, elevation: float = 0.0, Py: float = None, Px: float = None, Mz: float = None
+        self,
+        elevation: float = 0.0,
+        Py: float = None,
+        Px: float = None,
+        Mz: float = None,
     ):
         """
         Defines the point load(s) at a given elevation.
@@ -1036,7 +1044,11 @@ class Model:
             raise
 
     def set_pointdisplacement(
-        self, elevation: float = 0.0, Ty: float = None, Tx: float = None, Rz: float = None
+        self,
+        elevation: float = 0.0,
+        Ty: float = None,
+        Tx: float = None,
+        Rz: float = None,
     ):
         """
         Defines the displacement at a given elevation.
@@ -1071,7 +1083,7 @@ class Model:
                 if Tx is not None:
                     self.global_disp.loc[node_idx, "Tx [m]"] = Tx
                     self.global_restrained.loc[node_idx, "Tx"] = Tx > 0.0
-                if Ty is not None:                 
+                if Ty is not None:
                     self.global_disp.loc[node_idx, "Ty [m]"] = Ty
                     self.global_restrained.loc[node_idx, "Ty"] = Ty > 0.0
                 if Rz is not None:

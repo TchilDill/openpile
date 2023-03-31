@@ -157,7 +157,7 @@ The below section describes how this model is formulated and computed by openpil
     Hence, if one would not want to include the *"modified Matlock approach"*, 
     one could simply increase this threshold to a very large value.
 
-.. figure:: _static/py_API_clay/schematic_curves.jpg
+.. figure:: _static/schematic_curves.png
     :width: 80%
 
     Schematic of soft and stiff clay response, after [BaCA06]_.

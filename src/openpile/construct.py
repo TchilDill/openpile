@@ -1181,9 +1181,3 @@ class Model:
                             kind='p-y',
                             )
     
-    @property
-    def mt_springs(self) -> pd.DataFrame:
-        return misc.get_springs(springs=self._py_springs, 
-                            elevations=self.nodes_coordinates["x [m]"].values,
-                            kind='p-y',
-                            )

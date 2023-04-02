@@ -753,7 +753,7 @@ class Model:
                 shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32
             )
             mt = np.zeros(
-                shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32
+                shape=(self.element_number, 2, 2, spring_dim, spring_dim), dtype=np.float32
             )
             Hb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
             Mb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
@@ -766,6 +766,7 @@ class Model:
                     (self.soil_properties["x_top [m]"] <= layer.top)
                     & (self.soil_properties["x_bottom [m]"] >= layer.bottom)
                 ].index
+                
                 # py curve
                 if layer.lateral_model.spring_signature[
                     0

@@ -307,7 +307,8 @@ def simple_winkler_analysis(model, solver="NR", max_iter: int = 100):
             elif solver == "MNR":
                 pass
 
-            # reset displacements in case of displacement-driven analysis
+            # reset prescribed displacements to converge properly in case 
+            # of displacement-driven analysis
             U[:] = 0.0
 
         # Internal forces calculations with dim(nelem,6,6)

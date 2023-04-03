@@ -229,6 +229,7 @@ class Pile:
 
         return obj
 
+
     @property
     def bottom_elevation(self) -> float:
         """
@@ -290,28 +291,6 @@ class Pile:
             print(e)
 
     @property
-    def area(self) -> float:
-        """
-        Width of the pile. (Used to compute soil springs)
-        """
-        try:
-            return self.data["Area [m2]"].mean()
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @area.setter
-    def width(self, value: float) -> None:
-        try:
-            self.data.loc[:, "Area [m2]"] = value
-            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
     def width(self) -> float:
         """
         Width of the pile. (Used to compute soil springs)
@@ -332,6 +311,27 @@ class Pile:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
+
+    @property
+    def area(self) -> float:
+        try:
+            return self.data["Area [m2]"].mean()
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+
+    @area.setter
+    def area(self, value: float) -> None:
+        try:
+            self.data.loc[:, "Area [m2]"] = value
+            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
 
 
 @dataclass(config=PydanticConfig)
@@ -438,7 +438,7 @@ class SoilProfile:
 
     >>> # Check soil profile content
     >>> print(sp)
-        Layer 1
+    Layer 1
     ------------------------------
     Name: Layer0
     Elevation: (0.0) - (-20.0) m
@@ -768,7 +768,9 @@ class Model:
                 ].index
                 
                 # py curve
-                if layer.lateral_model.spring_signature[
+                if layer.lateral_model is None:
+                    pass
+                elif layer.lateral_model.spring_signature[
                     0
                 ]:  # True if py spring function exist
                     for i in elements_for_layer:

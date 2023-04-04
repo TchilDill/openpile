@@ -38,7 +38,7 @@ def api_sand(
             switch to calculate initial subgrade modulus below/above water table
         ymax: float, by default 0.0
             maximum value of y, default goes to 99.9% of ultimate resistance
-        output_length: int, by default 10
+        output_length: int, by default 20
             Number of discrete point along the springs
     ---------
     Returns curve with 2 vectors:
@@ -118,7 +118,7 @@ def api_clay(
     stiff_clay_threshold=96,
     Neq: float = 1.0,
     ymax: float = 0.0,
-    output_length: int = 15,
+    output_length: int = 20,
 ):
     """
     Creates the API clay p-y curve from relevant input.

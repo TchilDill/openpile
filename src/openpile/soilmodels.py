@@ -46,6 +46,21 @@ class AxialModel(ConstitutiveModel):
     pass
 
 
+class API_clay(AxialModel):
+    #: undrained shear strength [kPa], if a variation in values, two values can be given.
+    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]    
+    #: t-multiplier
+    t_multiplier: confloat(ge=0.0) = 1.0
+    #: z-multiplier
+    z_multiplier: confloat(gt=0.0) = 1.0
+    #: Q-multiplier
+    Q_multiplier: confloat(ge=0.0) = 1.0
+    #: w-multiplier
+    w_multiplier: confloat(gt=0.0) = 1.0
+
+    def __str__(self):
+        return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
+
 @dataclass(config=PydanticConfigFrozen)
 class API_sand(LateralModel):
     """A class to establish the API sand model.

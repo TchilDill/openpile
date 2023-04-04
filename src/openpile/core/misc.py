@@ -50,8 +50,7 @@ def repeat_inner(arr):
     return np.hstack([arr[0], arr_inner, arr[-1]])
 
 
-def get_springs(
-    springs: np.ndarray, elevations:np.ndarray, kind: str) -> pd.DataFrame:
+def get_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.DataFrame:
     """
     Returns soil springs created for the given model in one DataFrame.
 
@@ -59,7 +58,7 @@ def get_springs(
     ----------
     springs : ndarray dim[nelem,2,2,spring_dim]
         Springs at top and bottom of element
-    elevations : ndarray 
+    elevations : ndarray
         self.nodes_coordinates["x [m]"].values
     kind : str
         type of spring to extract. one of ["p-y", "m-t", "Hb-y", "Mb-t", "t-z"]
@@ -71,7 +70,7 @@ def get_springs(
     """
 
     def springs_to_df(springs: np.ndarray, elevations: np.ndarray, flag) -> pd.DataFrame:
-        
+
         spring_dim = springs.shape[-1]
         nelem = springs.shape[0]
 
@@ -81,7 +80,7 @@ def get_springs(
         x = np.repeat(repeat_inner(elevations), 2)
 
         if len(x) > 2:
-            t_b = ["top", "top","bottom","bottom"] * int(nelem)
+            t_b = ["top", "top", "bottom", "bottom"] * int(nelem)
 
             df = pd.DataFrame(
                 data={

@@ -229,7 +229,6 @@ class Pile:
 
         return obj
 
-
     @property
     def bottom_elevation(self) -> float:
         """
@@ -321,7 +320,6 @@ class Pile:
         except Exception as e:
             print(e)
 
-
     @area.setter
     def area(self, value: float) -> None:
         try:
@@ -331,7 +329,6 @@ class Pile:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
-
 
 
 @dataclass(config=PydanticConfig)
@@ -621,9 +618,7 @@ class Model:
     base_axial: bool = False
 
     @root_validator
-    def soil_and_pile_bottom_elevation_match(
-        cls, values
-    ):  # pylint: disable=no-self-argument
+    def soil_and_pile_bottom_elevation_match(cls, values):  # pylint: disable=no-self-argument
         if values["pile"].bottom_elevation < values["soil"].bottom_elevation:
             raise UserWarning("The pile ends deeper than the soil profile.")
         return values
@@ -659,17 +654,12 @@ class Model:
             # add soil relevant layers and others
             if self.soil is not None:
                 soil_elevations = np.array(
-                    [x.top for x in self.soil.layers]
-                    + [x.bottom for x in self.soil.layers],
+                    [x.top for x in self.soil.layers] + [x.bottom for x in self.soil.layers],
                     dtype=float,
                 )
                 if any(soil_elevations < self.pile.bottom_elevation):
-                    soil_elevations = np.append(
-                        self.pile.bottom_elevation, soil_elevations
-                    )
-                    soil_elevations = soil_elevations[
-                        soil_elevations >= self.pile.bottom_elevation
-                    ]
+                    soil_elevations = np.append(self.pile.bottom_elevation, soil_elevations)
+                    soil_elevations = soil_elevations[soil_elevations >= self.pile.bottom_elevation]
                 x = np.append(x, soil_elevations)
             # add user-defined elevation
             x = np.append(x, self.x2mesh)
@@ -687,8 +677,7 @@ class Model:
                     divider += 1
                     new_spacing = spacing / divider
                 new_x = x[i] - (
-                    np.arange(start=1, stop=divider)
-                    * np.tile(new_spacing, (divider - 1))
+                    np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider - 1))
                 )
                 x_secondary = np.append(x_secondary, new_x)
 
@@ -753,9 +742,7 @@ class Model:
             spring_dim = 15
 
             # Allocate array
-            py = np.zeros(
-                shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32
-            )
+            py = np.zeros(shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32)
             mt = np.zeros(
                 shape=(self.element_number, 2, 2, spring_dim, spring_dim), dtype=np.float32
             )
@@ -770,41 +757,32 @@ class Model:
                     (self.soil_properties["x_top [m]"] <= layer.top)
                     & (self.soil_properties["x_bottom [m]"] >= layer.bottom)
                 ].index
-                
+
                 # py curve
                 if layer.lateral_model is None:
                     pass
-                elif layer.lateral_model.spring_signature[
-                    0
-                ]:  # True if py spring function exist
+                elif layer.lateral_model.spring_signature[0]:  # True if py spring function exist
+                    
                     for i in elements_for_layer:
                         sig_v = self.soil_properties[
                             ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
                         ].iloc[i]
-                        elevation = self.soil_properties[
-                            ["x_top [m]", "x_bottom [m]"]
-                        ].iloc[i]
+                        elevation = self.soil_properties[["x_top [m]", "x_bottom [m]"]].iloc[i]
                         depth_from_ground = (
-                            self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[
-                                i
-                            ]
+                            self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
                         ).abs()
                         pile_width = self.element_properties["Diameter [m]"].iloc[i]
 
                         # top and bottom of element
                         for j in [0, 1]:
-                            (
-                                py[i, j, 0, :],
-                                py[i, j, 1, :],
-                            ) = layer.lateral_model.py_spring_fct(
+                            (py[i, j, 0, :], py[i, j, 1, :],) = layer.lateral_model.py_spring_fct(
                                 sig=sig_v[j],
                                 X=depth_from_ground[j],
                                 layer_height=(layer.top - layer.bottom),
                                 depth_from_top_of_layer=(layer.top - elevation[j]),
                                 D=pile_width,
                                 L=self.pile.length,
-                                below_water_table=elevation[j]
-                                <= self.soil.water_elevation,
+                                below_water_table=elevation[j] <= self.soil.water_elevation,
                                 output_length=spring_dim,
                             )
 
@@ -848,21 +826,16 @@ class Model:
             self.soil_properties["x_bottom [m]"] - self.soil.top_elevation
         )
         # add vertical stress at top and bottom of each element
-        condition_below_water_table = (
-            self.soil_properties["x_top [m]"] <= self.soil.water_elevation
-        )
+        condition_below_water_table = self.soil_properties["x_top [m]"] <= self.soil.water_elevation
         self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
-            self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table]
-            - 10.0
+            self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
         )
         s = (
             self.soil_properties["x_top [m]"] - self.soil_properties["x_bottom [m]"]
         ) * self.soil_properties["Unit Weight [kN/m3]"]
         self.soil_properties["sigma_v top [kPa]"] = np.insert(
             s.cumsum().values[:-1],
-            np.where(
-                self.soil_properties["x_top [m]"].values == self.soil.top_elevation
-            )[0],
+            np.where(self.soil_properties["x_top [m]"].values == self.soil.top_elevation)[0],
             0.0,
         )
         self.soil_properties["sigma_v bottom [kPa]"] = s.cumsum()
@@ -909,9 +882,7 @@ class Model:
         """
         out = ""
         try:
-            for idx, elevation, _, Px, Py, Mz in self.global_forces.itertuples(
-                name=None
-            ):
+            for idx, elevation, _, Px, Py, Mz in self.global_forces.itertuples(name=None):
                 if any([Px, Py, Mz]):
                     string = f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
                     if verbose is True:
@@ -952,9 +923,7 @@ class Model:
         # identify if one node is at given elevation or if load needs to be split
         nodes_elevations = self.nodes_coordinates["x [m]"].values
         # check if corresponding node exist
-        check = np.isclose(
-            nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
-        )
+        check = np.isclose(nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001)
 
         try:
             if any(check):
@@ -980,9 +949,7 @@ class Model:
                         "Load not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
                     )
         except Exception:
-            print(
-                "\n!User Input Error! Please create Model first with the Model.create().\n"
-            )
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
 
     def set_pointdisplacement(
@@ -1046,9 +1013,7 @@ class Model:
                         "Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
                     )
         except Exception:
-            print(
-                "\n!User Input Error! Please create Model first with the Model.create().\n"
-            )
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
 
     def set_support(
@@ -1105,9 +1070,7 @@ class Model:
                         "Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
                     )
         except Exception:
-            print(
-                "\n!User Input Error! Please create Model first with the Model.create().\n"
-            )
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
 
     def plot(self, assign=False):
@@ -1183,8 +1146,8 @@ class Model:
 
     @property
     def py_springs(self) -> pd.DataFrame:
-        return misc.get_springs(springs=self._py_springs, 
-                            elevations=self.nodes_coordinates["x [m]"].values,
-                            kind='p-y',
-                            )
-    
+        return misc.get_springs(
+            springs=self._py_springs,
+            elevations=self.nodes_coordinates["x [m]"].values,
+            kind="p-y",
+        )

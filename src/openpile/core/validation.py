@@ -21,9 +21,7 @@ class InvalidBoundaryConditionsError(Exception):
 
 def pile_sections_must_be(obj):
     if not isinstance(obj.pile_sections, dict):
-        raise UserInputError(
-            "openpile.construct.Pile.pile_sections must be a dictionary"
-        )
+        raise UserInputError("openpile.construct.Pile.pile_sections must be a dictionary")
 
     if obj.kind == "Circular":
         reference_list = ["diameter", "length", "wall thickness"]
@@ -54,10 +52,7 @@ def pile_sections_must_be(obj):
                     )
 
         for i in range(reference_length):
-            if (
-                obj.pile_sections["diameter"][i] / 2
-                < obj.pile_sections["wall thickness"][i]
-            ):
+            if obj.pile_sections["diameter"][i] / 2 < obj.pile_sections["wall thickness"][i]:
                 raise ValueError(
                     "The wall thickness cannot be larger than half the diameter of the pile"
                 )
@@ -65,9 +60,7 @@ def pile_sections_must_be(obj):
 
 def param_must_be_type(parameter, parameter_name, parameter_type, type_name):
     if not isinstance(parameter, parameter_type):
-        raise UserInputError(
-            f"Wrong type for {parameter_name}. Please provide a {type_name}"
-        )
+        raise UserInputError(f"Wrong type for {parameter_name}. Please provide a {type_name}")
 
 
 def str_must_be_one_of_those(param: str, param_name: str, accepted_values: list):
@@ -102,9 +95,7 @@ def check_boundary_conditions(model):
     restrained_count_Rz = np.count_nonzero(restrained_dof["Rz"])
     restrained_count_Ty = np.count_nonzero(restrained_dof["Ty"])
     restrained_count_Tx = np.count_nonzero(restrained_dof["Tx"])
-    restrained_count_total = (
-        restrained_count_Rz + restrained_count_Ty + restrained_count_Tx
-    )
+    restrained_count_total = restrained_count_Rz + restrained_count_Ty + restrained_count_Tx
 
     loaded_count_Rz = np.count_nonzero(loaded_dof["Mz [kNm]"])
     loaded_count_Ty = np.count_nonzero(loaded_dof["Py [kN]"])
@@ -139,8 +130,6 @@ def check_boundary_conditions(model):
             # no trasnverse load --> no need to give any error
             pass
         else:
-            raise InvalidBoundaryConditionsError(
-                "Support conditions against bending not provided."
-            )
+            raise InvalidBoundaryConditionsError("Support conditions against bending not provided.")
     else:
         raise InvalidBoundaryConditionsError("Soil in mesh not yet possible.")

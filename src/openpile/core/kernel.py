@@ -59,8 +59,9 @@ def double_inner_njit(in_arr):
             out_arr[i] = in_arr[x]
             out_arr[i + 1] = in_arr[x]
             i += 2
-    
+
     return out_arr
+
 
 @njit(parallel=True, cache=True)
 def numba_ix(arr, rows, cols):
@@ -150,9 +151,9 @@ def solve_equations(K, F, U, restraints):
 
         prescribed_disp = U
 
-        Fred = F[prescribed_dof_false] - numba_ix(
-            K, prescribed_dof_false, prescribed_dof_true
-        ).dot(prescribed_disp[prescribed_dof_true])
+        Fred = F[prescribed_dof_false] - numba_ix(K, prescribed_dof_false, prescribed_dof_true).dot(
+            prescribed_disp[prescribed_dof_true]
+        )
         Kred = numba_ix(K, prescribed_dof_false, prescribed_dof_false)
 
         U[prescribed_dof_false] = jit_solve(Kred, Fred)
@@ -217,16 +218,8 @@ def elem_mechanical_stiffness_matrix(model):
     # cross-section properties
     I = model.element_properties["I [m4]"].to_numpy(dtype=float).reshape((-1, 1, 1))
     A = model.element_properties["Area [m2]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    d = (
-        model.element_properties["Diameter [m]"]
-        .to_numpy(dtype=float)
-        .reshape((-1, 1, 1))
-    )
-    wt = (
-        model.element_properties["Wall thickness [m]"]
-        .to_numpy(dtype=float)
-        .reshape((-1, 1, 1))
-    )
+    d = model.element_properties["Diameter [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    wt = model.element_properties["Wall thickness [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
@@ -245,9 +238,7 @@ def elem_mechanical_stiffness_matrix(model):
             )
             kappa = nom / denom
         else:
-            raise ValueError(
-                "Timoshenko beams cannot be used yet for non-circular pile types"
-            )
+            raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
     else:
         raise ValueError(
             "Model.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)"
@@ -383,37 +374,35 @@ def elem_mt_stiffness_matrix(model, u, kind):
     L = mesh_to_element_length(model)
 
     # calculate the py spring stiffness
-    kspy = calculate_py_springs_stiffness(u=u[1::3], springs=model._py_springs, kind='secant')
-    upy = double_inner_njit(u[1::3]).reshape(-1,2,1,1)
+    kspy = calculate_py_springs_stiffness(u=u[1::3], springs=model._py_springs, kind="secant")
+    upy = double_inner_njit(u[1::3]).reshape(-1, 2, 1, 1)
     p_mobilised = kspy * upy
 
     # calculate the spring stiffness
-    ksoil = calculate_mt_springs_stiffness(u=u[2::3], 
-                                           mt_springs=model._mt_springs, 
-                                           py_springs=model._py_springs,
-                                           p_mobilised=p_mobilised,
-                                           kind=kind,
-                                           )
+    ksoil = calculate_mt_springs_stiffness(
+        u=u[2::3],
+        mt_springs=model._mt_springs,
+        py_springs=model._py_springs,
+        p_mobilised=p_mobilised,
+        kind=kind,
+    )
 
     N = 0 * L
-    A = 6 / (5*L)
-    B = N + 1 / 10 
-    C = 2*L / 15
+    A = 6 / (5 * L)
+    B = N + 1 / 10
+    C = 2 * L / 15
     D = -L / 30
 
-    km = (
-        np.block(
-            [
-                [N, N, N, N, N, N],
-                [N, A, B, N,-A, B],
-                [N, B, C, N,-B, D],
-                [N, N, N, N, N, N],
-                [N,-A,-B, N, A,-B],
-                [N, B, D, N,-B, C],
-            ]
-        )
-        * (0.5*ksoil[:,0] + 0.5*ksoil[:,1])
-    )
+    km = np.block(
+        [
+            [N, N, N, N, N, N],
+            [N, A, B, N, -A, B],
+            [N, B, C, N, -B, D],
+            [N, N, N, N, N, N],
+            [N, -A, -B, N, A, -B],
+            [N, B, D, N, -B, C],
+        ]
+    ) * (0.5 * ksoil[:, 0] + 0.5 * ksoil[:, 1])
 
     return km
 
@@ -478,16 +467,18 @@ def build_stiffness_matrix(model, u=None, kind=None, p_mobilised=None):
             UserWarning("'u' and 'kind' must be stipulated.")
         else:
             if model.distributed_lateral:
-                k += elem_py_stiffness_matrix(model, u, kind) 
-            
+                k += elem_py_stiffness_matrix(model, u, kind)
+
             if model.distributed_moment:
                 if not model.distributed_lateral:
-                    raise UserInputError('Error: Distributed moment cannot be calculated without distributed lateral springs.')
-                k += elem_mt_stiffness_matrix(model, u, kind) 
-            
+                    raise UserInputError(
+                        "Error: Distributed moment cannot be calculated without distributed lateral springs."
+                    )
+                k += elem_mt_stiffness_matrix(model, u, kind)
+
             if model.base_shear:
                 k += 0
-            
+
             if model.base_moment:
                 k += 0
 
@@ -498,18 +489,14 @@ def build_stiffness_matrix(model, u=None, kind=None, p_mobilised=None):
 
 def mesh_to_global_force_dof_vector(df: pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
-    force_dof_vector = (
-        df[["Px [kN]", "Py [kN]", "Mz [kNm]"]].values.reshape(-1).astype(np.float64)
-    )
+    force_dof_vector = df[["Px [kN]", "Py [kN]", "Mz [kNm]"]].values.reshape(-1).astype(np.float64)
 
     return force_dof_vector
 
 
 def mesh_to_global_disp_dof_vector(df: pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
-    disp_dof_vector = (
-        df[["Tx [m]", "Ty [m]", "Rz [rad]"]].values.reshape(-1).astype(np.float64)
-    )
+    disp_dof_vector = df[["Tx [m]", "Ty [m]", "Rz [rad]"]].values.reshape(-1).astype(np.float64)
 
     return disp_dof_vector
 
@@ -543,9 +530,7 @@ def struct_internal_force(model, u) -> np.ndarray:
             k += 0
 
     # create array u of shape [n_elem x 6 x 1]
-    u = global_dof_vector_to_consistent_stacked_array(
-        u, ndof_per_node * node_per_element
-    )
+    u = global_dof_vector_to_consistent_stacked_array(u, ndof_per_node * node_per_element)
     # compute internal forces and reshape into global dof vector
     F_int = (-1) * np.matmul(k, u).reshape((-1))
 
@@ -575,7 +560,7 @@ def calculate_py_springs_stiffness(
         secant or tangent stiffness for all elements. Array of shape(n_elem,2,1,1)
     """
 
-    # double inner values for u 
+    # double inner values for u
     d = double_inner_njit(u)
 
     # displacemet with same dimension as spring
@@ -604,25 +589,24 @@ def calculate_py_springs_stiffness(
                     if (d[i, j, 0, 0] - dx) > np.max(springs[i, j, 1]):
                         p0 = springs[i, j, 0, -1]
                     else:
-                        p0 = np.interp(
-                            d[i, j, 0, 0] - dx, springs[i, j, 1], springs[i, j, 0]
-                        )
+                        p0 = np.interp(d[i, j, 0, 0] - dx, springs[i, j, 1], springs[i, j, 0])
                     if d[i, j, 0, 0] > np.max(springs[i, j, 1]):
                         p1 = springs[i, j, 0, -1]
                     else:
-                        p1 = np.interp(
-                            d[i, j, 0, 0], springs[i, j, 1], springs[i, j, 0]
-                        )
+                        p1 = np.interp(d[i, j, 0, 0], springs[i, j, 1], springs[i, j, 0])
 
                 k[i, j, 0, 0] = abs((p1 - p0) / dx)
 
     return k
 
 
-
 # @njit(cache=True)
 def calculate_mt_springs_stiffness(
-    u: np.ndarray, mt_springs: np.ndarray, py_springs:np.ndarray, p_mobilised: np.ndarray, kind: Literal["initial", "secant", "tangent"]
+    u: np.ndarray,
+    mt_springs: np.ndarray,
+    py_springs: np.ndarray,
+    p_mobilised: np.ndarray,
+    kind: Literal["initial", "secant", "tangent"],
 ):
     """Calculate springs stiffness for rotational springs
 
@@ -649,7 +633,7 @@ def calculate_mt_springs_stiffness(
         secant or tangent stiffness for all elements. Array of shape(n_elem,2,1,1)
     """
 
-    # double inner values for u 
+    # double inner values for u
     d = double_inner_njit(u)
 
     # displacemet and p_mobilised with same dimension as spring
@@ -663,11 +647,11 @@ def calculate_mt_springs_stiffness(
         # j for top and bottom values of spring
         for j in range(k.shape[1]):
             if np.sum(mt_springs[i, j, 1, 0]) == 0:
-                #check if first m-vector is not a defined spring
-                #if that is the case, we do not calculate any stiffness
+                # check if first m-vector is not a defined spring
+                # if that is the case, we do not calculate any stiffness
                 pass
             else:
-                # get the proper m-t spring 
+                # get the proper m-t spring
                 m = np.zeros(k.shape[4])
                 t = np.zeros(k.shape[4])
 
@@ -675,9 +659,13 @@ def calculate_mt_springs_stiffness(
                     if ii == 0:
                         pass
                     else:
-                        m[ii] = np.interp(p[i,j,1,1], py_springs[i,j,0,:], mt_springs[i,j,0,:,ii])
-                        t[ii] = np.interp(p[i,j,1,1], py_springs[i,j,0,:], mt_springs[i,j,1,:,ii])
-                
+                        m[ii] = np.interp(
+                            p[i, j, 1, 1], py_springs[i, j, 0, :], mt_springs[i, j, 0, :, ii]
+                        )
+                        t[ii] = np.interp(
+                            p[i, j, 1, 1], py_springs[i, j, 0, :], mt_springs[i, j, 1, :, ii]
+                        )
+
                 if kind == "initial" or d[i, j, 0, 0] == 0.0:
                     dt = t[1] - t[0]
                     m0 = m[0]
@@ -703,6 +691,7 @@ def calculate_mt_springs_stiffness(
                 k[i, j, 0, 0] = abs((m1 - m0) / dt)
 
     return k
+
 
 def computer():
     """This function is the solver of openpile.

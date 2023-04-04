@@ -69,19 +69,13 @@ def api_sand(
     C1 = (
         (b * m.tan(phi * rad) * m.sin(Beta * rad))
         / (m.tan((Beta - phi) * rad) * m.cos((phi / 2) * rad))
-        + ((m.tan(Beta * rad)) ** 2 * m.tan((phi / 2) * rad))
-        / (m.tan((Beta - phi) * rad))
-        + b
-        * m.tan(Beta * rad)
-        * (m.tan(phi * rad) * m.sin(Beta * rad) - m.tan((phi / 2) * rad))
+        + ((m.tan(Beta * rad)) ** 2 * m.tan((phi / 2) * rad)) / (m.tan((Beta - phi) * rad))
+        + b * m.tan(Beta * rad) * (m.tan(phi * rad) * m.sin(Beta * rad) - m.tan((phi / 2) * rad))
     )
-    C2 = (
-        m.tan(Beta * rad) / m.tan((Beta - phi) * rad)
-        - (m.tan((45 - phi / 2) * rad)) ** 2
+    C2 = m.tan(Beta * rad) / m.tan((Beta - phi) * rad) - (m.tan((45 - phi / 2) * rad)) ** 2
+    C3 = b * m.tan(phi * rad) * (m.tan(Beta * rad)) ** 4 + (m.tan((45 - phi / 2) * rad)) ** 2 * (
+        (m.tan(Beta * rad)) ** 8 - 1
     )
-    C3 = b * m.tan(phi * rad) * (m.tan(Beta * rad)) ** 4 + (
-        m.tan((45 - phi / 2) * rad)
-    ) ** 2 * ((m.tan(Beta * rad)) ** 8 - 1)
 
     ## Pmax for shallow and deep zones (regular API)
     Pmax = min(C3 * sig * D, C1 * sig * X + C2 * sig * D)
@@ -209,22 +203,14 @@ def api_clay(
                     if y[i] > 15 * y50:
                         p[i] = 0.7185 * Pmax * X / Xr
                     elif y[i] > 3 * y50:
-                        p[i] = (
-                            0.7185
-                            * Pmax
-                            * (1 - (1 - X / Xr) * (y[i] - 3 * y50) / (12 * y50))
-                        )
+                        p[i] = 0.7185 * Pmax * (1 - (1 - X / Xr) * (y[i] - 3 * y50) / (12 * y50))
                     else:
                         p[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
                 else:
                     if y[i] > 15 * y50:
                         p[i] = 0.5 * Pmax * X / Xr
                     elif y[i] > 1 * y50:
-                        p[i] = (
-                            0.5
-                            * Pmax
-                            * (1 - (1 - X / Xr) * (y[i] - 1 * y50) / (14 * y50))
-                        )
+                        p[i] = 0.5 * Pmax * (1 - (1 - X / Xr) * (y[i] - 1 * y50) / (14 * y50))
                     else:
                         p[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
 

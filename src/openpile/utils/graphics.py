@@ -76,14 +76,8 @@ def connectivity_plot(model):
     ax.plot(y, x, "-k", marker="+")
 
     total_length = max(
-        (
-            model.nodes_coordinates["x [m]"].max()
-            - model.nodes_coordinates["x [m]"].min()
-        ),
-        (
-            model.nodes_coordinates["y [m]"].max()
-            - model.nodes_coordinates["y [m]"].min()
-        ),
+        (model.nodes_coordinates["x [m]"].max() - model.nodes_coordinates["x [m]"].min()),
+        (model.nodes_coordinates["y [m]"].max() - model.nodes_coordinates["y [m]"].min()),
     )
 
     ylim = ax.get_ylim()
@@ -112,15 +106,11 @@ def connectivity_plot(model):
 
     # Plot supports along y
     support_along_y = model.global_restrained["Ty"].values
-    ax.scatter(
-        y[support_along_y], x[support_along_y], color=support_color, marker=5, s=100
-    )
+    ax.scatter(y[support_along_y], x[support_along_y], color=support_color, marker=5, s=100)
 
     # Plot supports along z
     support_along_z = model.global_restrained["Rz"].values
-    ax.scatter(
-        y[support_along_z], x[support_along_z], color=support_color, marker="s", s=35
-    )
+    ax.scatter(y[support_along_z], x[support_along_z], color=support_color, marker="s", s=35)
 
     # plot LOADS
     arrows = []
@@ -138,9 +128,7 @@ def connectivity_plot(model):
             kw = dict(arrowstyle=style, color="r")
             arrow_length = normalized_arrow_size * abs(load / load_max)
             if load > 0:
-                arrows.append(
-                    FancyArrowPatch((-arrow_length, yval), (xval, yval), **kw)
-                )
+                arrows.append(FancyArrowPatch((-arrow_length, yval), (xval, yval), **kw))
             elif load < 0:
                 arrows.append(FancyArrowPatch((arrow_length, yval), (xval, yval), **kw))
 
@@ -154,27 +142,17 @@ def connectivity_plot(model):
             arrow_length = normalized_arrow_size * abs(load / load_max)
             if load > 0:
                 if idx == len(x) - 1:
-                    arrows.append(
-                        FancyArrowPatch((xval, yval), (xval, yval + arrow_length), **kw)
-                    )
+                    arrows.append(FancyArrowPatch((xval, yval), (xval, yval + arrow_length), **kw))
                 else:
-                    arrows.append(
-                        FancyArrowPatch((xval, yval - arrow_length), (xval, yval), **kw)
-                    )
+                    arrows.append(FancyArrowPatch((xval, yval - arrow_length), (xval, yval), **kw))
             elif load < 0:
                 if idx == len(x) - 1:
-                    arrows.append(
-                        FancyArrowPatch((xval, yval), (xval, yval - arrow_length), **kw)
-                    )
+                    arrows.append(FancyArrowPatch((xval, yval), (xval, yval - arrow_length), **kw))
                 else:
-                    arrows.append(
-                        FancyArrowPatch((xval, yval + arrow_length), (xval, yval), **kw)
-                    )
+                    arrows.append(FancyArrowPatch((xval, yval + arrow_length), (xval, yval), **kw))
 
     load_max = model.global_forces["Mz [kNm]"].abs().max()
-    for idx, (yval, xval, load) in enumerate(
-        zip(x, y, model.global_forces["Mz [kNm]"])
-    ):
+    for idx, (yval, xval, load) in enumerate(zip(x, y, model.global_forces["Mz [kNm]"])):
         if load == 0:
             pass
         else:

@@ -607,14 +607,18 @@ class Model:
     x2mesh: List[float] = Field(default_factory=list)
     #: mesh coarseness, represent the maximum accepted length of elements
     coarseness: float = 0.5
+    #: whether to include t-z springs in the calculations
+    distributed_axial: bool = True
     #: whether to include p-y springs in the calculations
     distributed_lateral: bool = True
     #: whether to include m-t springs in the calculations
     distributed_moment: bool = False
-    #: whether to include Hb-y springs in the calculations
+    #: whether to include Hb-y spring in the calculations
     base_shear: bool = False
-    #: whether to include Mb-t springs in the calculations
+    #: whether to include Mb-t spring in the calculations
     base_moment: bool = False
+    #: whether to include Q-z spring in the calculations
+    base_axial: bool = False
 
     @root_validator
     def soil_and_pile_bottom_elevation_match(

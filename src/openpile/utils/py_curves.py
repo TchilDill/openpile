@@ -4,8 +4,126 @@ import numpy as np
 from numba import njit, prange
 from random import random
 
-# SPRING FUNCTIONS --------------------------------------------
+from openpile.core.misc import conic
 
+# SPRING FUNCTIONS --------------------------------------------
+@njit(cache=True)
+def cowden_clay(
+    X: float,
+    Su: float,
+    G0: float,
+    D: float, 
+    output_length: int = 20,  
+):
+    """
+    Creates the lateral springs from the PISA clay formulation 
+    published by Byrne et al (2020) and calibrated based pile 
+    load tests at Cowden (north east coast of England).
+
+    Parameters
+    ----------
+    X : float
+        Depth below ground level [unit: m]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    ndarray 
+        p vector of length [<output length>]
+    ndarray 
+        y vector of length [<output length>]
+    """
+
+    # # Cowden clay parameters
+    v_pu = 241.4 
+    k_p1 = 10.6
+    k_p2 = -1.650
+    n_p1 = 0.9390
+    n_p2 = -0.03345
+    p_u1 = 10.7
+    p_u2 = -7.101
+
+    # Depth variation parameters
+    v_max = v_pu
+    k = k_p1 + k_p2 * X/D
+    n = n_p1 + n_p2 * X/D
+    p_max = p_u1 + p_u2 * m.exp(-0.3085*X/D)
+
+    # calculate normsalised conic function
+    y, p = conic(v_max, n, k, p_max, output_length)
+
+    # return non-normalised curve
+    return p*(Su*D), y*(Su*D/G0)
+
+
+@njit(cache=True)
+def dunkirk_sand(
+    sig: float,
+    X: float,
+    Dr: float,
+    G0: float,
+    D: float, 
+    L: float, 
+    output_length: int = 20,  
+):
+    """
+    Creates the lateral spring from the PISA sand formulation 
+    published by Burd et al (2020).
+    Also called the General Dunkirk Sand Model (GDSM).
+
+    Parameters
+    ----------
+    sig : float
+        vertical/overburden effective stress [unit: kPa]
+    X : float
+        Depth below ground level [unit: m]
+    Dr : float
+        Sand relative density Value must be between 0 and 100 [unit: -]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    L : float
+        Embedded pile length [unit: m]
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    ndarray 
+        p vector of length [<output length>]
+    ndarray 
+        y vector of length [<output length>]
+    """
+    #correct relative density for decimal value
+    Dr = Dr/100
+
+    # Generalised Dunkirk Sand Model parameters
+    v_pu = 146.1 - 92.11 * Dr 
+    k_p1 = 8.731 - 0.6982 * Dr
+    k_p2 = -0.9178
+    n_p = 0.917 + 0.06193 * Dr
+    p_u1 = 0.3667 + 25.89 * Dr
+    p_u2 = 0.3375 - 8.9 * Dr
+
+    # Depth variation parameters
+    v_max = v_pu
+    k = k_p1 + k_p2 * X/D
+    n = n_p
+    p_max = p_u1 + p_u2 * X/L
+
+    # calculate normsalised conic function
+    y, p = conic(v_max, n, k, p_max, output_length)
+
+    # return non-normalised curve
+    return p*(sig*D), y*(sig*D/G0)
 
 # API sand function
 @njit(parallel=True, cache=True)

@@ -22,7 +22,7 @@ from pydantic import (
 from pydantic.dataclasses import dataclass
 
 from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str
-from openpile.utils import py_curves
+from openpile.utils import py_curves, mt_curves
 
 
 # CONSTITUTIVE MODELS CLASSES ---------------------------------
@@ -45,7 +45,7 @@ class LateralModel(ConstitutiveModel):
 class AxialModel(ConstitutiveModel):
     pass
 
-
+@dataclass(config=PydanticConfigFrozen)
 class API_clay(AxialModel):
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
     Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]    
@@ -61,13 +61,139 @@ class API_clay(AxialModel):
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
 
+
+@dataclass(config=PydanticConfigFrozen)
+class Dunkirk_sand(LateralModel):
+    """A class to establish the PISA Dunkirk sand model.
+
+    Parameters
+    ----------
+    Dr: float or list[top_value, bottom_value]
+        relative density of sand. Value to range from 0 to 100. [unit: -]
+    G0: float or list[top_value, bottom_value]
+        Small-strain shear modulus [unit: kPa]
+    p_multiplier: float
+        multiplier for p-values
+    y_multiplier: float
+        multiplier for y-values
+    m_multiplier: float
+        multiplier for m-values
+    t_multiplier: float
+        multiplier for t-values
+    """
+
+    #: soil friction angle [deg], if a variation in values, two values can be given.
+    Dr: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: small-strain shear stiffness modulus 
+    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: p-multiplier
+    p_multiplier: confloat(ge=0.0) = 1.0
+    #: y-multiplier
+    y_multiplier: confloat(gt=0.0) = 1.0
+    #: m-multiplier
+    m_multiplier: confloat(ge=0.0) = 1.0
+    #: t-multiplier
+    t_multiplier: confloat(gt=0.0) = 1.0
+
+    # spring signature which tells that API sand only has p-y curves
+    # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
+    spring_signature = np.array([True, True, False, False], dtype=bool)
+
+    def __str__(self):
+        return f"\tDunkirk sand (PISA)\n\tDr = {var_to_str(self.Dr)}°\n\tG0 = {round(self.G0/1000,1)} MPa"
+
+    def py_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Dr_t, Dr_b = from_list2x_parse_top_bottom(self.Dr)
+        Dr = Dr_t + (Dr_b - Dr_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        p, y = py_curves.dunkirk_sand(
+            sig=sig,
+            X=X,
+            Dr=Dr,
+            G0=Gmax,
+            D=D,
+            L=L,
+            output_length=output_length,
+        )
+
+        return p * self.p_multiplier, y * self.y_multiplier
+
+    def mt_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Dr_t, Dr_b = from_list2x_parse_top_bottom(self.Dr)
+        Dr = Dr_t + (Dr_b - Dr_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        p_array , _ = py_curves.dunkirk_sand(
+            sig=sig,
+            X=X,
+            Dr=Dr,
+            G0=Gmax,
+            D=D,
+            L=L,
+            output_length=output_length,
+        )
+
+        m = np.array((output_length,output_length),dtype=np.float32)
+        t = np.array((output_length,output_length),dtype=np.float32)
+
+        for count, p_iter in enumerate(p_array):  
+            m[count,:], t[count,:] = mt_curves.dunkirk_sand(
+                sig=sig,
+                X=X,
+                Dr=Dr,
+                G0=Gmax,
+                p = p_iter,
+                D=D,
+                L=L,
+                output_length=output_length,
+            )
+
+        return m * self.m_multiplier, t * self.t_multiplier
+
 @dataclass(config=PydanticConfigFrozen)
 class API_sand(LateralModel):
     """A class to establish the API sand model.
 
     Parameters
     ----------
-    phi: float
+    phi: float or list[top_value, bottom_value]
         internal angle of friction in degrees
     Neq: float
         number of equivalent cycles, (Neq=1 means Static, Neq>1 means Cyclic)
@@ -139,9 +265,9 @@ class API_clay(LateralModel):
 
     Parameters
     ----------
-    Su: float
+    Su: float or list[top_value, bottom_value]
         Undrained shear strength in kPa
-    eps50: float
+    eps50: float or list[top_value, bottom_value]
         strain at 50% failure load [-]
     J: float
         empirical factor varying depending on clay stiffness, varies between 0.25 and 0.50

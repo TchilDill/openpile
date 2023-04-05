@@ -10,28 +10,24 @@ from random import random
 @njit(cache=True)
 def api_clay(
     sig: float,
-    X: float,
     Su: float,
     D: float,
-    residual: float,
-    output_length: int = 15,
+    residual: float = 0.9,
+    output_length: int = 8,
 ):
     """
     Creates the API clay t.z curve from relevant input.
-
     ---------
     input:
         sig: float
             Vertical effective stress [unit: kPa]
-        X: float
-            Depth of the curve w.r.t. mudline [unit: m]
         Su : float
             Undrained shear strength [unit: kPa]
         D: float
             Pile diameter [unit: m]
         residual: float
-            residual strength after peak strength, according to API-RP-2A, this value is between 0.7 and 0.9 
-        output_length: int, by default 15
+            residual strength after peak strength, according to API-RP-2A, this value is between 0.7 and 0.9, default to 0.9 
+        output_length: int, by default 8, cannot be lower than 8
             Number of discrete point along the springs
     ---------
     Returns curve with 2 vectors:
@@ -41,6 +37,10 @@ def api_clay(
             z vector [unit: m]
     ---------
     """
+    #cannot have less than 8
+    if output_length < 8:
+        output_length = 8
+
     # important variables
     if sig == 0.0:
         psi = Su / 0.001
@@ -56,7 +56,7 @@ def api_clay(
     f = alpha * Su
 
     # piecewise function
-    zlist = [0.0, 0.0016, 0.0031, 0.0057, 0.0080, 0.0100, 0.0200, 0.03]
+    zlist = [0.0, 0.0016, 0.0031, 0.0057, 0.0080, 0.0100, 0.0200, 0.0300]
     tlist = [0.0 , 0.3, 0.5, 0.75, 0.90, 1.00, residual, residual]
 
     # determine z vector
@@ -66,15 +66,92 @@ def api_clay(
     t = np.array(tlist, dtype=np.float32) * f
 
     add_values = output_length - len(z)
-    add_z_values = []
-    for _ in range(add_values):
-        zval = 0.0017*D + random() * D * (0.0199 - 0.0017)
-        tval = np.interp(zval, z, t)
+    add_z_values = np.zeros((add_values), dtype=np.float32)
+    add_t_values = np.zeros((add_values), dtype=np.float32)
 
-        z = np.append(z, zval)
-        t = np.append(t, tval)
+    for i in range(add_values):
+        add_z_values[i] = (0.02 + random()*0.01) *D 
+        add_t_values[i] = residual * f
+
+    z = np.append(z,add_z_values)
+    t = np.append(t,add_t_values)
 
     z = np.sort(z)
-    t = np.sort(t)
+    z_id_sorted = np.argsort(z)
+
+    t = t[z_id_sorted]
 
     return t, z
+
+
+# API sand function
+@njit(cache=True)
+def api_sand(
+    sig: float,
+    delta: float,
+    K: float = 0.8,
+    output_length: int = 4,
+):
+    """
+    Creates the API sand t.z curve from relevant input.
+    ---------
+    input:
+        sig: float
+            Vertical effective stress [unit: kPa]
+        delta: float
+            interface friction angle [unit: degrees]
+        K: float
+            coefficient of lateral pressure (0.8 for open-ended piles and 1.0 for cloased-ended)
+        output_length: int, by default 4, cannot be lower than 4
+            Number of discrete point along the springs
+    ---------
+    Returns curve with 2 vectors:
+        t: numpy 1darray
+            t vector [unit: kPa]
+        z: numpy 1darray
+            z vector [unit: m]
+    ---------
+    """
+    #cannot have less than 4
+    if output_length < 4:
+        output_length = 4
+
+    # important variables
+    delta_table = np.array([0, 15, 20, 25, 30, 35, 100], dtype=np.float32)
+    fs_max_table = np.array([47.8, 47.8, 67, 81.3, 95.7, 114.8, 114.8], dtype=np.float32)
+
+    # limit unit skin friction according to API ref page 59
+    fs_max = np.interp(delta, delta_table, fs_max_table) 
+
+    # Unit skin friction [kPa]
+    f = min(fs_max, K*sig*m.tan(delta*m.pi/180.0))
+
+    # piecewise function
+    zlist = [0.0, 0.0254, 0.03, 0.04]
+    tlist = [0.0 , 1.0, 1.0, 1.0]
+
+    # determine z vector
+    z = np.array(zlist, dtype=np.float32)
+
+    # define t vector
+    t = np.array(tlist, dtype=np.float32) * f
+
+    add_values = output_length - len(z)
+    add_z_values = np.zeros((add_values), dtype=np.float32)
+    add_t_values = np.zeros((add_values), dtype=np.float32)
+
+    for i in range(add_values):
+        add_z_values[i] = (0.03 + random()*0.01)
+        add_t_values[i] =  f
+
+    z = np.append(z,add_z_values)
+    t = np.append(t,add_t_values)
+
+    z = np.sort(z)
+    z_id_sorted = np.argsort(z)
+
+    t = t[z_id_sorted]
+
+    return t, z
+
+

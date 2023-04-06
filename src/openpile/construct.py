@@ -761,30 +761,51 @@ class Model:
                 # py curve
                 if layer.lateral_model is None:
                     pass
-                elif layer.lateral_model.spring_signature[0]:  # True if py spring function exist
-                    
+                else: 
+                    # Set local layer parameters for each element of the layer
                     for i in elements_for_layer:
+                        # vertical effective stress
                         sig_v = self.soil_properties[
                             ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
                         ].iloc[i]
+                        # elevation 
                         elevation = self.soil_properties[["x_top [m]", "x_bottom [m]"]].iloc[i]
+                        # depth from ground
                         depth_from_ground = (
                             self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
                         ).abs()
+                        # pile width
                         pile_width = self.element_properties["Diameter [m]"].iloc[i]
 
-                        # top and bottom of element
-                        for j in [0, 1]:
-                            (py[i, j, 0, :], py[i, j, 1, :],) = layer.lateral_model.py_spring_fct(
-                                sig=sig_v[j],
-                                X=depth_from_ground[j],
-                                layer_height=(layer.top - layer.bottom),
-                                depth_from_top_of_layer=(layer.top - elevation[j]),
-                                D=pile_width,
-                                L=self.pile.length,
-                                below_water_table=elevation[j] <= self.soil.water_elevation,
-                                output_length=spring_dim,
-                            )
+                        if layer.lateral_model.spring_signature[0] and self.distributed_lateral:  # True if py spring function exist    
+
+                            # calculate springs (top and) for each element
+                            for j in [0, 1]:
+                                (py[i, j, 0], py[i, j, 1]) = layer.lateral_model.py_spring_fct(
+                                    sig=sig_v[j],
+                                    X=depth_from_ground[j],
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - elevation[j]),
+                                    D=pile_width,
+                                    L=self.pile.length,
+                                    below_water_table=elevation[j] <= self.soil.water_elevation,
+                                    output_length=spring_dim,
+                                )
+
+                        if layer.lateral_model.spring_signature[1] and self.distributed_moment:  # True if mt spring function exist    
+
+                            # calculate springs (top and) for each element
+                            for j in [0, 1]:
+                                (mt[i, j, 0], mt[i, j, 1]) = layer.lateral_model.mt_spring_fct(
+                                    sig=sig_v[j],
+                                    X=depth_from_ground[j],
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - elevation[j]),
+                                    D=pile_width,
+                                    L=self.pile.length,
+                                    below_water_table=elevation[j] <= self.soil.water_elevation,
+                                    output_length=spring_dim,
+                                )
 
             return py, mt, Hb, Mb, tz
 

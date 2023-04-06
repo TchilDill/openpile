@@ -600,7 +600,7 @@ def calculate_py_springs_stiffness(
     return k
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def calculate_mt_springs_stiffness(
     u: np.ndarray,
     mt_springs: np.ndarray,
@@ -642,6 +642,10 @@ def calculate_mt_springs_stiffness(
 
     k = np.zeros(d.shape, dtype=np.float64)
 
+    # get the proper m-t spring
+    m = np.zeros(mt_springs.shape[4])
+    t = np.zeros(mt_springs.shape[4])
+
     # i for each element
     for i in range(k.shape[0]):
         # j for top and bottom values of spring
@@ -651,19 +655,16 @@ def calculate_mt_springs_stiffness(
                 # if that is the case, we do not calculate any stiffness
                 pass
             else:
-                # get the proper m-t spring
-                m = np.zeros(k.shape[4])
-                t = np.zeros(k.shape[4])
 
-                for ii in range((k.shape[4])):
+                for ii in range((mt_springs.shape[4])):
                     if ii == 0:
                         pass
                     else:
                         m[ii] = np.interp(
-                            p[i, j, 1, 1], py_springs[i, j, 0, :], mt_springs[i, j, 0, :, ii]
+                            p[i, j, 0, 0], py_springs[i, j, 0, :], mt_springs[i, j, 0, :, ii]
                         )
                         t[ii] = np.interp(
-                            p[i, j, 1, 1], py_springs[i, j, 0, :], mt_springs[i, j, 1, :, ii]
+                            p[i, j, 0, 0], py_springs[i, j, 0, :], mt_springs[i, j, 1, :, ii]
                         )
 
                 if kind == "initial" or d[i, j, 0, 0] == 0.0:
@@ -671,24 +672,24 @@ def calculate_mt_springs_stiffness(
                     m0 = m[0]
                     m1 = m[1]
                 elif kind == "secant":
-                    dt = d[i, j, 0, 0]
+                    dt = d[i, j]
                     m0 = m[0]
-                    if d[i, j, 0, 0] > t[-1]:
+                    if d[i, j] > t[-1]:
                         m1 = m[-1]
                     else:
                         m1 = np.interp(dt, t, m)
                 elif kind == "tangent":
-                    dt = min(0.0005, d[i, j, 0, 0])
-                    if (d[i, j, 0, 0] - dt) > t[-1]:
+                    dt = min(0.01*t[1], d[i, j])
+                    if (d[i, j]-dt) > t[-1]:
                         m0 = m[-1]
                     else:
-                        m0 = np.interp(d[i, j, 0, 0] - dt, t, m)
-                    if (d[i, j, 0, 0] - dt) > t[-1]:
+                        m0 = np.interp(d[i, j]-dt, t, m)
+                    if (d[i, j]) > t[-1]:
                         m1 = m[-1]
                     else:
-                        m1 = np.interp(d[i, j, 0, 0], t, m)
+                        m1 = np.interp(d[i, j], t, m)
 
-                k[i, j, 0, 0] = abs((m1 - m0) / dt)
+                k[i, j, 0, 0] = abs(m1 - m0) / (dt)
 
     return k
 

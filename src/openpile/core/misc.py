@@ -4,6 +4,7 @@
 import random
 import numpy as np
 import pandas as pd
+import math as m
 
 from numba import njit
 from matplotlib.colors import CSS4_COLORS
@@ -123,12 +124,13 @@ def conic(
     y = np.zeros((len(x)),dtype=np.float32)
 
     for i in range(len(x)):
-        if x[i] < x_u:
+        if abs(x[i]-x_u) < 1e-5:
+            y[i] = y_u
+        elif x[i] < x_u:
             b = 2*n*x[i]/x_u - (1-n)*(1+x[i]*k/y_u)
             c = x[i] * (k / y_u) * (1-n) - n * (x[i]**2 / x_u**2)
 
             y[i] = y_u * 2*c / (-b + ( b**2 - 4*a*c)**0.5 )
-
         else:
             y[i] = y_u
 

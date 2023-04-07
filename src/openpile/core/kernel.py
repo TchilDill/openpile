@@ -672,22 +672,22 @@ def calculate_mt_springs_stiffness(
                     m0 = m[0]
                     m1 = m[1]
                 elif kind == "secant":
-                    dt = d[i, j]
+                    dt = d[i, j, 0, 0]
                     m0 = m[0]
-                    if d[i, j] > t[-1]:
+                    if d[i, j, 0, 0] > t[-1]:
                         m1 = m[-1]
                     else:
                         m1 = np.interp(dt, t, m)
                 elif kind == "tangent":
-                    dt = min(0.01*t[1], d[i, j])
-                    if (d[i, j]-dt) > t[-1]:
+                    dt = min(0.01*t[1], d[i, j, 0, 0])
+                    if (d[i, j, 0, 0]-dt) > t[-1]:
                         m0 = m[-1]
                     else:
-                        m0 = np.interp(d[i, j]-dt, t, m)
-                    if (d[i, j]) > t[-1]:
+                        m0 = np.interp(d[i, j, 0, 0]-dt, t, m)
+                    if (d[i, j, 0, 0]) > t[-1]:
                         m1 = m[-1]
                     else:
-                        m1 = np.interp(d[i, j], t, m)
+                        m1 = np.interp(d[i, j, 0, 0], t, m)
 
                 k[i, j, 0, 0] = abs(m1 - m0) / (dt)
 

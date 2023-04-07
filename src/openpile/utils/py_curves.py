@@ -1,3 +1,9 @@
+"""
+`py_curves` module
+==================
+
+"""
+
 # Import libraries
 import math as m
 import numpy as np
@@ -35,10 +41,10 @@ def cowden_clay(
 
     Returns
     -------
-    ndarray 
-        p vector of length [<output length>]
-    ndarray 
-        y vector of length [<output length>]
+    1darray 
+        p vector [unit: kN/m]
+    1darray 
+        y vector [unit: m]
     """
 
     # # Cowden clay parameters
@@ -97,10 +103,10 @@ def dunkirk_sand(
 
     Returns
     -------
-    ndarray 
-        p vector of length [<output length>]
-    ndarray 
-        y vector of length [<output length>]
+    1darray 
+        p vector [unit: kN/m]
+    1darray 
+        y vector [unit: m]
     """
     #correct relative density for decimal value
     Dr = Dr/100
@@ -140,32 +146,31 @@ def api_sand(
     """
     Creates the API sand p-y curve from relevant input.
 
-    ---------
-    input:
-        sig: float
-            Vertical effective stress [unit: kPa]
-        X: float
-            Depth of the curve w.r.t. mudline [unit: m]
-        phi: float
-            internal angle of friction of the sand layer [unit: degrees]
-        D: float
-            Pile width [unit: m]
-        Neq: float, by default 1.0
-            Number of equivalent cycles [unit: -]
-        below_water_table: bool, by default False
-            switch to calculate initial subgrade modulus below/above water table
-        ymax: float, by default 0.0
-            maximum value of y, default goes to 99.9% of ultimate resistance
-        output_length: int, by default 20
-            Number of discrete point along the springs
-    ---------
-    Returns curve with 2 vectors:
-        p: numpy 1darray
-            p vector [unit: kPa/metre of pile length]
-        y: numpy 1darray
-            y vector [unit: m]
-    ---------
-
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    X: float
+        Depth of the curve w.r.t. mudline [unit: m]
+    phi: float
+        internal angle of friction of the sand layer [unit: degrees]
+    D: float
+        Pile width [unit: m]
+    Neq: float, by default 1.0
+        Number of equivalent cycles [unit: -]
+    below_water_table: bool, by default False
+        switch to calculate initial subgrade modulus below/above water table
+    ymax: float, by default 0.0
+        maximum value of y, default goes to 99.9% of ultimate resistance
+    output_length: int, by default 20
+        Number of discrete point along the springs
+    
+    Returns
+    -------
+    1darray 
+        p vector [unit: kN/m]
+    1darray 
+        y vector [unit: m]
     """
     # A value - only thing that changes between cyclic or static
     if Neq == 1:
@@ -241,35 +246,35 @@ def api_clay(
     """
     Creates the API clay p-y curve from relevant input.
 
-
-    ---------
-    input:
-        sig: float
-            Vertical effective stress [unit: kPa]
-        X: float
-            Depth of the curve w.r.t. mudline [unit: m]
-        Su : float
-            Undrained shear strength [unit: kPa]
-        eps50: float
-            strain at 50% ultimate resistance [-]
-        D: float
-            Pile width [unit: m]
-        J: float, by default 0.5
-            empirical factor varying depending on clay stiffness
-        stiff_clay_threshold: float, by default 96.0
-            undrained shear strength at which stiff clay curve is computed [unit: kPa]
-        Neq: float, by default 1.0
-            Number of equivalent cycles [unit: -]
-        ymax: float, by default 0.0
-            maximum value of y, if null the maximum is calculated such that the whole curve is computed
-        output_length: int, by default 20
-            Number of discrete point along the springs
-    ---------
-    Returns curve with 2 vectors:
-        p: numpy 1darray
-            p vector [unit: kPa/metre of pile length]
-        y: numpy 1darray
-            y vector [unit: m]
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    X: float
+        Depth of the curve w.r.t. mudline [unit: m]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    eps50: float
+        strain at 50% ultimate resistance [-]
+    D: float
+        Pile width [unit: m]
+    J: float, by default 0.5
+        empirical factor varying depending on clay stiffness
+    stiff_clay_threshold: float, by default 96.0
+        undrained shear strength at which stiff clay curve is computed [unit: kPa]
+    Neq: float, by default 1.0
+        Number of equivalent cycles [unit: -]
+    ymax: float, by default 0.0
+        maximum value of y, if null the maximum is calculated such that the whole curve is computed
+    output_length: int, by default 20
+        Number of discrete point along the springs
+    
+    Returns
+    -------
+    1darray 
+        p vector [unit: kN/m]
+    1darray 
+        y vector [unit: m]
     ---------
     """
     # important variables

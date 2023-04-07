@@ -1,3 +1,9 @@
+"""
+`qz_curves` module
+==================
+
+"""
+
 # Import libraries
 import math as m
 import numpy as np
@@ -16,23 +22,24 @@ def api_sand(
 ):
     """
     Creates the API sand Q.z curve from relevant input.
-    ---------
-    input:
-        sig: float
-            Vertical effective stress [unit: kPa]
-        delta: float
-            interface friction angle [unit: degrees]
-        D: float
-            Pile diameter [unit: m]
-        output_length: int, by default 7, cannot be lower than 7
-            Number of discrete point along the springs
-    ---------
-    Returns curve with 2 vectors:
-        Q: numpy 1darray
-            t vector [unit: kPa]
-        z: numpy 1darray
-            z vector [unit: m]
-    ---------
+
+    Parameters
+    ----------
+    sig : float
+        Vertical effective stress [unit: kPa]
+    delta : float
+        interface friction angle [unit: degrees]
+    D : float
+        Pile diameter [unit: m]
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 7, by default 7
+
+    Returns
+    -------
+    numpy 1darray
+        Q vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
     """
     #cannot have less than 7
     if output_length < 7:
@@ -86,22 +93,23 @@ def api_clay(
     output_length: int = 7,
 ):
     """
-        Creates the API clay Q.z curve from relevant input.
-    ---------
-    input:
-        Su : float
-            Undrained shear strength [unit: kPa]
-        D: float
-            Pile diameter [unit: m]
-        output_length: int, by default 7, cannot be lower than 7
-            Number of discrete point along the springs
-    ---------
-    Returns curve with 2 vectors:
-        Q: numpy 1darray
-            Q vector [unit: kPa]
-        z: numpy 1darray
-            z vector [unit: m]
-    ---------
+    Creates the API clay Q.z curve from relevant input.
+
+    Parameters
+    ----------
+    Su : float
+        Undrained shear strength [unit: kPa]
+    D: float
+        Pile diameter [unit: m]
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 7, by default 7
+
+    Returns
+    -------
+    numpy 1darray
+        Q vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
     """
     #cannot have less than 7
     if output_length < 7:

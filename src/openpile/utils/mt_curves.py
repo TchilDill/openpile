@@ -1,4 +1,8 @@
+"""
+`mt_curves` module
+==================
 
+"""
 
 # Import libraries
 import math as m
@@ -37,10 +41,10 @@ def cowden_clay(
 
     Returns
     -------
-    ndarray 
-        p vector of length [<output length>]
-    ndarray 
-        y vector of length [<output length>]
+    1darray 
+        m vector [unit: kN]
+    1darray 
+        t vector of length [unit: rad]
     """
 
     # Cowden clay parameters
@@ -101,10 +105,10 @@ def dunkirk_sand(
 
     Returns
     -------
-    ndarray 
-        p vector of length [<output length>]
-    ndarray 
-        y vector of length [<output length>]
+    1darray 
+        m vector [unit: kN]
+    1darray 
+        t vector of length [unit: rad]
     """
     #correct relative density for decimal value
     Dr = Dr/100

@@ -13,8 +13,7 @@ These objects include:
   - the Layer
 - the Model
 
-Usage
------
+**Usage**
 
 >>> from openpile.construct import Pile, SoilProfile, Layer, Model
 
@@ -1167,6 +1166,14 @@ class Model:
 
     @property
     def py_springs(self) -> pd.DataFrame:
+        """_summary_
+        #TODO
+
+        Returns
+        -------
+        pd.DataFrame
+            Table with p-y springs. 
+        """
         return misc.get_springs(
             springs=self._py_springs,
             elevations=self.nodes_coordinates["x [m]"].values,

@@ -1,3 +1,9 @@
+"""
+`tz_curves` module
+==================
+
+"""
+
 # Import libraries
 import math as m
 import numpy as np
@@ -16,26 +22,28 @@ def api_clay(
     output_length: int = 8,
 ):
     """
-    Creates the API clay t.z curve from relevant input.
-    ---------
-    input:
-        sig: float
-            Vertical effective stress [unit: kPa]
-        Su : float
-            Undrained shear strength [unit: kPa]
-        D: float
-            Pile diameter [unit: m]
-        residual: float
-            residual strength after peak strength, according to API-RP-2A, this value is between 0.7 and 0.9, default to 0.9 
-        output_length: int, by default 8, cannot be lower than 8
-            Number of discrete point along the springs
-    ---------
-    Returns curve with 2 vectors:
-        t: numpy 1darray
-            t vector [unit: kPa]
-        z: numpy 1darray
-            z vector [unit: m]
-    ---------
+    Creates the API clay t-z curve from relevant input.
+
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    D: float
+        Pile diameter [unit: m]
+    residual: float
+        residual strength after peak strength, according to API-RP-2A, 
+        this value is between 0.7 and 0.9, default to 0.9 
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 7, by default 7
+
+    Returns
+    -------
+    numpy 1darray
+        t vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
     """
     #cannot have less than 8
     if output_length < 8:
@@ -93,24 +101,25 @@ def api_sand(
     output_length: int = 4,
 ):
     """
-    Creates the API sand t.z curve from relevant input.
-    ---------
-    input:
-        sig: float
-            Vertical effective stress [unit: kPa]
-        delta: float
-            interface friction angle [unit: degrees]
-        K: float
-            coefficient of lateral pressure (0.8 for open-ended piles and 1.0 for cloased-ended)
-        output_length: int, by default 4, cannot be lower than 4
-            Number of discrete point along the springs
-    ---------
-    Returns curve with 2 vectors:
-        t: numpy 1darray
-            t vector [unit: kPa]
-        z: numpy 1darray
-            z vector [unit: m]
-    ---------
+    Creates the API sand t-z curve from relevant input.
+
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    delta: float
+        interface friction angle [unit: degrees]
+    K: float
+        coefficient of lateral pressure (0.8 for open-ended piles and 1.0 for cloased-ended)
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 4, by default 4
+
+    Returns
+    -------
+    numpy 1darray
+        t vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
     """
     #cannot have less than 4
     if output_length < 4:

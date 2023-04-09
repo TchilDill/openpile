@@ -603,16 +603,16 @@ class Model:
     x2mesh: List[float] = Field(default_factory=list)
     #: mesh coarseness, represent the maximum accepted length of elements
     coarseness: float = 0.5
-    #: whether to include t-z springs in the calculations
-    distributed_axial: bool = True
     #: whether to include p-y springs in the calculations
     distributed_lateral: bool = True
     #: whether to include m-t springs in the calculations
-    distributed_moment: bool = False
+    distributed_moment: bool = True
     #: whether to include Hb-y spring in the calculations
-    base_shear: bool = False
+    base_shear: bool = True
     #: whether to include Mb-t spring in the calculations
-    base_moment: bool = False
+    base_moment: bool = True
+    #: whether to include t-z springs in the calculations
+    distributed_axial: bool = False
     #: whether to include Q-z spring in the calculations
     base_axial: bool = False
 
@@ -776,6 +776,7 @@ class Model:
                         # pile width
                         pile_width = self.element_properties["Diameter [m]"].iloc[i]
 
+                        # p-y curves
                         if layer.lateral_model.spring_signature[0] and self.distributed_lateral:  # True if py spring function exist    
 
                             # calculate springs (top and) for each element
@@ -786,12 +787,12 @@ class Model:
                                     layer_height=(layer.top - layer.bottom),
                                     depth_from_top_of_layer=(layer.top - elevation[j]),
                                     D=pile_width,
-                                    L=self.pile.length,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                     below_water_table=elevation[j] <= self.soil.water_elevation,
                                     output_length=spring_dim,
                                 )
 
-                        if layer.lateral_model.spring_signature[1] and self.distributed_moment:  # True if mt spring function exist    
+                        if layer.lateral_model.spring_signature[2] and self.distributed_moment:  # True if mt spring function exist    
 
                             # calculate springs (top and) for each element
                             for j in [0, 1]:
@@ -801,8 +802,42 @@ class Model:
                                     layer_height=(layer.top - layer.bottom),
                                     depth_from_top_of_layer=(layer.top - elevation[j]),
                                     D=pile_width,
-                                    L=self.pile.length,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                     below_water_table=elevation[j] <= self.soil.water_elevation,
+                                    output_length=spring_dim,
+                                )
+
+                        #check if pile tip is within layer
+                        if layer.top >= self.pile.bottom_elevation and layer.bottom <= self.pile.bottom_elevation:
+
+                            #Hb curve
+                            sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
+
+                            if layer.lateral_model.spring_signature[1] and self.base_shear:    
+
+                                # calculate Hb spring
+                                (Hb[0, 0, 0], Hb[0, 0, 1]) = layer.lateral_model.Hb_spring_fct(
+                                    sig=sig_v_tip,
+                                    X=self.pile.bottom_elevation,
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=self.pile.bottom_elevation <= self.soil.water_elevation,
+                                    output_length=spring_dim,
+                                )
+                            
+                            #Mb curve
+                            if layer.lateral_model.spring_signature[3] and self.base_moment:    
+
+                                (Mb[0, 0, 0], Mb[0, 0, 1]) = layer.lateral_model.Mb_spring_fct(
+                                    sig=sig_v_tip,
+                                    X=self.pile.bottom_elevation,
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=self.pile.bottom_elevation <= self.soil.water_elevation,
                                     output_length=spring_dim,
                                 )
 
@@ -1107,9 +1142,11 @@ class Model:
         x2mesh: List[float] = Field(default_factory=list),
         coarseness: float = 0.5,
         distributed_lateral: bool = True,
-        distributed_moment: bool = False,
-        base_shear: bool = False,
-        base_moment: bool = False,
+        distributed_moment: bool = True,
+        distributed_axial: bool = False,
+        base_shear: bool = True,
+        base_moment: bool = True,
+        base_axial: bool = False,
     ):
         """A method to create the Model. This function provides a 2-in-1 command where:
 
@@ -1154,8 +1191,10 @@ class Model:
             coarseness=coarseness,
             distributed_lateral=distributed_lateral,
             distributed_moment=distributed_moment,
+            distributed_axial=distributed_axial,
             base_shear=base_shear,
             base_moment=base_moment,
+            base_axial=base_axial,
         )
         obj._postinit()
 
@@ -1179,3 +1218,15 @@ class Model:
             elevations=self.nodes_coordinates["x [m]"].values,
             kind="p-y",
         )
+
+    @property
+    def embedment(self) -> float:
+        """_summary_
+        #TODO
+
+        Returns
+        -------
+        float
+            Pile embedment 
+        """
+        return (self.soil.top_elevation - self.pile.bottom_elevation)

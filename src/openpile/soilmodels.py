@@ -23,7 +23,7 @@ from pydantic import (
 from pydantic.dataclasses import dataclass
 
 from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str
-from openpile.utils import py_curves, mt_curves
+from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves
 
 
 # CONSTITUTIVE MODELS CLASSES ---------------------------------
@@ -99,7 +99,7 @@ class Cowden_clay(LateralModel):
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-    spring_signature = np.array([True, True, False, False], dtype=bool)
+    spring_signature = np.array([True, True, True, True], dtype=bool)
 
     def __str__(self):
         return f"\Cowden clay (PISA)\n\tSu = {var_to_str(self.Su)} kPa.\n\tG0 = {round(self.G0/1000,1)} MPa"
@@ -136,6 +136,40 @@ class Cowden_clay(LateralModel):
         )
 
         return p * self.p_multiplier, y * self.y_multiplier
+
+    def Hb_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        Hb, y = Hb_curves.cowden_clay(
+            X=X,
+            Su=Su,
+            G0=Gmax,
+            D=D,
+            L=L,
+            output_length=output_length,
+        )
+
+        return Hb, y
 
     def mt_spring_fct(
         self,
@@ -182,6 +216,41 @@ class Cowden_clay(LateralModel):
 
         return m * self.m_multiplier, t * self.t_multiplier
 
+    def Mb_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        Mb, y = Mb_curves.cowden_clay(
+            X=X,
+            Su=Su,
+            G0=Gmax,
+            D=D,
+            L=L,
+            output_length=output_length,
+        )
+
+        return Mb, y
+
+
 
 @dataclass(config=PydanticConfigFrozen)
 class Dunkirk_sand(LateralModel):
@@ -218,7 +287,7 @@ class Dunkirk_sand(LateralModel):
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-    spring_signature = np.array([True, True, False, False], dtype=bool)
+    spring_signature = np.array([True, True, True, True], dtype=bool)
 
     def __str__(self):
         return f"\tDunkirk sand (PISA)\n\tDr = {var_to_str(self.Dr)}%. \n\tG0 = {round(self.G0/1000,1)} MPa"
@@ -257,6 +326,41 @@ class Dunkirk_sand(LateralModel):
         )
 
         return p * self.p_multiplier, y * self.y_multiplier
+
+    def Hb_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Dr_t, Dr_b = from_list2x_parse_top_bottom(self.Dr)
+        Dr = Dr_t + (Dr_b - Dr_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        Hb, y = Hb_curves.dunkirk_sand(
+            sig=sig,
+            X=X,
+            Dr=Dr,
+            G0=Gmax,
+            D=D,
+            L=L,
+            output_length=output_length,
+        )
+
+        return Hb, y
 
     def mt_spring_fct(
         self,
@@ -307,6 +411,41 @@ class Dunkirk_sand(LateralModel):
             )
 
         return m * self.m_multiplier, t * self.t_multiplier
+
+    def Mb_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Dr_t, Dr_b = from_list2x_parse_top_bottom(self.Dr)
+        Dr = Dr_t + (Dr_b - Dr_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        Mb, y = Mb_curves.dunkirk_sand(
+            sig=sig,
+            X=X,
+            Dr=Dr,
+            G0=Gmax,
+            D=D,
+            L=L,
+            output_length=output_length,
+        )
+
+        return Mb, y
 
 @dataclass(config=PydanticConfigFrozen)
 class API_sand(LateralModel):

@@ -476,13 +476,13 @@ def build_stiffness_matrix(model, u=None, kind=None, p_mobilised=None):
                     )
                 k += elem_mt_stiffness_matrix(model, u, kind)
 
-            if model.base_shear:
-                k += 0
-
-            if model.base_moment:
-                k += 0
-
     K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
+
+    if model.base_shear:
+        K[-2:-2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
+
+    if model.base_moment:
+        K[-1:-1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
 
     return K
 
@@ -536,6 +536,59 @@ def struct_internal_force(model, u) -> np.ndarray:
 
     return F_int
 
+
+@njit(cache=True)
+def calculate_base_spring_stiffness(
+    u: np.ndarray, spring: np.ndarray, kind: Literal["initial", "secant", "tangent"]
+):
+    """Calculate springs stiffness for py or t-z springs.
+
+    Parameters
+    ----------
+    u : float
+        base displacement or rotation to calculate stiffness
+    spring : np.ndarray
+        soil-structure interaction base springs array of shape (1, 1, 1, spring_dim)
+    kind : str
+        defines whether it is initial, secant of tangent stiffness to define
+
+    Returns
+    -------
+    k: float
+        secant or tangent stiffness for all elements. 
+    """
+
+    # displacemet with same dimension as spring
+    d = abs(u)
+
+    if np.sum(spring[0, 0, 0]) == 0:
+        k = 0.0
+    else:
+        if kind == "initial" or d == 0.0:
+            dx = spring[0, 0, 1, 1] - spring[0, 0, 1, 0]
+            p0 = spring[0, 0, 0, 0]
+            p1 = spring[0, 0, 0, 1]
+        elif kind == "secant":
+            dx = d
+            p0 = spring[0, 0, 0, 0]
+            if d > np.max(spring[0, 0, 1]):
+                p1 = spring[0, 0, 0, -1]
+            else:
+                p1 = np.interp(dx, spring[0, 0, 1], spring[0, 0, 0])
+        elif kind == "tangent":
+            dx = min(0.0005, d)
+            if (d - dx) > np.max(spring[0, 0, 1]):
+                p0 = spring[0, 0, 0, -1]
+            else:
+                p0 = np.interp(d - dx, spring[0, 0, 1], spring[0, 0, 0])
+            if d > np.max(spring[0, 0, 1]):
+                p1 = spring[0, 0, 0, -1]
+            else:
+                p1 = np.interp(d, spring[0, 0, 1], spring[0, 0, 0])
+
+        k = abs((p1 - p0) / dx)
+
+    return k
 
 @njit(cache=True)
 def calculate_py_springs_stiffness(

@@ -525,9 +525,9 @@ def struct_internal_force(model, u) -> np.ndarray:
         elif model.distributed_moment:
             k += elem_mt_stiffness_matrix(model, u, kind)
         elif model.base_shear:
-            k += 0
+            k[-1,-2,-2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
         elif model.base_moment:
-            k += 0
+            k[-1,-1,-1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
 
     # create array u of shape [n_elem x 6 x 1]
     u = global_dof_vector_to_consistent_stacked_array(u, ndof_per_node * node_per_element)

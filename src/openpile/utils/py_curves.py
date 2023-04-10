@@ -1,10 +1,135 @@
+"""
+`py_curves` module
+==================
+
+"""
+
 # Import libraries
 import math as m
 import numpy as np
 from numba import njit, prange
 from random import random
 
+from openpile.core.misc import conic
+
 # SPRING FUNCTIONS --------------------------------------------
+@njit(cache=True)
+def cowden_clay(
+    X: float,
+    Su: float,
+    G0: float,
+    D: float,
+    output_length: int = 20,
+):
+    """
+    Creates the lateral springs from the PISA clay formulation
+    published by Byrne et al (2020) and calibrated based pile
+    load tests at Cowden (north east coast of England).
+
+    Parameters
+    ----------
+    X : float
+        Depth below ground level [unit: m]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        p vector [unit: kN/m]
+    1darray
+        y vector [unit: m]
+    """
+
+    # # Cowden clay parameters
+    v_pu = 241.4
+    k_p1 = 10.6
+    k_p2 = -1.650
+    n_p1 = 0.9390
+    n_p2 = -0.03345
+    p_u1 = 10.7
+    p_u2 = -7.101
+
+    # Depth variation parameters
+    v_max = v_pu
+    k = k_p1 + k_p2 * X / D
+    n = n_p1 + n_p2 * X / D
+    p_max = p_u1 + p_u2 * m.exp(-0.3085 * X / D)
+
+    # calculate normsalised conic function
+    y, p = conic(v_max, n, k, p_max, output_length)
+
+    # return non-normalised curve
+    return p * (Su * D), y * (Su * D / G0)
+
+
+@njit(cache=True)
+def dunkirk_sand(
+    sig: float,
+    X: float,
+    Dr: float,
+    G0: float,
+    D: float,
+    L: float,
+    output_length: int = 20,
+):
+    """
+    Creates the lateral spring from the PISA sand formulation
+    published by Burd et al (2020).
+    Also called the General Dunkirk Sand Model (GDSM).
+
+    Parameters
+    ----------
+    sig : float
+        vertical/overburden effective stress [unit: kPa]
+    X : float
+        Depth below ground level [unit: m]
+    Dr : float
+        Sand relative density Value must be between 0 and 100 [unit: -]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    L : float
+        Embedded pile length [unit: m]
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        p vector [unit: kN/m]
+    1darray
+        y vector [unit: m]
+    """
+    # correct relative density for decimal value
+    Dr = Dr / 100
+
+    # Generalised Dunkirk Sand Model parameters
+    v_pu = 146.1 - 92.11 * Dr
+    k_p1 = 8.731 - 0.6982 * Dr
+    k_p2 = -0.9178
+    n_p = 0.917 + 0.06193 * Dr
+    p_u1 = 0.3667 + 25.89 * Dr
+    p_u2 = 0.3375 - 8.9 * Dr
+
+    # Depth variation parameters
+    v_max = v_pu
+    k = k_p1 + k_p2 * X / D
+    n = n_p
+    p_max = p_u1 + p_u2 * X / L
+
+    # calculate normsalised conic function
+    y, p = conic(v_max, n, k, p_max, output_length)
+
+    # return non-normalised curve
+    return p * (sig * D), y * (sig * D / G0)
 
 
 # API sand function
@@ -22,32 +147,31 @@ def api_sand(
     """
     Creates the API sand p-y curve from relevant input.
 
-    ---------
-    input:
-        sig: float
-            Vertical effective stress [unit: kPa]
-        X: float
-            Depth of the curve w.r.t. mudline [unit: m]
-        phi: float
-            internal angle of friction of the sand layer [unit: degrees]
-        D: float
-            Pile width [unit: m]
-        Neq: float, by default 1.0
-            Number of equivalent cycles [unit: -]
-        below_water_table: bool, by default False
-            switch to calculate initial subgrade modulus below/above water table
-        ymax: float, by default 0.0
-            maximum value of y, default goes to 99.9% of ultimate resistance
-        output_length: int, by default 10
-            Number of discrete point along the springs
-    ---------
-    Returns curve with 2 vectors:
-        p: numpy 1darray
-            p vector [unit: kPa/metre of pile length]
-        y: numpy 1darray
-            y vector [unit: m]
-    ---------
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    X: float
+        Depth of the curve w.r.t. mudline [unit: m]
+    phi: float
+        internal angle of friction of the sand layer [unit: degrees]
+    D: float
+        Pile width [unit: m]
+    Neq: float, by default 1.0
+        Number of equivalent cycles [unit: -]
+    below_water_table: bool, by default False
+        switch to calculate initial subgrade modulus below/above water table
+    ymax: float, by default 0.0
+        maximum value of y, default goes to 99.9% of ultimate resistance
+    output_length: int, by default 20
+        Number of discrete point along the springs
 
+    Returns
+    -------
+    1darray
+        p vector [unit: kN/m]
+    1darray
+        y vector [unit: m]
     """
     # A value - only thing that changes between cyclic or static
     if Neq == 1:
@@ -69,19 +193,13 @@ def api_sand(
     C1 = (
         (b * m.tan(phi * rad) * m.sin(Beta * rad))
         / (m.tan((Beta - phi) * rad) * m.cos((phi / 2) * rad))
-        + ((m.tan(Beta * rad)) ** 2 * m.tan((phi / 2) * rad))
-        / (m.tan((Beta - phi) * rad))
-        + b
-        * m.tan(Beta * rad)
-        * (m.tan(phi * rad) * m.sin(Beta * rad) - m.tan((phi / 2) * rad))
+        + ((m.tan(Beta * rad)) ** 2 * m.tan((phi / 2) * rad)) / (m.tan((Beta - phi) * rad))
+        + b * m.tan(Beta * rad) * (m.tan(phi * rad) * m.sin(Beta * rad) - m.tan((phi / 2) * rad))
     )
-    C2 = (
-        m.tan(Beta * rad) / m.tan((Beta - phi) * rad)
-        - (m.tan((45 - phi / 2) * rad)) ** 2
+    C2 = m.tan(Beta * rad) / m.tan((Beta - phi) * rad) - (m.tan((45 - phi / 2) * rad)) ** 2
+    C3 = b * m.tan(phi * rad) * (m.tan(Beta * rad)) ** 4 + (m.tan((45 - phi / 2) * rad)) ** 2 * (
+        (m.tan(Beta * rad)) ** 8 - 1
     )
-    C3 = b * m.tan(phi * rad) * (m.tan(Beta * rad)) ** 4 + (
-        m.tan((45 - phi / 2) * rad)
-    ) ** 2 * ((m.tan(Beta * rad)) ** 8 - 1)
 
     ## Pmax for shallow and deep zones (regular API)
     Pmax = min(C3 * sig * D, C1 * sig * X + C2 * sig * D)
@@ -124,40 +242,40 @@ def api_clay(
     stiff_clay_threshold=96,
     Neq: float = 1.0,
     ymax: float = 0.0,
-    output_length: int = 15,
+    output_length: int = 20,
 ):
     """
     Creates the API clay p-y curve from relevant input.
 
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    X: float
+        Depth of the curve w.r.t. mudline [unit: m]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    eps50: float
+        strain at 50% ultimate resistance [-]
+    D: float
+        Pile width [unit: m]
+    J: float, by default 0.5
+        empirical factor varying depending on clay stiffness
+    stiff_clay_threshold: float, by default 96.0
+        undrained shear strength at which stiff clay curve is computed [unit: kPa]
+    Neq: float, by default 1.0
+        Number of equivalent cycles [unit: -]
+    ymax: float, by default 0.0
+        maximum value of y, if null the maximum is calculated such that the whole curve is computed
+    output_length: int, by default 20
+        Number of discrete point along the springs
 
-    ---------
-    input:
-        sig: float
-            Vertical effective stress [unit: kPa]
-        X: float
-            Depth of the curve w.r.t. mudline [unit: m]
-        Su : float
-            Undrained shear strength [unit: kPa]
-        eps50: float
-            strain at 50% ultimate resistance [-]
-        D: float
-            Pile width [unit: m]
-        J: float, by default 0.5
-            empirical factor varying depending on clay stiffness
-        stiff_clay_threshold: float, by default 96.0
-            undrained shear strength at which stiff clay curve is computed [unit: kPa]
-        Neq: float, by default 1.0
-            Number of equivalent cycles [unit: -]
-        ymax: float, by default 0.0
-            maximum value of y, if null the maximum is calculated such that the whole curve is computed
-        output_length: int, by default 20
-            Number of discrete point along the springs
-    ---------
-    Returns curve with 2 vectors:
-        p: numpy 1darray
-            p vector [unit: kPa/metre of pile length]
-        y: numpy 1darray
-            y vector [unit: m]
+    Returns
+    -------
+    1darray
+        p vector [unit: kN/m]
+    1darray
+        y vector [unit: m]
     ---------
     """
     # important variables
@@ -209,22 +327,14 @@ def api_clay(
                     if y[i] > 15 * y50:
                         p[i] = 0.7185 * Pmax * X / Xr
                     elif y[i] > 3 * y50:
-                        p[i] = (
-                            0.7185
-                            * Pmax
-                            * (1 - (1 - X / Xr) * (y[i] - 3 * y50) / (12 * y50))
-                        )
+                        p[i] = 0.7185 * Pmax * (1 - (1 - X / Xr) * (y[i] - 3 * y50) / (12 * y50))
                     else:
                         p[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
                 else:
                     if y[i] > 15 * y50:
                         p[i] = 0.5 * Pmax * X / Xr
                     elif y[i] > 1 * y50:
-                        p[i] = (
-                            0.5
-                            * Pmax
-                            * (1 - (1 - X / Xr) * (y[i] - 1 * y50) / (14 * y50))
-                        )
+                        p[i] = 0.5 * Pmax * (1 - (1 - X / Xr) * (y[i] - 1 * y50) / (14 * y50))
                     else:
                         p[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
 

@@ -4,11 +4,41 @@ API
 
 .. automodule:: openpile.construct
     :members:
-    :exclude-members: __init__, PydanticConfig
+    :exclude-members: __init__, PydanticConfig, soil_and_pile_bottom_elevation_match
+
+
+.. automodule:: openpile.soilmodels
+    :members: 
+    :exclude-members: __init__, PydanticConfig, PydanticConfigFrozen, ConstitutiveModel, LateralModel, AxialModel
+
 
 .. automodule:: openpile.analyses
     :members: 
     :exclude-members: PydanticConfig, structural_forces_to_df, disp_to_df, Result
+
+
+`utils` module
+==============
+
+.. automodule:: openpile.utils.py_curves
+    :members:
+    :exclude-members: random
+
+
+.. automodule:: openpile.utils.mt_curves
+    :members:
+    :exclude-members: random
+
+
+.. automodule:: openpile.utils.tz_curves
+    :members:
+    :exclude-members: random
+
+
+.. automodule:: openpile.utils.qz_curves
+    :members:
+    :exclude-members: random
+
 
 The `Result` class
 ==================

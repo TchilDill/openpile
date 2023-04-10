@@ -13,8 +13,7 @@ These objects include:
   - the Layer
 - the Model
 
-Usage
------
+**Usage**
 
 >>> from openpile.construct import Pile, SoilProfile, Layer, Model
 
@@ -290,28 +289,6 @@ class Pile:
             print(e)
 
     @property
-    def area(self) -> float:
-        """
-        Width of the pile. (Used to compute soil springs)
-        """
-        try:
-            return self.data["Area [m2]"].mean()
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @area.setter
-    def width(self, value: float) -> None:
-        try:
-            self.data.loc[:, "Area [m2]"] = value
-            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
     def width(self) -> float:
         """
         Width of the pile. (Used to compute soil springs)
@@ -327,6 +304,25 @@ class Pile:
     def width(self, value: float) -> None:
         try:
             self.data.loc[:, "Diameter [m]"] = value
+            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @property
+    def area(self) -> float:
+        try:
+            return self.data["Area [m2]"].mean()
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @area.setter
+    def area(self, value: float) -> None:
+        try:
+            self.data.loc[:, "Area [m2]"] = value
             self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
@@ -438,7 +434,7 @@ class SoilProfile:
 
     >>> # Check soil profile content
     >>> print(sp)
-        Layer 1
+    Layer 1
     ------------------------------
     Name: Layer0
     Elevation: (0.0) - (-20.0) m
@@ -610,16 +606,18 @@ class Model:
     #: whether to include p-y springs in the calculations
     distributed_lateral: bool = True
     #: whether to include m-t springs in the calculations
-    distributed_moment: bool = False
-    #: whether to include Hb-y springs in the calculations
-    base_shear: bool = False
-    #: whether to include Mb-t springs in the calculations
-    base_moment: bool = False
+    distributed_moment: bool = True
+    #: whether to include Hb-y spring in the calculations
+    base_shear: bool = True
+    #: whether to include Mb-t spring in the calculations
+    base_moment: bool = True
+    #: whether to include t-z springs in the calculations
+    distributed_axial: bool = False
+    #: whether to include Q-z spring in the calculations
+    base_axial: bool = False
 
     @root_validator
-    def soil_and_pile_bottom_elevation_match(
-        cls, values
-    ):  # pylint: disable=no-self-argument
+    def soil_and_pile_bottom_elevation_match(cls, values):  # pylint: disable=no-self-argument
         if values["pile"].bottom_elevation < values["soil"].bottom_elevation:
             raise UserWarning("The pile ends deeper than the soil profile.")
         return values
@@ -647,6 +645,12 @@ class Model:
             print(e)
 
     def _postinit(self):
+        def check_springs(arr):
+            check_nan = np.isnan(arr).any()
+            check_negative = (arr < 0).any()
+
+            return check_nan or check_negative
+
         def get_coordinates() -> pd.DataFrame:
             # Primary discretisation over x-axis
             x = np.array([], dtype=np.float16)
@@ -655,17 +659,12 @@ class Model:
             # add soil relevant layers and others
             if self.soil is not None:
                 soil_elevations = np.array(
-                    [x.top for x in self.soil.layers]
-                    + [x.bottom for x in self.soil.layers],
+                    [x.top for x in self.soil.layers] + [x.bottom for x in self.soil.layers],
                     dtype=float,
                 )
                 if any(soil_elevations < self.pile.bottom_elevation):
-                    soil_elevations = np.append(
-                        self.pile.bottom_elevation, soil_elevations
-                    )
-                    soil_elevations = soil_elevations[
-                        soil_elevations >= self.pile.bottom_elevation
-                    ]
+                    soil_elevations = np.append(self.pile.bottom_elevation, soil_elevations)
+                    soil_elevations = soil_elevations[soil_elevations >= self.pile.bottom_elevation]
                 x = np.append(x, soil_elevations)
             # add user-defined elevation
             x = np.append(x, self.x2mesh)
@@ -683,8 +682,7 @@ class Model:
                     divider += 1
                     new_spacing = spacing / divider
                 new_x = x[i] - (
-                    np.arange(start=1, stop=divider)
-                    * np.tile(new_spacing, (divider - 1))
+                    np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider - 1))
                 )
                 x_secondary = np.append(x_secondary, new_x)
 
@@ -749,11 +747,9 @@ class Model:
             spring_dim = 15
 
             # Allocate array
-            py = np.zeros(
-                shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32
-            )
+            py = np.zeros(shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32)
             mt = np.zeros(
-                shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32
+                shape=(self.element_number, 2, 2, spring_dim, spring_dim), dtype=np.float32
             )
             Hb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
             Mb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
@@ -766,41 +762,132 @@ class Model:
                     (self.soil_properties["x_top [m]"] <= layer.top)
                     & (self.soil_properties["x_bottom [m]"] >= layer.bottom)
                 ].index
+
                 # py curve
-                if layer.lateral_model.spring_signature[
-                    0
-                ]:  # True if py spring function exist
+                if layer.lateral_model is None:
+                    pass
+                else:
+                    # Set local layer parameters for each element of the layer
                     for i in elements_for_layer:
+                        # vertical effective stress
                         sig_v = self.soil_properties[
                             ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
                         ].iloc[i]
-                        elevation = self.soil_properties[
-                            ["x_top [m]", "x_bottom [m]"]
-                        ].iloc[i]
+                        # elevation
+                        elevation = self.soil_properties[["x_top [m]", "x_bottom [m]"]].iloc[i]
+                        # depth from ground
                         depth_from_ground = (
-                            self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[
-                                i
-                            ]
+                            self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
                         ).abs()
+                        # pile width
                         pile_width = self.element_properties["Diameter [m]"].iloc[i]
 
-                        # top and bottom of element
-                        for j in [0, 1]:
-                            (
-                                py[i, j, 0, :],
-                                py[i, j, 1, :],
-                            ) = layer.lateral_model.py_spring_fct(
-                                sig=sig_v[j],
-                                X=depth_from_ground[j],
-                                layer_height=(layer.top - layer.bottom),
-                                depth_from_top_of_layer=(layer.top - elevation[j]),
-                                D=pile_width,
-                                L=self.pile.length,
-                                below_water_table=elevation[j]
-                                <= self.soil.water_elevation,
-                                output_length=spring_dim,
-                            )
+                        # p-y curves
+                        if (
+                            layer.lateral_model.spring_signature[0] and self.distributed_lateral
+                        ):  # True if py spring function exist
 
+                            # calculate springs (top and) for each element
+                            for j in [0, 1]:
+                                (py[i, j, 0], py[i, j, 1]) = layer.lateral_model.py_spring_fct(
+                                    sig=sig_v[j],
+                                    X=depth_from_ground[j],
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - elevation[j]),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=elevation[j] <= self.soil.water_elevation,
+                                    output_length=spring_dim,
+                                )
+
+                        if (
+                            layer.lateral_model.spring_signature[2] and self.distributed_moment
+                        ):  # True if mt spring function exist
+
+                            # calculate springs (top and) for each element
+                            for j in [0, 1]:
+                                (mt[i, j, 0], mt[i, j, 1]) = layer.lateral_model.mt_spring_fct(
+                                    sig=sig_v[j],
+                                    X=depth_from_ground[j],
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - elevation[j]),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=elevation[j] <= self.soil.water_elevation,
+                                    output_length=spring_dim,
+                                )
+
+                        # check if pile tip is within layer
+                        if (
+                            layer.top >= self.pile.bottom_elevation
+                            and layer.bottom <= self.pile.bottom_elevation
+                        ):
+
+                            # Hb curve
+                            sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
+
+                            if layer.lateral_model.spring_signature[1] and self.base_shear:
+
+                                # calculate Hb spring
+                                (Hb[0, 0, 0], Hb[0, 0, 1]) = layer.lateral_model.Hb_spring_fct(
+                                    sig=sig_v_tip,
+                                    X=self.pile.bottom_elevation,
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(
+                                        layer.top - self.pile.bottom_elevation
+                                    ),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=self.pile.bottom_elevation
+                                    <= self.soil.water_elevation,
+                                    output_length=spring_dim,
+                                )
+
+                            # Mb curve
+                            if layer.lateral_model.spring_signature[3] and self.base_moment:
+
+                                (Mb[0, 0, 0], Mb[0, 0, 1]) = layer.lateral_model.Mb_spring_fct(
+                                    sig=sig_v_tip,
+                                    X=self.pile.bottom_elevation,
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(
+                                        layer.top - self.pile.bottom_elevation
+                                    ),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=self.pile.bottom_elevation
+                                    <= self.soil.water_elevation,
+                                    output_length=spring_dim,
+                                )
+
+            if check_springs(py):
+                print("py springs have negative or NaN values.")
+                print(
+                    """if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                Please check that: 2 < L/D < 6.
+                """
+                )
+            if check_springs(mt):
+                print("mt springs have negative or NaN values.")
+                print(
+                    """if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                Please check that: 2 < L/D < 6.
+                """
+                )
+            if check_springs(Hb):
+                print("Hb spring has negative or NaN values.")
+                print(
+                    """if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                Please check that: 2 < L/D < 6.
+                """
+                )
+            if check_springs(Mb):
+                print("Mb spring has negative or NaN values.")
+                print(
+                    """if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                Please check that: 2 < L/D < 6.
+                """
+                )
             return py, mt, Hb, Mb, tz
 
         # creates mesh coordinates
@@ -841,21 +928,16 @@ class Model:
             self.soil_properties["x_bottom [m]"] - self.soil.top_elevation
         )
         # add vertical stress at top and bottom of each element
-        condition_below_water_table = (
-            self.soil_properties["x_top [m]"] <= self.soil.water_elevation
-        )
+        condition_below_water_table = self.soil_properties["x_top [m]"] <= self.soil.water_elevation
         self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
-            self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table]
-            - 10.0
+            self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
         )
         s = (
             self.soil_properties["x_top [m]"] - self.soil_properties["x_bottom [m]"]
         ) * self.soil_properties["Unit Weight [kN/m3]"]
         self.soil_properties["sigma_v top [kPa]"] = np.insert(
             s.cumsum().values[:-1],
-            np.where(
-                self.soil_properties["x_top [m]"].values == self.soil.top_elevation
-            )[0],
+            np.where(self.soil_properties["x_top [m]"].values == self.soil.top_elevation)[0],
             0.0,
         )
         self.soil_properties["sigma_v bottom [kPa]"] = s.cumsum()
@@ -880,79 +962,14 @@ class Model:
         self.global_restrained["Ty"] = False
         self.global_restrained["Rz"] = False
 
+        # Create arrays of springs
         (
-            self.py_springs,
-            self.mt_springs,
-            self.Hb_spring,
-            self.Mb_spring,
-            self.tz_springs,
+            self._py_springs,
+            self._mt_springs,
+            self._Hb_spring,
+            self._Mb_spring,
+            self._tz_springs,
         ) = create_springs()
-
-    def soil_springs(
-        self, kind: Literal["p-y", "m-t", "Hb-y", "Mb-t", "t-z"]
-    ) -> pd.DataFrame:
-        """
-        Returns soil springs created for the given model in one DataFrame.
-
-        Parameters
-        ----------
-        kind : str
-            type of spring to extract.
-
-        Returns
-        -------
-        pd.DataFrame
-            Soil springs
-        """
-
-        def springs_to_df(springs: np.ndarray, flag) -> pd.DataFrame:
-            spring_dim = springs.shape[-1]
-            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
-
-            id = np.repeat(np.arange(self.element_number), 4)
-            x = np.repeat(misc.repeat_inner(self.nodes_coordinates["x [m]"].values), 2)
-
-            if len(x) > 2:
-                t_b = ["top", "bottom"] * int(len(x) / 2)
-
-                df = pd.DataFrame(
-                    data={
-                        "Element no.": id,
-                        "Position": t_b,
-                        "Elevation [m]": x,
-                    }
-                )
-            else:
-                df = pd.DataFrame(
-                    data={
-                        "Element no.": id,
-                        "Elevation [m]": x,
-                    }
-                )
-
-            df["type"] = flag.split("-") * int(len(x) / 2)
-            df[column_values_spring] = np.reshape(springs, (-1, spring_dim))
-
-            return df
-
-        # main part of function
-        if self.soil is None:
-            RuntimeError("No soil found. Please create the Model first with soil.")
-        else:
-            if kind == "p-y":
-                springs_df = springs_to_df(self.py_springs, flag=kind)
-            elif kind == "m-t":
-                springs_df = springs_to_df(self.mt_springs, flag=kind)
-            elif kind == "Hb-y":
-                springs_df = springs_to_df(self.Hb_spring, flag=kind)
-            elif kind == "Mb-t":
-                springs_df = springs_to_df(self.Mb_spring, flag=kind)
-            elif kind == "t-z":
-                springs_df = springs_to_df(self.tz_springs, flag=kind)
-            else:
-                ValueError("kind should be one of ['p-y','m-t','Hb-y','Mb-t','t-z']")
-
-        return springs_df
 
     def get_pointload(self, output=False, verbose=True):
         """
@@ -967,9 +984,7 @@ class Model:
         """
         out = ""
         try:
-            for idx, elevation, _, Px, Py, Mz in self.global_forces.itertuples(
-                name=None
-            ):
+            for idx, elevation, _, Px, Py, Mz in self.global_forces.itertuples(name=None):
                 if any([Px, Py, Mz]):
                     string = f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
                     if verbose is True:
@@ -1010,9 +1025,7 @@ class Model:
         # identify if one node is at given elevation or if load needs to be split
         nodes_elevations = self.nodes_coordinates["x [m]"].values
         # check if corresponding node exist
-        check = np.isclose(
-            nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
-        )
+        check = np.isclose(nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001)
 
         try:
             if any(check):
@@ -1038,9 +1051,7 @@ class Model:
                         "Load not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
                     )
         except Exception:
-            print(
-                "\n!User Input Error! Please create Model first with the Model.create().\n"
-            )
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
 
     def set_pointdisplacement(
@@ -1104,9 +1115,7 @@ class Model:
                         "Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
                     )
         except Exception:
-            print(
-                "\n!User Input Error! Please create Model first with the Model.create().\n"
-            )
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
 
     def set_support(
@@ -1163,9 +1172,7 @@ class Model:
                         "Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
                     )
         except Exception:
-            print(
-                "\n!User Input Error! Please create Model first with the Model.create().\n"
-            )
+            print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
 
     def plot(self, assign=False):
@@ -1182,9 +1189,11 @@ class Model:
         x2mesh: List[float] = Field(default_factory=list),
         coarseness: float = 0.5,
         distributed_lateral: bool = True,
-        distributed_moment: bool = False,
-        base_shear: bool = False,
-        base_moment: bool = False,
+        distributed_moment: bool = True,
+        distributed_axial: bool = False,
+        base_shear: bool = True,
+        base_moment: bool = True,
+        base_axial: bool = False,
     ):
         """A method to create the Model. This function provides a 2-in-1 command where:
 
@@ -1229,8 +1238,10 @@ class Model:
             coarseness=coarseness,
             distributed_lateral=distributed_lateral,
             distributed_moment=distributed_moment,
+            distributed_axial=distributed_axial,
             base_shear=base_shear,
             base_moment=base_moment,
+            base_axial=base_axial,
         )
         obj._postinit()
 
@@ -1238,3 +1249,31 @@ class Model:
 
     def __str__(self):
         return self.element_properties.to_string()
+
+    @property
+    def py_springs(self) -> pd.DataFrame:
+        """_summary_
+        #TODO
+
+        Returns
+        -------
+        pd.DataFrame
+            Table with p-y springs.
+        """
+        return misc.get_springs(
+            springs=self._py_springs,
+            elevations=self.nodes_coordinates["x [m]"].values,
+            kind="p-y",
+        )
+
+    @property
+    def embedment(self) -> float:
+        """_summary_
+        #TODO
+
+        Returns
+        -------
+        float
+            Pile embedment
+        """
+        return self.soil.top_elevation - self.pile.bottom_elevation

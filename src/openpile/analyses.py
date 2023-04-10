@@ -305,9 +305,14 @@ def simple_winkler_analysis(model, solver="NR", max_iter: int = 100):
             if solver == "NR":
                 K = kernel.build_stiffness_matrix(model, u=d, kind="tangent")
             elif solver == "MNR":
-                pass
+                if model.distributed_moment:
+                    pass
+                    # K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
+                else:
+                    pass
 
-            # reset displacements in case of displacement-driven analysis
+            # reset prescribed displacements to converge properly in case
+            # of displacement-driven analysis
             U[:] = 0.0
 
         # Internal forces calculations with dim(nelem,6,6)

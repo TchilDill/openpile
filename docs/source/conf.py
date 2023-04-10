@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'openpile'
+project = 'OpenPile'
 copyright = '2023, Guillaume Melin'
 author = 'Guillaume Melin'
 

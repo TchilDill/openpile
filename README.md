@@ -1,4 +1,4 @@
-# openpile
+# OpenPile
 
 Geotechnical super-toolbox for pile-related calculations.
 
@@ -48,7 +48,7 @@ pip install openpile
 
  ## Please share with the community
 
-This library relies on community interactions. Please consider sharing a post about `openpile` and the value it can provide for researcher, academia and professionals.
+This library relies on community interactions. Please consider sharing a post about `OpenPile` and the value it can provide for researcher, academia and professionals.
 
 [![GitHub Repo stars](https://img.shields.io/badge/share%20on-reddit-red?logo=reddit)](https://reddit.com/submit?url=https://github.com/TchilDill/openpile&title=openpile)
 [![GitHub Repo stars](https://img.shields.io/badge/share%20on-twitter-03A9F4?logo=twitter)](https://twitter.com/share?url=https://github.com/TchilDill/openpile&t=openpile)

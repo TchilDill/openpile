@@ -107,6 +107,8 @@ def get_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.Da
     return springs_to_df(springs, elevations, flag=kind)
 
 
+
+
 @njit(cache=True)
 def conic(
         x_u : float,
@@ -124,7 +126,7 @@ def conic(
     y = np.zeros((len(x)),dtype=np.float32)
 
     for i in range(len(x)):
-        if abs(x[i]-x_u) < 1e-5:
+        if abs(x[i]-x_u) < 1e-4:
             y[i] = y_u
         elif x[i] < x_u:
             b = 2*n*x[i]/x_u - (1-n)*(1+x[i]*k/y_u)

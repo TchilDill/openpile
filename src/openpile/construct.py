@@ -645,6 +645,12 @@ class Model:
             print(e)
 
     def _postinit(self):
+        def check_springs(arr):
+                check_nan = np.isnan(arr).any()
+                check_negative = (arr < 0).any()
+                 
+                return check_nan or check_negative
+        
         def get_coordinates() -> pd.DataFrame:
             # Primary discretisation over x-axis
             x = np.array([], dtype=np.float16)
@@ -841,6 +847,26 @@ class Model:
                                     output_length=spring_dim,
                                 )
 
+            if check_springs(py):
+                print('py springs have negative or NaN values.')
+                print("""if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                Please check that: 2 < L/D < 6.
+                """)
+            if check_springs(mt):
+                print('mt springs have negative or NaN values.') 
+                print("""if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                Please check that: 2 < L/D < 6.
+                """)            
+            if check_springs(Hb):
+                print('Hb spring has negative or NaN values.') 
+                print("""if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                Please check that: 2 < L/D < 6.
+                """)
+            if check_springs(Mb):
+                print('Mb spring has negative or NaN values.') 
+                print("""if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                Please check that: 2 < L/D < 6.
+                """)
             return py, mt, Hb, Mb, tz
 
         # creates mesh coordinates

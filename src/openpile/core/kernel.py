@@ -387,11 +387,55 @@ def elem_mt_stiffness_matrix(model, u, kind):
         kind=kind,
     )
 
-    N = 0 * L
-    A = 6 / (5 * L)
-    B = N + 1 / 10
-    C = 2 * L / 15
-    D = -L / 30
+    # elastic properties
+    nu = model.pile._nu
+    E = model.element_properties["E [kPa]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    G = E / (2 + 2 * nu)
+    # cross-section properties
+    I = model.element_properties["I [m4]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    A = model.element_properties["Area [m2]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    d = model.element_properties["Diameter [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    wt = model.element_properties["Wall thickness [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+
+
+    # calculate shear component in stiffness matrix (if Timorshenko)
+    if model.element_type == "EulerBernoulli":
+        N = 0 * L
+        A = 6 / (5 * L)
+        B = N + 1 / 10
+        C = 2 * L / 15
+        D = -L / 30
+    elif model.element_type == "Timoshenko":
+        if model.pile.kind == "Circular":
+            a = 0.5 * d
+            b = 0.5 * (d - 2 * wt)
+            nom = 6 * (a**2 + b**2) ** 2 * (1 + nu) ** 2
+            denom = (
+                7 * a**4
+                + 34 * a**2 * b**2
+                + 7 * b**4
+                + nu * (12 * a**4 + 48 * a**2 * b**2 + 12 * b**4)
+                + nu**2 * (4 * a**4 + 16 * a**2 * b**2 + 4 * b**4)
+            )
+            kappa = nom / denom
+
+            omega = E * I * kappa / (A * G * L**2)
+
+        else:
+            raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
+        
+        phi = (12*omega+1)**2
+
+        N = 0 * L
+        A = 6 * (120*omega**2 + 20*omega + 1) / ((5 * L) * phi) + 12*I / ( A * L**3 * phi)
+        B = 1 / (10 * phi) + 6*I / ( A*L**2 * phi)
+        C = (2 * L * (90*omega**2 + 15*omega +1) ) / ( 15 * phi ) + 4*I*(36*omega**2 + 6*omega + 1)/(A*L*phi)
+        D = - L * (360*omega**2 + 60*omega + 1) / (30 * phi) - 2*I*(72*omega**2 + 12*omega - 1)/(A*L*phi)
+
+    else:
+        raise ValueError(
+            "Model.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)"
+        )
 
     km = np.block(
         [

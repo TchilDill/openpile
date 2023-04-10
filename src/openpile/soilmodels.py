@@ -46,10 +46,11 @@ class LateralModel(ConstitutiveModel):
 class AxialModel(ConstitutiveModel):
     pass
 
+
 @dataclass(config=PydanticConfigFrozen)
 class API_clay(AxialModel):
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
-    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]    
+    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: t-multiplier
     t_multiplier: confloat(ge=0.0) = 1.0
     #: z-multiplier
@@ -61,7 +62,6 @@ class API_clay(AxialModel):
 
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
-
 
 
 @dataclass(config=PydanticConfigFrozen)
@@ -127,7 +127,7 @@ class Cowden_clay(LateralModel):
         G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
         Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
 
-        p , y = py_curves.cowden_clay(
+        p, y = py_curves.cowden_clay(
             X=X,
             Su=Su,
             G0=Gmax,
@@ -194,7 +194,7 @@ class Cowden_clay(LateralModel):
         G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
         Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
 
-        p_array , _ = py_curves.cowden_clay(
+        p_array, _ = py_curves.cowden_clay(
             X=X,
             Su=Su,
             G0=Gmax,
@@ -202,11 +202,11 @@ class Cowden_clay(LateralModel):
             output_length=output_length,
         )
 
-        m = np.zeros((output_length,output_length),dtype=np.float32)
-        t = np.zeros((output_length,output_length),dtype=np.float32)
+        m = np.zeros((output_length, output_length), dtype=np.float32)
+        t = np.zeros((output_length, output_length), dtype=np.float32)
 
-        for count, _ in enumerate(p_array):  
-            m[count,:], t[count,:] = mt_curves.cowden_clay(
+        for count, _ in enumerate(p_array):
+            m[count, :], t[count, :] = mt_curves.cowden_clay(
                 X=X,
                 Su=Su,
                 G0=Gmax,
@@ -249,7 +249,6 @@ class Cowden_clay(LateralModel):
         )
 
         return Mb, y
-
 
 
 @dataclass(config=PydanticConfigFrozen)
@@ -385,7 +384,7 @@ class Dunkirk_sand(LateralModel):
         G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
         Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
 
-        p_array , _ = py_curves.dunkirk_sand(
+        p_array, _ = py_curves.dunkirk_sand(
             sig=sig,
             X=X,
             Dr=Dr,
@@ -395,16 +394,16 @@ class Dunkirk_sand(LateralModel):
             output_length=output_length,
         )
 
-        m = np.zeros((output_length,output_length),dtype=np.float32)
-        t = np.zeros((output_length,output_length),dtype=np.float32)
+        m = np.zeros((output_length, output_length), dtype=np.float32)
+        t = np.zeros((output_length, output_length), dtype=np.float32)
 
-        for count, p_iter in enumerate(p_array):  
-            m[count], t[count,:] = mt_curves.dunkirk_sand(
+        for count, p_iter in enumerate(p_array):
+            m[count], t[count, :] = mt_curves.dunkirk_sand(
                 sig=sig,
                 X=X,
                 Dr=Dr,
                 G0=Gmax,
-                p = p_iter,
+                p=p_iter,
                 D=D,
                 L=L,
                 output_length=output_length,
@@ -446,6 +445,7 @@ class Dunkirk_sand(LateralModel):
         )
 
         return Mb, y
+
 
 @dataclass(config=PydanticConfigFrozen)
 class API_sand(LateralModel):

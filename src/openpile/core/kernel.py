@@ -397,7 +397,6 @@ def elem_mt_stiffness_matrix(model, u, kind):
     d = model.element_properties["Diameter [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
     wt = model.element_properties["Wall thickness [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
 
-
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
         N = 0 * L
@@ -423,14 +422,18 @@ def elem_mt_stiffness_matrix(model, u, kind):
 
         else:
             raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
-        
-        phi = (12*omega+1)**2
+
+        phi = (12 * omega + 1) ** 2
 
         N = 0 * L
-        A = 6 * (120*omega**2 + 20*omega + 1) / ((5 * L) * phi) + 12*I / ( A * L**3 * phi)
-        B = 1 / (10 * phi) + 6*I / ( A*L**2 * phi)
-        C = (2 * L * (90*omega**2 + 15*omega +1) ) / ( 15 * phi ) + 4*I*(36*omega**2 + 6*omega + 1)/(A*L*phi)
-        D = - L * (360*omega**2 + 60*omega + 1) / (30 * phi) - 2*I*(72*omega**2 + 12*omega - 1)/(A*L*phi)
+        A = 6 * (120 * omega**2 + 20 * omega + 1) / ((5 * L) * phi) + 12 * I / (A * L**3 * phi)
+        B = 1 / (10 * phi) + 6 * I / (A * L**2 * phi)
+        C = (2 * L * (90 * omega**2 + 15 * omega + 1)) / (15 * phi) + 4 * I * (
+            36 * omega**2 + 6 * omega + 1
+        ) / (A * L * phi)
+        D = -L * (360 * omega**2 + 60 * omega + 1) / (30 * phi) - 2 * I * (
+            72 * omega**2 + 12 * omega - 1
+        ) / (A * L * phi)
 
     else:
         raise ValueError(
@@ -569,9 +572,9 @@ def struct_internal_force(model, u) -> np.ndarray:
         elif model.distributed_moment:
             k += elem_mt_stiffness_matrix(model, u, kind)
         elif model.base_shear:
-            k[-1,-2,-2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
+            k[-1, -2, -2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
         elif model.base_moment:
-            k[-1,-1,-1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
+            k[-1, -1, -1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
 
     # create array u of shape [n_elem x 6 x 1]
     u = global_dof_vector_to_consistent_stacked_array(u, ndof_per_node * node_per_element)
@@ -599,7 +602,7 @@ def calculate_base_spring_stiffness(
     Returns
     -------
     k: float
-        secant or tangent stiffness for all elements. 
+        secant or tangent stiffness for all elements.
     """
 
     # displacemet with same dimension as spring
@@ -633,6 +636,7 @@ def calculate_base_spring_stiffness(
         k = abs((p1 - p0) / dx)
 
     return k
+
 
 @njit(cache=True)
 def calculate_py_springs_stiffness(
@@ -776,11 +780,11 @@ def calculate_mt_springs_stiffness(
                     else:
                         m1 = np.interp(dt, t, m)
                 elif kind == "tangent":
-                    dt = min(0.01*t[1], d[i, j, 0, 0])
-                    if (d[i, j, 0, 0]-dt) > t[-1]:
+                    dt = min(0.01 * t[1], d[i, j, 0, 0])
+                    if (d[i, j, 0, 0] - dt) > t[-1]:
                         m0 = m[-1]
                     else:
-                        m0 = np.interp(d[i, j, 0, 0]-dt, t, m)
+                        m0 = np.interp(d[i, j, 0, 0] - dt, t, m)
                     if (d[i, j, 0, 0]) > t[-1]:
                         m1 = m[-1]
                     else:

@@ -646,11 +646,11 @@ class Model:
 
     def _postinit(self):
         def check_springs(arr):
-                check_nan = np.isnan(arr).any()
-                check_negative = (arr < 0).any()
-                 
-                return check_nan or check_negative
-        
+            check_nan = np.isnan(arr).any()
+            check_negative = (arr < 0).any()
+
+            return check_nan or check_negative
+
         def get_coordinates() -> pd.DataFrame:
             # Primary discretisation over x-axis
             x = np.array([], dtype=np.float16)
@@ -766,14 +766,14 @@ class Model:
                 # py curve
                 if layer.lateral_model is None:
                     pass
-                else: 
+                else:
                     # Set local layer parameters for each element of the layer
                     for i in elements_for_layer:
                         # vertical effective stress
                         sig_v = self.soil_properties[
                             ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
                         ].iloc[i]
-                        # elevation 
+                        # elevation
                         elevation = self.soil_properties[["x_top [m]", "x_bottom [m]"]].iloc[i]
                         # depth from ground
                         depth_from_ground = (
@@ -783,7 +783,9 @@ class Model:
                         pile_width = self.element_properties["Diameter [m]"].iloc[i]
 
                         # p-y curves
-                        if layer.lateral_model.spring_signature[0] and self.distributed_lateral:  # True if py spring function exist    
+                        if (
+                            layer.lateral_model.spring_signature[0] and self.distributed_lateral
+                        ):  # True if py spring function exist
 
                             # calculate springs (top and) for each element
                             for j in [0, 1]:
@@ -798,7 +800,9 @@ class Model:
                                     output_length=spring_dim,
                                 )
 
-                        if layer.lateral_model.spring_signature[2] and self.distributed_moment:  # True if mt spring function exist    
+                        if (
+                            layer.lateral_model.spring_signature[2] and self.distributed_moment
+                        ):  # True if mt spring function exist
 
                             # calculate springs (top and) for each element
                             for j in [0, 1]:
@@ -813,60 +817,77 @@ class Model:
                                     output_length=spring_dim,
                                 )
 
-                        #check if pile tip is within layer
-                        if layer.top >= self.pile.bottom_elevation and layer.bottom <= self.pile.bottom_elevation:
+                        # check if pile tip is within layer
+                        if (
+                            layer.top >= self.pile.bottom_elevation
+                            and layer.bottom <= self.pile.bottom_elevation
+                        ):
 
-                            #Hb curve
+                            # Hb curve
                             sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
 
-                            if layer.lateral_model.spring_signature[1] and self.base_shear:    
+                            if layer.lateral_model.spring_signature[1] and self.base_shear:
 
                                 # calculate Hb spring
                                 (Hb[0, 0, 0], Hb[0, 0, 1]) = layer.lateral_model.Hb_spring_fct(
                                     sig=sig_v_tip,
                                     X=self.pile.bottom_elevation,
                                     layer_height=(layer.top - layer.bottom),
-                                    depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
+                                    depth_from_top_of_layer=(
+                                        layer.top - self.pile.bottom_elevation
+                                    ),
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=self.pile.bottom_elevation <= self.soil.water_elevation,
+                                    below_water_table=self.pile.bottom_elevation
+                                    <= self.soil.water_elevation,
                                     output_length=spring_dim,
                                 )
-                            
-                            #Mb curve
-                            if layer.lateral_model.spring_signature[3] and self.base_moment:    
+
+                            # Mb curve
+                            if layer.lateral_model.spring_signature[3] and self.base_moment:
 
                                 (Mb[0, 0, 0], Mb[0, 0, 1]) = layer.lateral_model.Mb_spring_fct(
                                     sig=sig_v_tip,
                                     X=self.pile.bottom_elevation,
                                     layer_height=(layer.top - layer.bottom),
-                                    depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
+                                    depth_from_top_of_layer=(
+                                        layer.top - self.pile.bottom_elevation
+                                    ),
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=self.pile.bottom_elevation <= self.soil.water_elevation,
+                                    below_water_table=self.pile.bottom_elevation
+                                    <= self.soil.water_elevation,
                                     output_length=spring_dim,
                                 )
 
             if check_springs(py):
-                print('py springs have negative or NaN values.')
-                print("""if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                print("py springs have negative or NaN values.")
+                print(
+                    """if using PISA type springs, this can be due to parameters behind out of the parameter space.
                 Please check that: 2 < L/D < 6.
-                """)
+                """
+                )
             if check_springs(mt):
-                print('mt springs have negative or NaN values.') 
-                print("""if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                print("mt springs have negative or NaN values.")
+                print(
+                    """if using PISA type springs, this can be due to parameters behind out of the parameter space.
                 Please check that: 2 < L/D < 6.
-                """)            
+                """
+                )
             if check_springs(Hb):
-                print('Hb spring has negative or NaN values.') 
-                print("""if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                print("Hb spring has negative or NaN values.")
+                print(
+                    """if using PISA type springs, this can be due to parameters behind out of the parameter space.
                 Please check that: 2 < L/D < 6.
-                """)
+                """
+                )
             if check_springs(Mb):
-                print('Mb spring has negative or NaN values.') 
-                print("""if using PISA type springs, this can be due to parameters behind out of the parameter space.
+                print("Mb spring has negative or NaN values.")
+                print(
+                    """if using PISA type springs, this can be due to parameters behind out of the parameter space.
                 Please check that: 2 < L/D < 6.
-                """)
+                """
+                )
             return py, mt, Hb, Mb, tz
 
         # creates mesh coordinates
@@ -1237,7 +1258,7 @@ class Model:
         Returns
         -------
         pd.DataFrame
-            Table with p-y springs. 
+            Table with p-y springs.
         """
         return misc.get_springs(
             springs=self._py_springs,
@@ -1253,6 +1274,6 @@ class Model:
         Returns
         -------
         float
-            Pile embedment 
+            Pile embedment
         """
-        return (self.soil.top_elevation - self.pile.bottom_elevation)
+        return self.soil.top_elevation - self.pile.bottom_elevation

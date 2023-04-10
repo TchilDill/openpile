@@ -19,12 +19,12 @@ def dunkirk_sand(
     X: float,
     Dr: float,
     G0: float,
-    D: float, 
-    L: float, 
-    output_length: int = 20,  
+    D: float,
+    L: float,
+    output_length: int = 20,
 ):
     """
-    Creates the base shear spring from the PISA sand formulation 
+    Creates the base shear spring from the PISA sand formulation
     published by Burd et al (2020).
     Also called the General Dunkirk Sand Model (GDSM).
 
@@ -47,17 +47,17 @@ def dunkirk_sand(
 
     Returns
     -------
-    1darray 
+    1darray
         Hb vector [unit: kN]
-    1darray 
+    1darray
         y vector [unit: m]
     """
-    #correct relative density for decimal value
-    Dr = Dr/100
+    # correct relative density for decimal value
+    Dr = Dr / 100
 
     # Generalised Dunkirk Sand Model parameters
-    v_hu1 = 0.5150 + 2.883 * Dr 
-    v_hu2 = 0.1695 - 0.7018 * Dr 
+    v_hu1 = 0.5150 + 2.883 * Dr
+    v_hu2 = 0.1695 - 0.7018 * Dr
     k_h1 = 6.505 - 2.985 * Dr
     k_h2 = -0.007969 - 0.4299 * Dr
     n_h1 = 0.09978 + 0.7974 * Dr
@@ -66,17 +66,16 @@ def dunkirk_sand(
     p_u2 = 0.03988 - 0.1606 * Dr
 
     # Depth variation parameters
-    v_max = v_hu1 + v_hu2 * L/D
-    k = k_h1 + k_h2 * L/D
-    n = n_h1 + n_h2 * L/D
-    p_max = p_u1 + p_u2 * L/D
+    v_max = v_hu1 + v_hu2 * L / D
+    k = k_h1 + k_h2 * L / D
+    n = n_h1 + n_h2 * L / D
+    p_max = p_u1 + p_u2 * L / D
 
     # calculate normsalised conic function
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p*(sig*D**2), y*(sig*D/G0)
-
+    return p * (sig * D**2), y * (sig * D / G0)
 
 
 @njit(cache=True)
@@ -84,13 +83,13 @@ def cowden_clay(
     X: float,
     Su: float,
     G0: float,
-    D: float, 
+    D: float,
     L: float,
-    output_length: int = 20,  
+    output_length: int = 20,
 ):
     """
-    Creates the base shear spring from the PISA clay formulation 
-    published by Byrne et al (2020) and calibrated based pile 
+    Creates the base shear spring from the PISA clay formulation
+    published by Byrne et al (2020) and calibrated based pile
     load tests at Cowden (north east coast of England).
 
     Parameters
@@ -110,9 +109,9 @@ def cowden_clay(
 
     Returns
     -------
-    1darray 
+    1darray
         Hb vector [unit: kN]
-    1darray 
+    1darray
         y vector [unit: m]
     """
 
@@ -127,13 +126,13 @@ def cowden_clay(
     p_u2 = 0.04812
 
     # Depth variation parameters
-    v_max = v_hu1 + v_hu2 * L/D
-    k = k_h1 + k_h2 * L/D
-    n = n_h1 + n_h2 * L/D
-    p_max = p_u1 + p_u2 * L/D
+    v_max = v_hu1 + v_hu2 * L / D
+    k = k_h1 + k_h2 * L / D
+    n = n_h1 + n_h2 * L / D
+    p_max = p_u1 + p_u2 * L / D
 
     # calculate normsalised conic function
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p*(Su*D**2), y*(Su*D/G0)
+    return p * (Su * D**2), y * (Su * D / G0)

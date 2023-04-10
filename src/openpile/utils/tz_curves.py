@@ -33,8 +33,8 @@ def api_clay(
     D: float
         Pile diameter [unit: m]
     residual: float
-        residual strength after peak strength, according to API-RP-2A, 
-        this value is between 0.7 and 0.9, default to 0.9 
+        residual strength after peak strength, according to API-RP-2A,
+        this value is between 0.7 and 0.9, default to 0.9
     output_length : int, optional
         Number of discrete point along the springs, cannot be lower than 7, by default 7
 
@@ -45,7 +45,7 @@ def api_clay(
     numpy 1darray
         z vector [unit: m]
     """
-    #cannot have less than 8
+    # cannot have less than 8
     if output_length < 8:
         output_length = 8
 
@@ -56,16 +56,16 @@ def api_clay(
         psi = Su / sig
 
     if psi > 1.0:
-        alpha = min( 0.5 * psi**(-0.25), 1.0 )
+        alpha = min(0.5 * psi ** (-0.25), 1.0)
     else:
-        alpha = min( 0.5 * psi**(-0.5), 1.0 )
+        alpha = min(0.5 * psi ** (-0.5), 1.0)
 
     # Unit skin friction [kPa]
     f = alpha * Su
 
     # piecewise function
     zlist = [0.0, 0.0016, 0.0031, 0.0057, 0.0080, 0.0100, 0.0200, 0.0300]
-    tlist = [0.0 , 0.3, 0.5, 0.75, 0.90, 1.00, residual, residual]
+    tlist = [0.0, 0.3, 0.5, 0.75, 0.90, 1.00, residual, residual]
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32) * D
@@ -78,11 +78,11 @@ def api_clay(
     add_t_values = np.zeros((add_values), dtype=np.float32)
 
     for i in range(add_values):
-        add_z_values[i] = (0.02 + random()*0.01) *D 
+        add_z_values[i] = (0.02 + random() * 0.01) * D
         add_t_values[i] = residual * f
 
-    z = np.append(z,add_z_values)
-    t = np.append(t,add_t_values)
+    z = np.append(z, add_z_values)
+    t = np.append(t, add_t_values)
 
     z = np.sort(z)
     z_id_sorted = np.argsort(z)
@@ -121,7 +121,7 @@ def api_sand(
     numpy 1darray
         z vector [unit: m]
     """
-    #cannot have less than 4
+    # cannot have less than 4
     if output_length < 4:
         output_length = 4
 
@@ -130,14 +130,14 @@ def api_sand(
     fs_max_table = np.array([47.8, 47.8, 67, 81.3, 95.7, 114.8, 114.8], dtype=np.float32)
 
     # limit unit skin friction according to API ref page 59
-    fs_max = np.interp(delta, delta_table, fs_max_table) 
+    fs_max = np.interp(delta, delta_table, fs_max_table)
 
     # Unit skin friction [kPa]
-    f = min(fs_max, K*sig*m.tan(delta*m.pi/180.0))
+    f = min(fs_max, K * sig * m.tan(delta * m.pi / 180.0))
 
     # piecewise function
     zlist = [0.0, 0.0254, 0.03, 0.04]
-    tlist = [0.0 , 1.0, 1.0, 1.0]
+    tlist = [0.0, 1.0, 1.0, 1.0]
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32)
@@ -150,11 +150,11 @@ def api_sand(
     add_t_values = np.zeros((add_values), dtype=np.float32)
 
     for i in range(add_values):
-        add_z_values[i] = (0.03 + random()*0.01)
-        add_t_values[i] =  f
+        add_z_values[i] = 0.03 + random() * 0.01
+        add_t_values[i] = f
 
-    z = np.append(z,add_z_values)
-    t = np.append(t,add_t_values)
+    z = np.append(z, add_z_values)
+    t = np.append(t, add_t_values)
 
     z = np.sort(z)
     z_id_sorted = np.argsort(z)
@@ -162,5 +162,3 @@ def api_sand(
     t = t[z_id_sorted]
 
     return t, z
-
-

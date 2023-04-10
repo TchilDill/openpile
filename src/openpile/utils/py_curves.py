@@ -18,12 +18,12 @@ def cowden_clay(
     X: float,
     Su: float,
     G0: float,
-    D: float, 
-    output_length: int = 20,  
+    D: float,
+    output_length: int = 20,
 ):
     """
-    Creates the lateral springs from the PISA clay formulation 
-    published by Byrne et al (2020) and calibrated based pile 
+    Creates the lateral springs from the PISA clay formulation
+    published by Byrne et al (2020) and calibrated based pile
     load tests at Cowden (north east coast of England).
 
     Parameters
@@ -41,14 +41,14 @@ def cowden_clay(
 
     Returns
     -------
-    1darray 
+    1darray
         p vector [unit: kN/m]
-    1darray 
+    1darray
         y vector [unit: m]
     """
 
     # # Cowden clay parameters
-    v_pu = 241.4 
+    v_pu = 241.4
     k_p1 = 10.6
     k_p2 = -1.650
     n_p1 = 0.9390
@@ -58,15 +58,15 @@ def cowden_clay(
 
     # Depth variation parameters
     v_max = v_pu
-    k = k_p1 + k_p2 * X/D
-    n = n_p1 + n_p2 * X/D
-    p_max = p_u1 + p_u2 * m.exp(-0.3085*X/D)
+    k = k_p1 + k_p2 * X / D
+    n = n_p1 + n_p2 * X / D
+    p_max = p_u1 + p_u2 * m.exp(-0.3085 * X / D)
 
     # calculate normsalised conic function
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p*(Su*D), y*(Su*D/G0)
+    return p * (Su * D), y * (Su * D / G0)
 
 
 @njit(cache=True)
@@ -75,12 +75,12 @@ def dunkirk_sand(
     X: float,
     Dr: float,
     G0: float,
-    D: float, 
-    L: float, 
-    output_length: int = 20,  
+    D: float,
+    L: float,
+    output_length: int = 20,
 ):
     """
-    Creates the lateral spring from the PISA sand formulation 
+    Creates the lateral spring from the PISA sand formulation
     published by Burd et al (2020).
     Also called the General Dunkirk Sand Model (GDSM).
 
@@ -103,16 +103,16 @@ def dunkirk_sand(
 
     Returns
     -------
-    1darray 
+    1darray
         p vector [unit: kN/m]
-    1darray 
+    1darray
         y vector [unit: m]
     """
-    #correct relative density for decimal value
-    Dr = Dr/100
+    # correct relative density for decimal value
+    Dr = Dr / 100
 
     # Generalised Dunkirk Sand Model parameters
-    v_pu = 146.1 - 92.11 * Dr 
+    v_pu = 146.1 - 92.11 * Dr
     k_p1 = 8.731 - 0.6982 * Dr
     k_p2 = -0.9178
     n_p = 0.917 + 0.06193 * Dr
@@ -121,15 +121,16 @@ def dunkirk_sand(
 
     # Depth variation parameters
     v_max = v_pu
-    k = k_p1 + k_p2 * X/D
+    k = k_p1 + k_p2 * X / D
     n = n_p
-    p_max = p_u1 + p_u2 * X/L
+    p_max = p_u1 + p_u2 * X / L
 
     # calculate normsalised conic function
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p*(sig*D), y*(sig*D/G0)
+    return p * (sig * D), y * (sig * D / G0)
+
 
 # API sand function
 @njit(parallel=True, cache=True)
@@ -164,12 +165,12 @@ def api_sand(
         maximum value of y, default goes to 99.9% of ultimate resistance
     output_length: int, by default 20
         Number of discrete point along the springs
-    
+
     Returns
     -------
-    1darray 
+    1darray
         p vector [unit: kN/m]
-    1darray 
+    1darray
         y vector [unit: m]
     """
     # A value - only thing that changes between cyclic or static
@@ -268,12 +269,12 @@ def api_clay(
         maximum value of y, if null the maximum is calculated such that the whole curve is computed
     output_length: int, by default 20
         Number of discrete point along the springs
-    
+
     Returns
     -------
-    1darray 
+    1darray
         p vector [unit: kN/m]
-    1darray 
+    1darray
         y vector [unit: m]
     ---------
     """

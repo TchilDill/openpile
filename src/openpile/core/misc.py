@@ -107,32 +107,30 @@ def get_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.Da
     return springs_to_df(springs, elevations, flag=kind)
 
 
-
-
 @njit(cache=True)
 def conic(
-        x_u : float,
-        n : float,
-        k : float,
-        y_u : float,
-        output_length : int,
+    x_u: float,
+    n: float,
+    k: float,
+    y_u: float,
+    output_length: int,
 ):
     # Create x vector with 10% extension
-    x = np.linspace(0,x_u,output_length-1).astype(np.float32)
-    x = np.append(x,1.1*x_u)
+    x = np.linspace(0, x_u, output_length - 1).astype(np.float32)
+    x = np.append(x, 1.1 * x_u)
 
-    a = 1-2*n
+    a = 1 - 2 * n
 
-    y = np.zeros((len(x)),dtype=np.float32)
+    y = np.zeros((len(x)), dtype=np.float32)
 
     for i in range(len(x)):
-        if abs(x[i]-x_u) < 1e-4:
+        if abs(x[i] - x_u) < 1e-4:
             y[i] = y_u
         elif x[i] < x_u:
-            b = 2*n*x[i]/x_u - (1-n)*(1+x[i]*k/y_u)
-            c = x[i] * (k / y_u) * (1-n) - n * (x[i]**2 / x_u**2)
+            b = 2 * n * x[i] / x_u - (1 - n) * (1 + x[i] * k / y_u)
+            c = x[i] * (k / y_u) * (1 - n) - n * (x[i] ** 2 / x_u**2)
 
-            y[i] = y_u * 2*c / (-b + ( b**2 - 4*a*c)**0.5 )
+            y[i] = y_u * 2 * c / (-b + (b**2 - 4 * a * c) ** 0.5)
         else:
             y[i] = y_u
 

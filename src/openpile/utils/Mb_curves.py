@@ -18,13 +18,13 @@ def cowden_clay(
     X: float,
     Su: float,
     G0: float,
-    D: float, 
+    D: float,
     L: float,
-    output_length: int = 20,  
+    output_length: int = 20,
 ):
     """
-    Create the base moment springs from the PISA clay formulation 
-    published by Byrne et al (2020) and calibrated based pile load tests 
+    Create the base moment springs from the PISA clay formulation
+    published by Byrne et al (2020) and calibrated based pile load tests
     at Cowden (north east coast of England).
 
     Parameters
@@ -44,9 +44,9 @@ def cowden_clay(
 
     Returns
     -------
-    1darray 
+    1darray
         Mb vector [unit: kN]
-    1darray 
+    1darray
         t vector of length [unit: rad]
     """
 
@@ -60,16 +60,16 @@ def cowden_clay(
     psi_u = 173.1
 
     # Depth variation parameters
-    k = k_m1 + k_m2 * L/D
-    n = n_m1 + n_m2 * L/D
-    m_max = m_m1 + m_m2 * L/D
+    k = k_m1 + k_m2 * L / D
+    n = n_m1 + n_m2 * L / D
+    m_max = m_m1 + m_m2 * L / D
     psi_max = psi_u
 
     # calculate normsalised conic function
     t, m = conic(psi_max, n, k, m_max, output_length)
 
     # return non-normalised curve
-    return m*(Su*D**3), t*(Su/G0)
+    return m * (Su * D**3), t * (Su / G0)
 
 
 @njit(cache=True)
@@ -78,14 +78,14 @@ def dunkirk_sand(
     X: float,
     Dr: float,
     G0: float,
-    D: float, 
-    L: float, 
-    output_length: int = 20,  
+    D: float,
+    L: float,
+    output_length: int = 20,
 ):
     """
-    Create the base moment spring from the PISA sand 
+    Create the base moment spring from the PISA sand
     formulation published by Burd et al (2020).
-    Also called the General Dunkirk Sand Model (GDSM) 
+    Also called the General Dunkirk Sand Model (GDSM)
 
     Parameters
     ----------
@@ -106,13 +106,13 @@ def dunkirk_sand(
 
     Returns
     -------
-    1darray 
+    1darray
         Mb vector [unit: kN]
-    1darray 
+    1darray
         t vector of length [unit: rad]
     """
-    #correct relative density for decimal value
-    Dr = Dr/100
+    # correct relative density for decimal value
+    Dr = Dr / 100
 
     # Generalised Dunkirk Sand Model parameters
     k_m1 = 0.3515
@@ -123,13 +123,13 @@ def dunkirk_sand(
     psi_u = 44.89
 
     # Depth variation parameters
-    k = k_m1 + k_m2 * L/D
+    k = k_m1 + k_m2 * L / D
     n = n_m
-    m_max = m_u1 + m_u2 * L/D
+    m_max = m_u1 + m_u2 * L / D
     psi_max = psi_u
 
     # calculate normsalised conic function
     t, m = conic(psi_max, n, k, m_max, output_length)
 
     # return non-normalised curve
-    return m*(sig*D**3), t*(sig/G0)
+    return m * (sig * D**3), t * (sig / G0)

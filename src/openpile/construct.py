@@ -59,8 +59,7 @@ class Pile:
     A class to create the pile.
 
     Pile instances include the pile geometry and data. Following
-    the initialisation of a pile, a Pandas dataframe is created
-    which can be read by the following command:
+    the initialisation of a pile, a Pandas dataframe is created.
 
     .. note::
         The classmethod :py:meth:`openpile.construct.Pile.create` shall be used to create a Pile instance.
@@ -176,6 +175,7 @@ class Pile:
     def __str__(self):
         return self.data.to_string()
 
+
     @classmethod
     def create(
         cls,
@@ -228,19 +228,82 @@ class Pile:
 
         return obj
 
+    @classmethod
+    def create_tubular(
+        cls,
+        name: str,
+        top_elevation: float,
+        bottom_elevation: float,
+        diameter: float,
+        wt: float,
+        material: str = 'Steel'
+    ):
+        """A method to simplify the creation of a Pile instance. 
+        This method creates a circular and hollow pile of constant diameter. 
+
+        Parameters
+        ----------
+        name : str
+            Pile/Structure's name.
+        top_elevation : float
+            top elevation of the pile [m VREF]
+        bottom_elevation : float
+            bottom elevation of the pile [m VREF]
+        diameter : float
+            pile diameter [m]
+        wt : float
+            pile's wall thickness [m]
+        material : Literal["Steel",]
+            material the pile is made of. by default "Steel"
+
+        Returns
+        -------
+        openpile.construct.Pile
+            a Pile instance.
+        """
+
+        obj = cls(
+            name=name,
+            kind='Circular',
+            material='Steel',
+            top_elevation=top_elevation,
+            pile_sections={'length':[(top_elevation-bottom_elevation),],
+                           'wall thickness':[wt,],
+                           'diameter':[diameter,]},
+        )
+        obj._postinit()
+
+        return obj
+
     @property
     def bottom_elevation(self) -> float:
         """
-        Bottom elevation of the pile.
+        Bottom elevation of the pile [m VREF].
         """
         return self.top_elevation - sum(self.pile_sections["length"])
 
     @property
     def length(self) -> float:
         """
-        Pile length.
+        Pile length [m].
         """
         return sum(self.pile_sections["length"])
+    
+    @property
+    def volume(self) -> float:
+        """
+        Pile volume [m3].
+        """
+        A = self.data["Area [m2]"].values[1:]
+        L = np.abs(np.diff(self.data["Elevation [m]"].values))
+        return round((A*L).sum(),2)
+
+    @property
+    def weight(self) -> float:
+        """
+        Pile weight [kN].
+        """
+        return round(self.volume*self._uw,2)
 
     @property
     def E(self) -> float:

@@ -12,6 +12,7 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 - new Pile constructor `openpile.construct.Pile.create_tubular` creating a 
   circular and hollow steel pile of constant cross section.
 - new `openpile.construct.Pile` properties: `weight`, `volume`, 
+- new `openpile.construct.Pile` method: `set_I()` 
 
 ## [0.1.0] - 2023-04-10
 ### Added

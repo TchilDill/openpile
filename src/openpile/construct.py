@@ -189,11 +189,7 @@ class Pile:
             "Steel",
         ] = "Steel",
     ):
-        """A method to create the pile. This function provides a 2-in-1 command where:
-
-        - a `Pile` instance is created
-        - the `._postinit()` method is run and creates all additional pile data necessary.
-
+        """A method to create the pile. 
 
         Parameters
         ----------
@@ -265,7 +261,7 @@ class Pile:
         obj = cls(
             name=name,
             kind='Circular',
-            material='Steel',
+            material=material,
             top_elevation=top_elevation,
             pile_sections={'length':[(top_elevation-bottom_elevation),],
                            'wall thickness':[wt,],
@@ -335,21 +331,35 @@ class Pile:
         second moment of area of the pile is overriden.
         """
         try:
-            return self.data["I [m4]"].mean()
+            return self.data["I [m4]"]
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
 
-    @I.setter
-    def I(self, value: float) -> None:
+    def set_I(self, value: float, section: int) -> None:
+        """set second moment of area for a particular section of the pile.
+
+        Parameters
+        ----------
+        value : float
+            new second moment of area [m4].
+        section : int
+            section number for which to set new second moment of area
+        """
         try:
-            self.data.loc[:, "I [m4]"] = value
-            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
+            length = len(self.data["I [m4]"].values)
+            if section*2 > length:
+                print("section number is too large")
+            elif section < 1:
+                print("section number must be 1 or above")
+            else:
+                self.data.loc[section*2-2, "I [m4]"] = value
+                self.data.loc[section*2-1, "I [m4]"] = value
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
-            print(e)
+            raise Exception 
 
     @property
     def width(self) -> float:
@@ -367,7 +377,6 @@ class Pile:
     def width(self, value: float) -> None:
         try:
             self.data.loc[:, "Diameter [m]"] = value
-            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
@@ -386,7 +395,6 @@ class Pile:
     def area(self, value: float) -> None:
         try:
             self.data.loc[:, "Area [m2]"] = value
-            self.data.loc[:, ["Wall thickness [m]"]] = pd.NA
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:

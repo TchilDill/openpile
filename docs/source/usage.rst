@@ -64,28 +64,28 @@ axial or lateral loading.
     # Check updated second moment of area
     print(pile)
         Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0           7.5               <NA>  1.633942    1.11
-    1          -10.0           7.5               <NA>  1.633942    1.11
-    2          -10.0           7.5               <NA>  1.864849    1.11
-    3          -40.0           7.5               <NA>  1.864849    1.11
+    0            0.0           7.5               0.07  1.633942    1.11
+    1          -10.0           7.5               0.07  1.633942    1.11
+    2          -10.0           7.5               0.08  1.864849    1.11
+    3          -40.0           7.5               0.08  1.864849    1.11
     # Override pile's width or pile's diameter [in meters]
     pile.width = 2.22
     # Check updated width or diameter
     print(pile)
         Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          2.22               <NA>  1.633942    1.11
-    1          -10.0          2.22               <NA>  1.633942    1.11
-    2          -10.0          2.22               <NA>  1.864849    1.11
-    3          -40.0          2.22               <NA>  1.864849    1.11
+    0            0.0          2.22               0.07  1.633942    1.11
+    1          -10.0          2.22               0.07  1.633942    1.11
+    2          -10.0          2.22               0.08  1.864849    1.11
+    3          -40.0          2.22               0.08  1.864849    1.11
     # Override pile's area  [in meters^2]
     pile.area = 1.0
     # Check updated width or diameter
     print(pile)
         Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          2.22               <NA>       1.0    1.11
-    1          -10.0          2.22               <NA>       1.0    1.11
-    2          -10.0          2.22               <NA>       1.0    1.11
-    3          -40.0          2.22               <NA>       1.0    1.11
+    0            0.0          2.22               0.07       1.0    1.11
+    1          -10.0          2.22               0.07       1.0    1.11
+    2          -10.0          2.22               0.08       1.0    1.11
+    3          -40.0          2.22               0.08       1.0    1.11
 
 
 

@@ -29,6 +29,9 @@ extensions = [
                 'sphinx.ext.viewcode',
                 'sphinx.ext.autodoc',
                 'sphinx.ext.todo',
+                "sphinx_copybutton",
+                "matplotlib.sphinxext.plot_directive",
+                
 ]
 
 autodoc_default_options = {

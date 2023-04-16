@@ -97,11 +97,14 @@ Example 2 - Calculate and plot a p-y curve
 openpile allows for quick access to soil curves. The below example shows
 how one can quickly calculate a soil spring at a given elevation and plot it.
 
-The different curves available can be found in:
+The different curves available can be found in the below modules.
 
-* :py:mod:`openpile.utils.py_curves`
-* :py:mod:`openpile.utils.mt_curves`
-* :py:mod:`openpile.utils.tz_curves`
+* :py:mod:`openpile.utils.py_curves` (distributed lateral curves)
+* :py:mod:`openpile.utils.mt_curves` (distributed rotational curves)
+* :py:mod:`openpile.utils.tz_curves` (distributed axial curves)
+* :py:mod:`openpile.utils.qz_curves` (base axial curves)
+* :py:mod:`openpile.utils.Hb_curves` (base shear curves)
+* :py:mod:`openpile.utils.Mb_curves` (base moment curves)
 
 Here below is an example of a quick check of how a static curve for the 
 API sand model looks like.

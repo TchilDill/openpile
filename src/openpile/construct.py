@@ -175,7 +175,6 @@ class Pile:
     def __str__(self):
         return self.data.to_string()
 
-
     @classmethod
     def create(
         cls,
@@ -327,8 +326,8 @@ class Pile:
         """
         Second moment of area of the pile.
 
-        If user-defined, the whole
-        second moment of area of the pile is overriden.
+        The user can use the method :py:meth:`openpile.construct.Pile.set_I` to customise the second 
+        moment of area for different sections of the pile.
         """
         try:
             return self.data["I [m4]"]
@@ -336,6 +335,7 @@ class Pile:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
+
 
     def set_I(self, value: float, section: int) -> None:
         """set second moment of area for a particular section of the pile.
@@ -346,6 +346,7 @@ class Pile:
             new second moment of area [m4].
         section : int
             section number for which to set new second moment of area
+
         """
         try:
             length = len(self.data["I [m4]"].values)
@@ -1323,28 +1324,32 @@ class Model:
 
     @property
     def py_springs(self) -> pd.DataFrame:
-        """_summary_
-        #TODO
+        """Table with p-y springs computed for the given Model.
 
         Returns
         -------
-        pd.DataFrame
+        pd.DataFrame (or None if no SoilProfile is present) 
             Table with p-y springs.
         """
-        return misc.get_springs(
-            springs=self._py_springs,
-            elevations=self.nodes_coordinates["x [m]"].values,
-            kind="p-y",
-        )
+        if self.soil is None:
+            return None
+        else:
+            return misc.get_springs(
+                        springs=self._py_springs,
+                        elevations=self.nodes_coordinates["x [m]"].values,
+                        kind="p-y",
+                    )
 
     @property
     def embedment(self) -> float:
-        """_summary_
-        #TODO
+        """Pile embedment length [m].
 
         Returns
         -------
-        float
+        float (or None if no SoilProfile is present)
             Pile embedment
         """
-        return self.soil.top_elevation - self.pile.bottom_elevation
+        if self.soil is None:
+            return None
+        else:
+            return self.soil.top_elevation - self.pile.bottom_elevation

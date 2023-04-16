@@ -454,6 +454,103 @@ def elem_mt_stiffness_matrix(model, u, kind):
     return km
 
 
+
+def elem_p_delta_stiffness_matrix(model, f):
+    """creates stress stiffness matrix based on axial stress in pile.
+
+    #TODO: proof here
+
+    Parameters
+    ----------
+    model : openpile class object `openpile.construct.Model`
+        includes information on soil/structure, elements, nodes and other model-related data.
+    f: np.ndarray
+        Global displacement vector
+
+    Returns
+    -------
+    k: numpy array (3d)
+        stress stiffness matrix of all elememts related to axial stress
+
+    Raises
+    ------
+    ValueError
+        ndof per node can be either 2 or 3
+
+    """
+
+    # calculate length vector
+    L = mesh_to_element_length(model)
+
+    # internal forces 
+    P = f[::6].reshape(-1,1,1)
+
+    # elastic properties
+    nu = model.pile._nu
+    E = model.element_properties["E [kPa]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    G = E / (2 + 2 * nu)
+    # cross-section properties
+    I = model.element_properties["I [m4]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    A = model.element_properties["Area [m2]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    d = model.element_properties["Diameter [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    wt = model.element_properties["Wall thickness [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+
+    # calculate shear component in stiffness matrix (if Timorshenko)
+    if model.element_type == "EulerBernoulli":
+        N = 0 * L
+        A = 6 / (5 * L)
+        B = N + 1 / 10
+        C = 2 * L / 15
+        D = -L / 30
+    elif model.element_type == "Timoshenko":
+        if model.pile.kind == "Circular":
+            a = 0.5 * d
+            b = 0.5 * (d - 2 * wt)
+            nom = 6 * (a**2 + b**2) ** 2 * (1 + nu) ** 2
+            denom = (
+                7 * a**4
+                + 34 * a**2 * b**2
+                + 7 * b**4
+                + nu * (12 * a**4 + 48 * a**2 * b**2 + 12 * b**4)
+                + nu**2 * (4 * a**4 + 16 * a**2 * b**2 + 4 * b**4)
+            )
+            kappa = nom / denom
+
+            omega = E * I * kappa / (A * G * L**2)
+
+        else:
+            raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
+
+        phi = (12 * omega + 1) ** 2
+
+        N = 0 * L
+        A = 6 * (120 * omega**2 + 20 * omega + 1) / ((5 * L) * phi) + 12 * I / (A * L**3 * phi)
+        B = 1 / (10 * phi) + 6 * I / (A * L**2 * phi)
+        C = (2 * L * (90 * omega**2 + 15 * omega + 1)) / (15 * phi) + 4 * I * (
+            36 * omega**2 + 6 * omega + 1
+        ) / (A * L * phi)
+        D = -L * (360 * omega**2 + 60 * omega + 1) / (30 * phi) - 2 * I * (
+            72 * omega**2 + 12 * omega - 1
+        ) / (A * L * phi)
+
+    else:
+        raise ValueError(
+            "Model.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)"
+        )
+
+    k = np.block(
+        [
+            [N, N, N, N, N, N],
+            [N, A, B, N, -A, B],
+            [N, B, C, N, -B, D],
+            [N, N, N, N, N, N],
+            [N, -A, -B, N, A, -B],
+            [N, B, D, N, -B, C],
+        ]
+    ) * -P
+
+    return k
+
 @njit(parallel=True, cache=True)
 def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     # pre-allocate stiffness matrix
@@ -473,7 +570,7 @@ def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     return K
 
 
-def build_stiffness_matrix(model, u=None, kind=None, p_mobilised=None):
+def build_stiffness_matrix(model, f, u=None, kind=None, p_mobilised=None):
     """Builds the stiffness matrix based on the model(element and node) properties
 
     Element stiffness matrices are first computed for each element and then loaded in the global stiffness matrix through summation.
@@ -483,6 +580,8 @@ def build_stiffness_matrix(model, u=None, kind=None, p_mobilised=None):
     ----------
     model : obj from openpile library
         stores all information about nodes elements, and other model-related items, see #TODO:link to model class
+    f: np.ndarray, Optional
+        Global internal force vector.
     u: np.ndarray, Optional
         Global displacement vector. Must be given if soil_flag is not None
     p_mobilised: np.ndarray, Optional
@@ -507,6 +606,8 @@ def build_stiffness_matrix(model, u=None, kind=None, p_mobilised=None):
 
     # mechanical stiffness properties
     k = elem_mechanical_stiffness_matrix(model)
+    if f is not None:
+        k += elem_p_delta_stiffness_matrix(model, f=f)
     # add soil contribution
     if model.soil is not None:
         # gives warning if soil is given without displacements or type of stiffness
@@ -555,7 +656,7 @@ def mesh_to_global_restrained_dof_vector(df: pd.DataFrame) -> np.ndarray:
     return restrained_dof_vector
 
 
-def struct_internal_force(model, u) -> np.ndarray:
+def struct_internal_force(model, f, u) -> np.ndarray:
     # number of dof per node
     ndof_per_node = 3
     # number of nodes per element
@@ -563,6 +664,8 @@ def struct_internal_force(model, u) -> np.ndarray:
 
     # create mech consistent stiffness matrix
     k = elem_mechanical_stiffness_matrix(model)
+    if f is not None:
+        k += elem_p_delta_stiffness_matrix(model, f=f)
 
     # add soil contribution
     if model.soil is not None:

@@ -570,7 +570,7 @@ def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     return K
 
 
-def build_stiffness_matrix(model, f, u=None, kind=None, p_mobilised=None):
+def build_stiffness_matrix(model, f, u=None, kind=None):
     """Builds the stiffness matrix based on the model(element and node) properties
 
     Element stiffness matrices are first computed for each element and then loaded in the global stiffness matrix through summation.

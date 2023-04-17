@@ -6,6 +6,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 import numpy as np
 
 mpl.rcParams["figure.subplot.wspace"] = 0.4
@@ -54,6 +55,45 @@ def plot_results(result):
     for axis in [ax2, ax3, ax4]:
         axis.set_yticklabels("")
         axis.set_ylabel("")
+
+    return fig
+
+
+def pile_plot(pile):
+
+    if pile.kind == "Circular":
+        fig, (ax1, ax2, ax3) = plt.subplots(1,3)
+
+        fig.suptitle(f"{pile.name} - Pile overview")
+
+        ydata = pile.data["Elevation [m]"]
+
+
+
+        xdata = pile.data["Wall thickness [m]"]
+        ax2.plot(xdata, ydata, "-k", lw=2)
+        ax2.set_xlim(left=0, right = xdata.max()*1.1)
+
+        xdata = pile.data["Area [m2]"]
+        ax3.plot(xdata, ydata, "-k", lw=2)
+        ax3.set_xlim(left=0, right = xdata.max()*1.1)
+
+        for axis in [ax2, ax3]:
+            axis.set_yticklabels("")
+            axis.set_ylabel("")
+            
+        ax1.set_ylabel("Elevation [m VREF]", fontsize=8)
+
+        for (axis, xlab) in zip([ax1, ax2, ax3],["Diameter [m]","Wall thickness [m]", "Area [m2]"]):
+            xdata = pile.data[xlab]
+            axis.plot(xdata, ydata, "-k", lw=2)
+            axis.set_xlim(left=0, right = xdata.max()*1.1)
+
+            axis.set_xlabel(xlab, fontsize=8)
+            axis.tick_params(axis="both", labelsize=8)
+            axis.grid()
+            axis.grid(which='minor', color=[0.75,0.75,0.75], linestyle='-', linewidth=0.5)
+            axis.xaxis.set_minor_locator(AutoMinorLocator())
 
     return fig
 

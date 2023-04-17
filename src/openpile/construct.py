@@ -401,6 +401,11 @@ class Pile:
         except Exception as e:
             print(e)
 
+    def plot(self, assign=False):
+        fig = graphics.pile_plot(self)
+        return fig if assign else None
+        
+
 
 @dataclass(config=PydanticConfig)
 class Layer:

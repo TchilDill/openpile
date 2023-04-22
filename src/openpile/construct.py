@@ -459,7 +459,7 @@ class Layer:
 
     def __post_init__(self):
         if self.color is None:
-            self.color = generate_color_string()
+            self.color = generate_color_string("earth")
 
     def __str__(self):
         return f"Name: {self.name}\nElevation: ({self.top}) - ({self.bottom}) m\nWeight: {self.weight} kN/m3\nLateral model: {self.lateral_model}\nAxial model: {self.axial_model}"
@@ -492,7 +492,7 @@ class SoilProfile:
     >>> sp = SoilProfile(
     >>>     name="BH01",
     >>>     top_elevation=0,
-    >>>     water_elevation=0,
+    >>>     water_line=0,
     >>>     layers=[
     >>>         Layer(
     >>>             name='Layer0',
@@ -540,7 +540,7 @@ class SoilProfile:
     #: top of ground elevation with respect to the model reference elevation datum
     top_elevation: float
     #: water elevation (this can refer to sea elevation of water table)
-    water_elevation: float
+    water_line: float
     #: soil layers to consider in the soil propfile
     layers: List[Layer]
     #: Cone Penetration Test data with folloeing structure:
@@ -608,6 +608,10 @@ class SoilProfile:
         obj._postinit()
 
         return obj
+
+    def plot(self, assign =False):
+        fig = graphics.soil_plot(self)
+        return fig if assign is True else None
 
 
 @dataclass(config=PydanticConfig)

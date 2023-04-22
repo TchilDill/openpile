@@ -151,7 +151,7 @@ class TestSoilProfile:
             sp = construct.SoilProfile(
                 name = "", 
                 top_elevation=0, 
-                water_elevation=0,
+                water_line=0,
                 layers=[
                     construct.Layer(name= "",
                                     top=0,
@@ -170,7 +170,7 @@ class TestSoilProfile:
             sp = construct.SoilProfile(
                 name = "", 
                 top_elevation=0, 
-                water_elevation=0,
+                water_line=0,
                 layers=[
                     construct.Layer(name= "",
                                     top=0,
@@ -189,7 +189,7 @@ class TestSoilProfile:
             sp = construct.SoilProfile.create(
                 name = "", 
                 top_elevation=10, 
-                water_elevation=0,
+                water_line=0,
                 layers=[
                     construct.Layer(name= "",
                                     top=11,
@@ -207,7 +207,7 @@ class TestSoilProfile:
         sp = construct.SoilProfile(
             name = "", 
             top_elevation=10, 
-            water_elevation=0,
+            water_line=0,
             layers=[
                 construct.Layer(name= "",
                                 top=10,

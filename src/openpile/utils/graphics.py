@@ -3,11 +3,13 @@
 """
 
 # import libraries
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyArrowPatch
+
+from matplotlib.patches import FancyArrowPatch, Rectangle
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
-import numpy as np
+from openpile.core.misc import generate_color_string
 
 mpl.rcParams["figure.subplot.wspace"] = 0.4
 
@@ -58,17 +60,64 @@ def plot_results(result):
 
     return fig
 
+def soil_plot(SoilProfile):
+
+    def add_soil_profile(SoilProfile, ax, pile=None):
+        ax.set_title(label=f"Soil Profile overview - {SoilProfile.name}")
+
+        # make data
+        ax.set_xlim(left=0, right =1)
+        offset = 5
+        yBot = SoilProfile.bottom_elevation
+        if pile is None:
+            yTop = max(SoilProfile.top_elevation+offset, SoilProfile.water_line+offset) 
+        else:
+            yTop = max(SoilProfile.top_elevation+offset, 
+                       SoilProfile.water_line+offset,
+                         pile.top_elevation+offset)
+ 
+        # axes
+        ax.set_ylim(bottom=yBot, top=yTop)
+        ax.set_ylabel("Elevation [m VREF]")
+        ax.set_xticks([])
+
+        for layer in SoilProfile.layers:
+            ax.add_patch(Rectangle(xy=(0,layer.bottom), 
+                                width=1, 
+                                height=layer.top - layer.bottom,
+                                facecolor=layer.color,
+                                )
+            )
+            ax.text(0.02, 
+                    0.5*(layer.top+layer.bottom),
+                    layer.name,
+                    bbox={'facecolor':[0.98,0.96,0.85],'alpha':1,'edgecolor':'none','pad':1})
+
+        # grid 
+        ax.minorticks_on()
+        ax.grid()
+        ax.grid(axis='y', which='minor', color=[0.75,0.75,0.75], linestyle='-', linewidth=0.5)
+
+
+        ax.plot(np.array([-1,0.1,2]), SoilProfile.water_line+np.zeros((3)), mfc="dodgerblue", 
+                marker=7, linewidth=1, color="dodgerblue")
+
+        return ax
+    
+    fig, ax = plt.subplots()
+    ax = add_soil_profile(SoilProfile, ax, pile=None)
+
+    return fig
+
 
 def pile_plot(pile):
 
     if pile.kind == "Circular":
         fig, (ax1, ax2, ax3) = plt.subplots(1,3)
 
-        fig.suptitle(f"{pile.name} - Pile overview")
+        fig.suptitle(f"Pile overview - {pile.name}")
 
         ydata = pile.data["Elevation [m]"]
-
-
 
         xdata = pile.data["Wall thickness [m]"]
         ax2.plot(xdata, ydata, "-k", lw=2)

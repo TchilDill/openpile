@@ -14,6 +14,7 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 - new properties for `openpile.construct.Pile`: `weight` and `volume`
 - new `openpile.construct.Pile` method: `set_I()` to change the second moment of area of a given pile segment
 - new `SoilProfile.plot()` method to visualize the soil profile
+- 
 
 ## [0.1.0] - 2023-04-10
 ### Added

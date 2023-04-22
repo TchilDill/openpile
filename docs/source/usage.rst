@@ -181,7 +181,7 @@ Example 4 - Create a soil profile
     sp = SoilProfile(
         name="Offshore Soil Profile",
         top_elevation=0,
-        water_elevation=15,
+        water_line=15,
         layers=[
             Layer(
                 name='medium dense sand',
@@ -255,7 +255,7 @@ Example 5 - Create a Model and run an analysis
     sp = SoilProfile(
         name="Offshore Soil Profile",
         top_elevation=0,
-        water_elevation=15,
+        water_line=15,
         layers=[
             Layer(
                 name='medium dense sand',

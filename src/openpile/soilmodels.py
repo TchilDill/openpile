@@ -455,8 +455,8 @@ class API_sand(LateralModel):
     ----------
     phi: float or list[top_value, bottom_value]
         internal angle of friction in degrees
-    Neq: float
-        number of equivalent cycles, (Neq=1 means Static, Neq>1 means Cyclic)
+    kind: str, by default "static"
+        types of curves, can be of ("static","cyclic")
     p_multiplier: float
         multiplier for p-values
     y_multiplier: float
@@ -466,8 +466,8 @@ class API_sand(LateralModel):
 
     #: soil friction angle [deg], if a variation in values, two values can be given.
     phi: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
-    #: Number of equivalent cycles of the curve. 1 = static curve, >1 = cyclic curve.
-    Neq: confloat(ge=1.0, le=100.0)
+    #: types of curves, can be of ("static","cyclic")
+    kind: Literal['static','cyclic']
     #: p-multiplier
     p_multiplier: confloat(ge=0.0) = 1.0
     #: y-multiplier
@@ -478,12 +478,7 @@ class API_sand(LateralModel):
     spring_signature = np.array([True, False, False, False], dtype=bool)
 
     def __str__(self):
-        if self.Neq == 1:
-            Neq = "Static, N < 1 cycle"
-        else:
-            Neq = "Cyclic, N = 100 cycles"
-
-        return f"\tAPI sand\n\tphi = {var_to_str(self.phi)}°\n\t{Neq}"
+        return f"\tAPI sand\n\tphi = {var_to_str(self.phi)}°\n\t{self.kind} curves"
 
     def py_spring_fct(
         self,
@@ -510,7 +505,7 @@ class API_sand(LateralModel):
             X=X,
             phi=phi,
             D=D,
-            Neq=self.Neq,
+            kind=self.kind,
             below_water_table=below_water_table,
             ymax=ymax,
             output_length=output_length,
@@ -533,8 +528,8 @@ class API_clay(LateralModel):
         empirical factor varying depending on clay stiffness, varies between 0.25 and 0.50
     stiff_clay_threshold: float
         undrained shear strength [kPa] at which stiff clay curve is computed
-    Neq: float
-        number of equivalent cycles, (Neq=1 means Static, Neq>1 means Cyclic)
+    kind: str, by default "static"
+        types of curves, can be of ("static","cyclic")
     p_multiplier: float
         multiplier for p-values
     y_multiplier: float
@@ -546,8 +541,8 @@ class API_clay(LateralModel):
     Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: strain at 50% failure load [-], if a variation in values, two values can be given.
     eps50: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
-    #: Number of equivalent cycles of the curve. 1 = static curve, >1 = cyclic curve.
-    Neq: confloat(ge=1.0, le=100.0)
+    #: types of curves, can be of ("static","cyclic")
+    kind: Literal['static','cyclic']
     #: empirical factor varying depending on clay stiffness
     J: confloat(ge=0.25, le=0.5) = 0.5
     #: undrained shear strength [kPa] at which stiff clay curve is computed
@@ -562,12 +557,7 @@ class API_clay(LateralModel):
     spring_signature = np.array([True, False, False, False], dtype=bool)
 
     def __str__(self):
-        if self.Neq == 1:
-            Neq = "Static, N < 1 cycle"
-        else:
-            Neq = "Cyclic, N = 100 cycles"
-
-        return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{Neq}"
+        return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{self.kind} curves"
 
     def py_spring_fct(
         self,
@@ -601,7 +591,7 @@ class API_clay(LateralModel):
             D=D,
             J=self.J,
             stiff_clay_threshold=self.stiff_clay_threshold,
-            Neq=self.Neq,
+            kind=self.kind,
             ymax=ymax,
             output_length=output_length,
         )

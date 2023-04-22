@@ -139,7 +139,7 @@ def api_sand(
     X: float,
     phi: float,
     D: float,
-    Neq: float = 1.0,
+    kind: str = "static",
     below_water_table: bool = True,
     ymax: float = 0.0,
     output_length: int = 20,
@@ -157,8 +157,8 @@ def api_sand(
         internal angle of friction of the sand layer [unit: degrees]
     D: float
         Pile width [unit: m]
-    Neq: float, by default 1.0
-        Number of equivalent cycles [unit: -]
+    kind: str, by default "static"
+        types of curves, can be of ("static","cyclic")
     below_water_table: bool, by default False
         switch to calculate initial subgrade modulus below/above water table
     ymax: float, by default 0.0
@@ -174,7 +174,7 @@ def api_sand(
         y vector [unit: m]
     """
     # A value - only thing that changes between cyclic or static
-    if Neq == 1:
+    if kind == "static":
         A = max(0.9, 3 - 0.8 * X / D)
     else:
         A = 0.9
@@ -240,7 +240,7 @@ def api_clay(
     D: float,
     J: float = 0.5,
     stiff_clay_threshold=96,
-    Neq: float = 1.0,
+    kind: str = "static",
     ymax: float = 0.0,
     output_length: int = 20,
 ):
@@ -263,8 +263,8 @@ def api_clay(
         empirical factor varying depending on clay stiffness
     stiff_clay_threshold: float, by default 96.0
         undrained shear strength at which stiff clay curve is computed [unit: kPa]
-    Neq: float, by default 1.0
-        Number of equivalent cycles [unit: -]
+    kind: str, by default "static"
+        types of curves, can be of ("static","cyclic")
     ymax: float, by default 0.0
         maximum value of y, if null the maximum is calculated such that the whole curve is computed
     output_length: int, by default 20
@@ -314,7 +314,7 @@ def api_clay(
     p = np.zeros(shape=len(y), dtype=np.float32)
 
     for i in prange(len(y)):
-        if Neq == 1:
+        if kind == "static":
             # derive static curve
             if y[i] > 8 * y50:
                 p[i] = Pmax

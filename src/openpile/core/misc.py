@@ -7,7 +7,7 @@ import pandas as pd
 import math as m
 
 from numba import njit
-import matplotlib.colors as mcolors 
+import matplotlib.colors as mcolors
 
 
 def from_list2x_parse_top_bottom(var):
@@ -42,9 +42,20 @@ def generate_color_string(kind=None):
     if kind is None:
         colors = list(mcolors.CSS4_COLORS.values())
     elif kind == "earth":
-        colors = ["#B4A390", "#927E75", "#796363", "#99A885", 
-                  "#D4DBBA", "#FDEDCF", "#EEEAC3", "#F5D498",
-                  "#ECB992", "#DDA175", "#AB7B5E", "#8F6854"]
+        colors = [
+            "#B4A390",
+            "#927E75",
+            "#796363",
+            "#99A885",
+            "#D4DBBA",
+            "#FDEDCF",
+            "#EEEAC3",
+            "#F5D498",
+            "#ECB992",
+            "#DDA175",
+            "#AB7B5E",
+            "#8F6854",
+        ]
     return colors[random.randint(0, len(colors) - 1)]
 
 

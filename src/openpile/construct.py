@@ -53,7 +53,7 @@ from openpile.core.misc import generate_color_string
 class PydanticConfig:
     arbitrary_types_allowed = True
     extra = Extra.forbid
-    post_init_call = 'after_validation'
+    post_init_call = "after_validation"
 
 
 @dataclass(config=PydanticConfig)
@@ -77,7 +77,7 @@ class Pile:
     material : Literal["Steel",]
         material the pile is made of. by default "Steel"
 
-        
+
     Example
     -------
 
@@ -200,7 +200,7 @@ class Pile:
             "Steel",
         ] = "Steel",
     ):
-        """A method to create the pile. 
+        """A method to create the pile.
 
         Parameters
         ----------
@@ -249,10 +249,10 @@ class Pile:
         bottom_elevation: float,
         diameter: float,
         wt: float,
-        material: str = 'Steel'
+        material: str = "Steel",
     ):
-        """A method to simplify the creation of a Pile instance. 
-        This method creates a circular and hollow pile of constant diameter. 
+        """A method to simplify the creation of a Pile instance.
+        This method creates a circular and hollow pile of constant diameter.
 
         Parameters
         ----------
@@ -277,12 +277,20 @@ class Pile:
 
         obj = cls(
             name=name,
-            kind='Circular',
+            kind="Circular",
             material=material,
             top_elevation=top_elevation,
-            pile_sections={'length':[(top_elevation-bottom_elevation),],
-                           'wall thickness':[wt,],
-                           'diameter':[diameter,]},
+            pile_sections={
+                "length": [
+                    (top_elevation - bottom_elevation),
+                ],
+                "wall thickness": [
+                    wt,
+                ],
+                "diameter": [
+                    diameter,
+                ],
+            },
         )
 
         return obj
@@ -300,7 +308,7 @@ class Pile:
         Pile length [m].
         """
         return sum(self.pile_sections["length"])
-    
+
     @property
     def volume(self) -> float:
         """
@@ -308,14 +316,14 @@ class Pile:
         """
         A = self.data["Area [m2]"].values[1:]
         L = np.abs(np.diff(self.data["Elevation [m]"].values))
-        return round((A*L).sum(),2)
+        return round((A * L).sum(), 2)
 
     @property
     def weight(self) -> float:
         """
         Pile weight [kN].
         """
-        return round(self.volume*self._uw,2)
+        return round(self.volume * self._uw, 2)
 
     @property
     def E(self) -> float:
@@ -343,7 +351,7 @@ class Pile:
         """
         Second moment of area of the pile.
 
-        The user can use the method :py:meth:`openpile.construct.Pile.set_I` to customise the second 
+        The user can use the method :py:meth:`openpile.construct.Pile.set_I` to customise the second
         moment of area for different sections of the pile.
         """
         try:
@@ -352,7 +360,6 @@ class Pile:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
-
 
     def set_I(self, value: float, section: int) -> None:
         """set second moment of area for a particular section of the pile.
@@ -367,17 +374,17 @@ class Pile:
         """
         try:
             length = len(self.data["I [m4]"].values)
-            if section*2 > length:
+            if section * 2 > length:
                 print("section number is too large")
             elif section < 1:
                 print("section number must be 1 or above")
             else:
-                self.data.loc[section*2-2, "I [m4]"] = value
-                self.data.loc[section*2-1, "I [m4]"] = value
+                self.data.loc[section * 2 - 2, "I [m4]"] = value
+                self.data.loc[section * 2 - 1, "I [m4]"] = value
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
-            raise Exception 
+            raise Exception
 
     @property
     def width(self) -> float:
@@ -385,7 +392,7 @@ class Pile:
         Width of the pile. (Used to compute soil springs)
         """
         try:
-            return self.data.loc[:,"Diameter [m]"]
+            return self.data.loc[:, "Diameter [m]"]
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
@@ -404,7 +411,7 @@ class Pile:
     def area(self) -> float:
         "Sectional area of the pile"
         try:
-            return self.data.loc[:,"Area [m2]"]
+            return self.data.loc[:, "Area [m2]"]
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
@@ -422,20 +429,20 @@ class Pile:
     def plot(self, assign=False):
         fig = graphics.pile_plot(self)
         return fig if assign else None
-        
+
 
 @dataclass(config=PydanticConfig)
 class Layer:
-    """A class to create a layer. 
-    
-    The Layer stores information on the soil parameters of the layer as well 
+    """A class to create a layer.
+
+    The Layer stores information on the soil parameters of the layer as well
     as the relevant/representative constitutive model (aka. the soil spring).
 
     Parameters
     ----------
     name : str
         Name of the layer, use for printout
-    top : float 
+    top : float
         top elevation of the layer in [m]
     bottom : float
         bottom elevation of the layer in [m]
@@ -446,7 +453,7 @@ class Layer:
     axial_model : ConstitutiveModel
         Axial soil model of the layer, by default None
     color : str
-        soil layer color in HEX format (e.g. '#000000'), by default None 
+        soil layer color in HEX format (e.g. '#000000'), by default None
 
 
     Example
@@ -519,17 +526,17 @@ class SoilProfile:
     ----------
     name : str
         Name of the soil profile, used for printout and plots
-    top_elevation : float 
+    top_elevation : float
         top elevation of the soil profile in [m VREF]
     water_line : float
         elevation of the water table in [m VREF]
     layers : list[Layer]
         list of layers for the soil profile
     cpt_data : np.ndarray
-        cpt data table 
-        1st col: elevation [m], 
-        2nd col: cone resistance [kPa], 
-        3rd col: sleeve friction [kPa] 
+        cpt data table
+        1st col: elevation [m],
+        2nd col: cone resistance [kPa],
+        3rd col: sleeve friction [kPa]
         4th col: pore pressure u2 [kPa]
 
     Example
@@ -594,9 +601,9 @@ class SoilProfile:
     #: soil layers to consider in the soil propfile
     layers: List[Layer]
     #: Cone Penetration Test data with folloeing structure:
-    #: 1st col: elevation[m], 
-    #: 2nd col: cone resistance[kPa], 
-    #: 3rd col: sleeve friction [kPa] 
+    #: 1st col: elevation[m],
+    #: 2nd col: cone resistance[kPa],
+    #: 3rd col: sleeve friction [kPa]
     #: 4th col: pore pressure u2 [kPa]
     #: (the cpt data outside the soil profile boundaries will be ignored)
     cpt_data: Optional[np.ndarray] = None
@@ -621,7 +628,7 @@ class SoilProfile:
                 raise ValueError("Layers' elevations overlap.")
 
         return values
-    
+
     def __post_init__(self):
         pass
 
@@ -635,7 +642,6 @@ class SoilProfile:
             out += f"{layer}\n" + "~" * 30 + "\n"
         return out
 
-
     @property
     def bottom_elevation(self) -> float:
         """
@@ -643,7 +649,7 @@ class SoilProfile:
         """
         return self.top_elevation - sum([abs(x.top - x.bottom) for x in self.layers])
 
-    def plot(self, assign =False):
+    def plot(self, assign=False):
         fig = graphics.soil_plot(self)
         return fig if assign is True else None
 
@@ -1328,7 +1334,7 @@ class Model:
         base_moment: bool = True,
         base_axial: bool = False,
     ):
-        """A method to create the Model. 
+        """A method to create the Model.
 
         Parameters
         ----------
@@ -1392,17 +1398,17 @@ class Model:
 
         Returns
         -------
-        pd.DataFrame (or None if no SoilProfile is present) 
+        pd.DataFrame (or None if no SoilProfile is present)
             Table with p-y springs.
         """
         if self.soil is None:
             return None
         else:
             return misc.get_springs(
-                        springs=self._py_springs,
-                        elevations=self.nodes_coordinates["x [m]"].values,
-                        kind="p-y",
-                    )
+                springs=self._py_springs,
+                elevations=self.nodes_coordinates["x [m]"].values,
+                kind="p-y",
+            )
 
     @property
     def embedment(self) -> float:

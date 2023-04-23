@@ -454,7 +454,6 @@ def elem_mt_stiffness_matrix(model, u, kind):
     return km
 
 
-
 def elem_p_delta_stiffness_matrix(model, f):
     """creates stress stiffness matrix based on axial stress in pile.
 
@@ -482,8 +481,8 @@ def elem_p_delta_stiffness_matrix(model, f):
     # calculate length vector
     L = mesh_to_element_length(model)
 
-    # internal forces 
-    P = f[::6].reshape(-1,1,1)
+    # internal forces
+    P = f[::6].reshape(-1, 1, 1)
 
     # elastic properties
     nu = model.pile._nu
@@ -538,18 +537,22 @@ def elem_p_delta_stiffness_matrix(model, f):
             "Model.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)"
         )
 
-    k = np.block(
-        [
-            [N, N, N, N, N, N],
-            [N, A, B, N, -A, B],
-            [N, B, C, N, -B, D],
-            [N, N, N, N, N, N],
-            [N, -A, -B, N, A, -B],
-            [N, B, D, N, -B, C],
-        ]
-    ) * -P
+    k = (
+        np.block(
+            [
+                [N, N, N, N, N, N],
+                [N, A, B, N, -A, B],
+                [N, B, C, N, -B, D],
+                [N, N, N, N, N, N],
+                [N, -A, -B, N, A, -B],
+                [N, B, D, N, -B, C],
+            ]
+        )
+        * -P
+    )
 
     return k
+
 
 @njit(parallel=True, cache=True)
 def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):

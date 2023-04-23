@@ -8,7 +8,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from matplotlib.patches import FancyArrowPatch, Rectangle
-from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 from openpile.core.misc import generate_color_string
 
 mpl.rcParams["figure.subplot.wspace"] = 0.4
@@ -60,50 +60,61 @@ def plot_results(result):
 
     return fig
 
-def soil_plot(SoilProfile):
 
+def soil_plot(SoilProfile):
     def add_soil_profile(SoilProfile, ax, pile=None):
         ax.set_title(label=f"Soil Profile overview - {SoilProfile.name}")
 
         # make data
-        ax.set_xlim(left=0, right =1)
+        ax.set_xlim(left=0, right=1)
         offset = 5
         yBot = SoilProfile.bottom_elevation
         if pile is None:
-            yTop = max(SoilProfile.top_elevation+offset, SoilProfile.water_line+offset) 
+            yTop = max(SoilProfile.top_elevation + offset, SoilProfile.water_line + offset)
         else:
-            yTop = max(SoilProfile.top_elevation+offset, 
-                       SoilProfile.water_line+offset,
-                         pile.top_elevation+offset)
- 
+            yTop = max(
+                SoilProfile.top_elevation + offset,
+                SoilProfile.water_line + offset,
+                pile.top_elevation + offset,
+            )
+
         # axes
         ax.set_ylim(bottom=yBot, top=yTop)
         ax.set_ylabel("Elevation [m VREF]")
         ax.set_xticks([])
 
         for layer in SoilProfile.layers:
-            ax.add_patch(Rectangle(xy=(0,layer.bottom), 
-                                width=1, 
-                                height=layer.top - layer.bottom,
-                                facecolor=layer.color,
-                                )
+            ax.add_patch(
+                Rectangle(
+                    xy=(0, layer.bottom),
+                    width=1,
+                    height=layer.top - layer.bottom,
+                    facecolor=layer.color,
+                )
             )
-            ax.text(0.02, 
-                    0.5*(layer.top+layer.bottom),
-                    layer.name,
-                    bbox={'facecolor':[0.98,0.96,0.85],'alpha':1,'edgecolor':'none','pad':1})
+            ax.text(
+                0.02,
+                0.5 * (layer.top + layer.bottom),
+                layer.name,
+                bbox={"facecolor": [0.98, 0.96, 0.85], "alpha": 1, "edgecolor": "none", "pad": 1},
+            )
 
-        # grid 
+        # grid
         ax.minorticks_on()
         ax.grid()
-        ax.grid(axis='y', which='minor', color=[0.75,0.75,0.75], linestyle='-', linewidth=0.5)
+        ax.grid(axis="y", which="minor", color=[0.75, 0.75, 0.75], linestyle="-", linewidth=0.5)
 
-
-        ax.plot(np.array([-1,0.1,2]), SoilProfile.water_line+np.zeros((3)), mfc="dodgerblue", 
-                marker=7, linewidth=1, color="dodgerblue")
+        ax.plot(
+            np.array([-1, 0.1, 2]),
+            SoilProfile.water_line + np.zeros((3)),
+            mfc="dodgerblue",
+            marker=7,
+            linewidth=1,
+            color="dodgerblue",
+        )
 
         return ax
-    
+
     fig, ax = plt.subplots()
     ax = add_soil_profile(SoilProfile, ax, pile=None)
 
@@ -113,7 +124,7 @@ def soil_plot(SoilProfile):
 def pile_plot(pile):
 
     if pile.kind == "Circular":
-        fig, (ax1, ax2, ax3) = plt.subplots(1,3)
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
         fig.suptitle(f"Pile overview - {pile.name}")
 
@@ -121,27 +132,29 @@ def pile_plot(pile):
 
         xdata = pile.data["Wall thickness [m]"]
         ax2.plot(xdata, ydata, "-k", lw=2)
-        ax2.set_xlim(left=0, right = xdata.max()*1.1)
+        ax2.set_xlim(left=0, right=xdata.max() * 1.1)
 
         xdata = pile.data["Area [m2]"]
         ax3.plot(xdata, ydata, "-k", lw=2)
-        ax3.set_xlim(left=0, right = xdata.max()*1.1)
+        ax3.set_xlim(left=0, right=xdata.max() * 1.1)
 
         for axis in [ax2, ax3]:
             axis.set_yticklabels("")
             axis.set_ylabel("")
-            
+
         ax1.set_ylabel("Elevation [m VREF]", fontsize=8)
 
-        for (axis, xlab) in zip([ax1, ax2, ax3],["Diameter [m]","Wall thickness [m]", "Area [m2]"]):
+        for (axis, xlab) in zip(
+            [ax1, ax2, ax3], ["Diameter [m]", "Wall thickness [m]", "Area [m2]"]
+        ):
             xdata = pile.data[xlab]
             axis.plot(xdata, ydata, "-k", lw=2)
-            axis.set_xlim(left=0, right = xdata.max()*1.1)
+            axis.set_xlim(left=0, right=xdata.max() * 1.1)
 
             axis.set_xlabel(xlab, fontsize=8)
             axis.tick_params(axis="both", labelsize=8)
             axis.grid()
-            axis.grid(which='minor', color=[0.75,0.75,0.75], linestyle='-', linewidth=0.5)
+            axis.grid(which="minor", color=[0.75, 0.75, 0.75], linestyle="-", linewidth=0.5)
             axis.xaxis.set_minor_locator(AutoMinorLocator())
 
     return fig

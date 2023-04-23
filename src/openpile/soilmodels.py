@@ -467,7 +467,7 @@ class API_sand(LateralModel):
     #: soil friction angle [deg], if a variation in values, two values can be given.
     phi: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: types of curves, can be of ("static","cyclic")
-    kind: Literal['static','cyclic']
+    kind: Literal["static", "cyclic"]
     #: p-multiplier
     p_multiplier: confloat(ge=0.0) = 1.0
     #: y-multiplier
@@ -542,7 +542,7 @@ class API_clay(LateralModel):
     #: strain at 50% failure load [-], if a variation in values, two values can be given.
     eps50: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: types of curves, can be of ("static","cyclic")
-    kind: Literal['static','cyclic']
+    kind: Literal["static", "cyclic"]
     #: empirical factor varying depending on clay stiffness
     J: confloat(ge=0.25, le=0.5) = 0.5
     #: undrained shear strength [kPa] at which stiff clay curve is computed

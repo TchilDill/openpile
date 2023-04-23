@@ -24,6 +24,7 @@ import openpile.core.misc as misc
 class PydanticConfig:
     arbitrary_types_allowed = True
 
+
 def springs_mob_to_df(model, d):
 
     # elevations
@@ -32,13 +33,15 @@ def springs_mob_to_df(model, d):
 
     # PY springs
     # py secant stiffness
-    py_ks = kernel.calculate_py_springs_stiffness(u=d[1::3],springs=model._py_springs, kind="secant").flatten()
+    py_ks = kernel.calculate_py_springs_stiffness(
+        u=d[1::3], springs=model._py_springs, kind="secant"
+    ).flatten()
     py_u = kernel.double_inner_njit(d[1::3])
-    py_mob = py_u*py_ks
+    py_mob = py_u * py_ks
     # calculate max spring values
-    max_springs_values = model._py_springs[:,:,0].max(axis=2).flatten()
+    max_springs_values = model._py_springs[:, :, 0].max(axis=2).flatten()
 
-    #create DataFrame
+    # create DataFrame
     df = pd.DataFrame(
         data={
             "Elevation [m]": x,
@@ -289,8 +292,8 @@ def simple_winkler_analysis(model, max_iter: int = 100):
 
         # initialise global stiffness matrix
         K = kernel.build_stiffness_matrix(model, f=None, u=d, kind="initial")
-        #initialise internal forces
-        q_int = np.zeros((model.element_number*6))
+        # initialise internal forces
+        q_int = np.zeros((model.element_number * 6))
         # initialise global supports vector
         supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
 
@@ -329,7 +332,7 @@ def simple_winkler_analysis(model, max_iter: int = 100):
 
             # check if converged
             if np.linalg.norm(Rg[~supports]) < 1e-4 * control:
-                # do not accept convergence without iteration (without a second call to solve equations) 
+                # do not accept convergence without iteration (without a second call to solve equations)
                 if iter_no > 0:
                     print(f"Converged at iteration no. {iter_no}")
                     break
@@ -347,7 +350,6 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             # of displacement-driven analysis
             U[:] = 0.0
 
-
             # nump iteration number
             iter_no += 1
 
@@ -359,7 +361,7 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             name=f"{model.name} ({model.pile.name}/{model.soil.name})",
             displacements=disp_to_df(model, d),
             forces=structural_forces_to_df(model, q_int),
-            springs_mobilization=springs_mob_to_df(model, d)
+            springs_mobilization=springs_mob_to_df(model, d),
         )
 
         return results

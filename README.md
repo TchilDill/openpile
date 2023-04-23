@@ -32,7 +32,7 @@ This package allows the user to:
   soil models such as the widely used traditional API models for sand and clay or more recent models that stem from 
   the PISA joint-industry project.
 
-This library supports the following versions of python: 3.7-3.10. 
+This library supports the following versions of python: 3.7-3.10.
 Python 3.11 is not supported!
 
 ## Installation Instructions
@@ -51,6 +51,7 @@ pip install openpile
  * Python 3.7-3.10 support
  * Interactive structure perfectly suited for Jupyter Notebook 
  * Integrated data validation to prevent wrong inputs with pydantic
+ * very fast computations fueled by the Numpy, Numba and Pandas libraries
  * Calculations
    * Beam calculation
    * Winkler model (i.e. beam supported by soil springs)
@@ -58,8 +59,8 @@ pip install openpile
      * Displacement-driven analyses 
    * Out-of-the-box computation of individual soil springs
    <!-- * Axial capacity calculations via integration -->
- * Friendly API interface with  object-oriented approach
- * Fully integrated output with python environment with Matplotlib and Pandas libraries. 
+ * Friendly API interface with object-oriented approach
+ * Matplotlib and Pandas libraries to facilitate post-processing of results. 
 
  ## Please share with the community
 

@@ -77,11 +77,6 @@ class Pile:
     material : Literal["Steel",]
         material the pile is made of. by default "Steel"
 
-    Returns
-    -------
-    openpile.construct.Pile
-        a Pile instance with embedded postprocessing to perform calculations with openpile.
-
         
     Example
     -------
@@ -390,7 +385,7 @@ class Pile:
         Width of the pile. (Used to compute soil springs)
         """
         try:
-            return self.data["Diameter [m]"].mean()
+            return self.data.loc[:,"Diameter [m]"]
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
@@ -407,8 +402,9 @@ class Pile:
 
     @property
     def area(self) -> float:
+        "Sectional area of the pile"
         try:
-            return self.data["Area [m2]"].mean()
+            return self.data.loc[:,"Area [m2]"]
         except AttributeError:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
@@ -428,15 +424,30 @@ class Pile:
         return fig if assign else None
         
 
-
 @dataclass(config=PydanticConfig)
 class Layer:
-    """A class to create a layer. The Layer stores information on the soil parameters
-    of the layer as well as the relevant/representative constitutive model (aka. the soil spring).
+    """A class to create a layer. 
+    
+    The Layer stores information on the soil parameters of the layer as well 
+    as the relevant/representative constitutive model (aka. the soil spring).
 
     Parameters
     ----------
-    #TODO
+    name : str
+        Name of the layer, use for printout
+    top : float 
+        top elevation of the layer in [m]
+    bottom : float
+        bottom elevation of the layer in [m]
+    weight : float
+        total unit weight in [kN/m3], cannot be lower than 10 kN/m3
+    lateral_model : ConstitutiveModel
+        Lateral soil model of the layer, by default None
+    axial_model : ConstitutiveModel
+        Axial soil model of the layer, by default None
+    color : str
+        soil layer color in HEX format (e.g. '#000000'), by default None 
+
 
     Example
     -------
@@ -502,7 +513,24 @@ class SoilProfile:
     with one or more layers of soil.
 
     Additionally, a soil profile can include discrete information at given elevation such as CPT
-    (Cone Penetration Test) data
+    (Cone Penetration Test) data. Not Implemented yet!
+
+    Parameters
+    ----------
+    name : str
+        Name of the soil profile, used for printout and plots
+    top_elevation : float 
+        top elevation of the soil profile in [m VREF]
+    water_line : float
+        elevation of the water table in [m VREF]
+    layers : list[Layer]
+        list of layers for the soil profile
+    cpt_data : np.ndarray
+        cpt data table 
+        1st col: elevation [m], 
+        2nd col: cone resistance [kPa], 
+        3rd col: sleeve friction [kPa] 
+        4th col: pore pressure u2 [kPa]
 
     Example
     -------
@@ -566,8 +594,11 @@ class SoilProfile:
     #: soil layers to consider in the soil propfile
     layers: List[Layer]
     #: Cone Penetration Test data with folloeing structure:
-    #: 1st col: elevation[m], 2nd col: cone resistance[MPa], 3rd col: pore pressure u2 [MPa]
-    #: (the cpt data cannot be given outside the soil profile boundaries defined by the layers)
+    #: 1st col: elevation[m], 
+    #: 2nd col: cone resistance[kPa], 
+    #: 3rd col: sleeve friction [kPa] 
+    #: 4th col: pore pressure u2 [kPa]
+    #: (the cpt data outside the soil profile boundaries will be ignored)
     cpt_data: Optional[np.ndarray] = None
 
     @root_validator
@@ -620,15 +651,33 @@ class SoilProfile:
 @dataclass(config=PydanticConfig)
 class Model:
     """
-    A class to create the Model.
+    A class to create a Model.
 
-    The Model is constructed based on the pile geometry/data primarily.
+    A Model is constructed based on the pile geometry/data primarily.
     Additionally, a soil profile can be fed to the Model, and soil springs can be created.
 
-    .. note::
-        The classmethod :py:meth:`openpile.construct.Model.create` shall be used to create a Model instance.
-
-        This method ensures that the post-initialization of the `Model` instance and post processing is done accordingly.
+    Parameters
+    ----------
+    name : str
+        Name of the model
+    pile : Pile
+        Pile instance to be included in the model
+    soil : Optional[SoilProfile], optional
+        SoilProfile instance, by default None
+    element_type : str, optional
+        can be of ['EulerBernoulli','Timoshenko'], by default 'Timoshenko'
+    x2mesh : List[float], optional
+        additional elevations to be included in the mesh, by default none
+    coarseness : float, optional
+        maximum distance in meters between two nodes of the mesh, by default 0.5
+    distributed_lateral : bool, optional
+        include distributed lateral springs, by default True
+    distributed_moment : bool, optional
+        include distributed moment springs, by default False
+    base_shear : bool, optional
+        include lateral spring at pile toe, by default False
+    base_moment : bool, optional
+        include moment spring at pile toe, by default False
 
 
     Example
@@ -681,7 +730,7 @@ class Model:
     pile: Pile
     #: soil profile instance that the Model should consider
     soil: Optional[SoilProfile] = None
-    #: "EB" for Euler-Bernoulli or "T" for Timoshenko
+    #: type of beam elements
     element_type: Literal["Timoshenko", "EulerBernoulli"] = "Timoshenko"
     #: x coordinates values to mesh as nodes
     x2mesh: List[float] = Field(default_factory=list)
@@ -1279,10 +1328,7 @@ class Model:
         base_moment: bool = True,
         base_axial: bool = False,
     ):
-        """A method to create the Model. This function provides a 2-in-1 command where:
-
-        - a `Model` instance is created
-        - the `._postinit()` method is run and creates all necessary data to perform calculations.
+        """A method to create the Model. 
 
         Parameters
         ----------

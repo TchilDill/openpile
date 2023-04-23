@@ -12,15 +12,14 @@ an interactive experience.
 Example 1 - Create a pile 
 =========================
 
-A pile can be created in the following way in openpile. It is strongly advised to use 
-the :py:meth:`openpile.construct.Pile.create` constructor to ensure that data validation and post-processing of the object is performed.
+A pile can be created in the simple following way in openpile. 
 
 .. code-block:: python
 
     from openpile.construct import Pile
 
     # Create a pile instance with two sections of respectively 10m and 30m length.
-    pile = Pile.create(name = "",
+    pile = Pile(name = "",
             kind='Circular',
             material='Steel',
             top_elevation = 0,
@@ -30,6 +29,11 @@ the :py:meth:`openpile.construct.Pile.create` constructor to ensure that data va
                 'wall thickness':[0.07, 0.08],
             }
         )
+
+Additional methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
+For instance:
+
+* :py:meth:`openpile.construct.Pile.create_tubular` which creates a circular pile of constant diameter.
 
 Once the pile (object) is created, the user can use its properties and methods to interact with it. 
 A simple view of the pile can be extracted by printing the object as below: 
@@ -240,7 +244,7 @@ Example 5 - Create a Model and run an analysis
     from openpile.soilmodels import API_clay, API_sand
 
     # Create a pile instance with two sections of respectively 10m and 30m length.
-    p = Pile.create(name = "",
+    p = Pile(name = "",
             kind='Circular',
             material='Steel',
             top_elevation = 0,
@@ -275,7 +279,7 @@ Example 5 - Create a Model and run an analysis
     )
 
     # Create Model 
-    M = Model.create(name="", pile=p, soil=sp)
+    M = Model(name="", pile=p, soil=sp)
 
     # Apply bottom fixity along x-axis 
     M.set_support(elevation=-40, Tx = True)

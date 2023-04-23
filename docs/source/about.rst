@@ -15,16 +15,17 @@ This package allows the user to:
   soil models such as the widely used traditional API models for sand and clay or more recent models that stem from 
   the PISA joint-industry project.
 
+This library supports the following versions of python: 3.7-3.10. 
+Python 3.11 is not supported!
+
+
 System of units
 ^^^^^^^^^^^^^^^
 
-The unit system used in this library is the `international standard SI<https://en.wikipedia.org/wiki/International_System_of_Units>`_. 
+The unit system used in this library is the `International System of Units (SI) <https://en.wikipedia.org/wiki/International_System_of_Units>`_. 
 The primary units used in OpenPile are kN (kilonewton) and m (meter). 
 The documentation should show the units to the user. If there are any ambiguity, 
 please create an issue so that we can solve this.
-
-This library supports the following versions of python: 3.7-3.10. 
-Python 3.11 is not supported!
 
 
 Installation

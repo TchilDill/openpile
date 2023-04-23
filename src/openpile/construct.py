@@ -22,6 +22,7 @@ These objects include:
 import math as m
 import pandas as pd
 import numpy as np
+import warnings
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal
 from pydantic import (
@@ -32,6 +33,7 @@ from pydantic import (
     PositiveFloat,
     confloat,
     conlist,
+    constr,
     Extra,
 )
 from pydantic.dataclasses import dataclass
@@ -51,6 +53,7 @@ from openpile.core.misc import generate_color_string
 class PydanticConfig:
     arbitrary_types_allowed = True
     extra = Extra.forbid
+    post_init_call = 'after_validation'
 
 
 @dataclass(config=PydanticConfig)
@@ -58,21 +61,35 @@ class Pile:
     """
     A class to create the pile.
 
-    Pile instances include the pile geometry and data. Following
-    the initialisation of a pile, a Pandas dataframe is created.
+    Parameters
+    ----------
+    name : str
+        Pile/Structure's name.
+    top_elevation : float
+        top elevation of the pile. Note that this elevation provides a reference point to
+        know where the pile is located, especially with respect to other object such as a SoilProfile.
+    pile_sections : Dict[str, List[float]]
+        argument that stores the relevant data of each pile segment.
+        Below are the needed keys for the available piles:
+        - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
+    kind : Literal["Circular",]
+        type of pile or type of cross-section. by default "Circular"
+    material : Literal["Steel",]
+        material the pile is made of. by default "Steel"
 
-    .. note::
-        The classmethod :py:meth:`openpile.construct.Pile.create` shall be used to create a Pile instance.
+    Returns
+    -------
+    openpile.construct.Pile
+        a Pile instance with embedded postprocessing to perform calculations with openpile.
 
-        This method ensures that the post-initialization of the `Pile` instance and post processing is done accordingly.
-
+        
     Example
     -------
 
     >>> from openpile.construct import Pile
 
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
-    >>> pile = Pile.create(name = "",
+    >>> pile = Pile(name = "",
     >>>         kind='Circular',
     >>>         material='Steel',
     >>>         top_elevation = 0,
@@ -96,7 +113,7 @@ class Pile:
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
     pile_sections: Dict[str, List[PositiveFloat]]
 
-    def _postinit(self):
+    def __post_init__(self):
         # check that dict is correctly entered
         validation.pile_sections_must_be(self)
 
@@ -219,7 +236,13 @@ class Pile:
             top_elevation=top_elevation,
             pile_sections=pile_sections,
         )
-        obj._postinit()
+
+        warnings.warn(
+            "\nThe method Pile.create() will be removed in version 1.0.0."
+            "\nPlease use the base class to create a Pile instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         return obj
 
@@ -266,7 +289,6 @@ class Pile:
                            'wall thickness':[wt,],
                            'diameter':[diameter,]},
         )
-        obj._postinit()
 
         return obj
 
@@ -455,7 +477,7 @@ class Layer:
     #: Axial constitutive model of the layer
     axial_model: Optional[ConstitutiveModel] = None
     #: Layer's color when plotted
-    color: Optional[str] = None
+    color: Optional[constr(min_length=7, max_length=7)] = None
 
     def __post_init__(self):
         if self.color is None:
@@ -568,6 +590,9 @@ class SoilProfile:
                 raise ValueError("Layers' elevations overlap.")
 
         return values
+    
+    def __post_init__(self):
+        pass
 
     def __str__(self):
         """List all layers in table-like format"""
@@ -579,8 +604,6 @@ class SoilProfile:
             out += f"{layer}\n" + "~" * 30 + "\n"
         return out
 
-    def _postinit(self):
-        pass
 
     @property
     def bottom_elevation(self) -> float:
@@ -588,26 +611,6 @@ class SoilProfile:
         Bottom elevation of the soil profile.
         """
         return self.top_elevation - sum([abs(x.top - x.bottom) for x in self.layers])
-
-    @classmethod
-    def create(
-        cls,
-        name: str,
-        top_elevation: float,
-        water_elevation: float,
-        layers: List[Layer],
-        cpt_data: Optional[np.ndarray] = None,
-    ):
-        obj = cls(
-            name=name,
-            top_elevation=top_elevation,
-            water_elevation=water_elevation,
-            layers=layers,
-            cpt_data=cpt_data,
-        )
-        obj._postinit()
-
-        return obj
 
     def plot(self, assign =False):
         fig = graphics.soil_plot(self)
@@ -635,7 +638,7 @@ class Model:
     >>> from openpile.core.soilmodels import API_sand
 
     >>> # create pile
-    >>> p = Pile.create(name = "WTG01",
+    >>> p = Pile(name = "WTG01",
     >>> 		kind='Circular',
     >>> 		material='Steel',
     >>> 		top_elevation = 0,
@@ -650,7 +653,7 @@ class Model:
     >>> sp = SoilProfile(
     >>> 	name="BH01",
     >>> 	top_elevation=0,
-    >>> 	water_elevation=0,
+    >>> 	water_line=0,
     >>> 	layers=[
     >>> 		Layer(
     >>> 			name='Layer0',
@@ -663,12 +666,12 @@ class Model:
     >>> )
 
     >>> # Create Model
-    >>> M = Model.create(name="Example", pile=p, soil=sp)
+    >>> M = Model(name="Example", pile=p, soil=sp)
 
     >>> # create Model without soil maximum 5 metres apart.
-    >>> Model_without_soil = Model.create(name = "Example without soil", pile=p, coarseness=5)
+    >>> Model_without_soil = Model(name = "Example without soil", pile=p, coarseness=5)
     >>> # create Model with nodes maximum 1 metre apart with soil profile
-    >>> Model_with_soil = Model.create(name = "Example with soil", pile=p, soil=sp, coarseness=1)
+    >>> Model_with_soil = Model(name = "Example with soil", pile=p, soil=sp, coarseness=1)
 
     """
 
@@ -697,7 +700,7 @@ class Model:
     #: whether to include Q-z spring in the calculations
     base_axial: bool = False
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def soil_and_pile_bottom_elevation_match(cls, values):  # pylint: disable=no-self-argument
         if values["pile"].bottom_elevation < values["soil"].bottom_elevation:
             raise UserWarning("The pile ends deeper than the soil profile.")
@@ -725,7 +728,7 @@ class Model:
         except Exception as e:
             print(e)
 
-    def _postinit(self):
+    def __post_init__(self):
         def check_springs(arr):
             check_nan = np.isnan(arr).any()
             check_negative = (arr < 0).any()
@@ -877,7 +880,7 @@ class Model:
                                     depth_from_top_of_layer=(layer.top - elevation[j]),
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=elevation[j] <= self.soil.water_elevation,
+                                    below_water_table=elevation[j] <= self.soil.water_line,
                                     output_length=spring_dim,
                                 )
 
@@ -894,7 +897,7 @@ class Model:
                                     depth_from_top_of_layer=(layer.top - elevation[j]),
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=elevation[j] <= self.soil.water_elevation,
+                                    below_water_table=elevation[j] <= self.soil.water_line,
                                     output_length=spring_dim,
                                 )
 
@@ -920,7 +923,7 @@ class Model:
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                     below_water_table=self.pile.bottom_elevation
-                                    <= self.soil.water_elevation,
+                                    <= self.soil.water_line,
                                     output_length=spring_dim,
                                 )
 
@@ -937,7 +940,7 @@ class Model:
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                     below_water_table=self.pile.bottom_elevation
-                                    <= self.soil.water_elevation,
+                                    <= self.soil.water_line,
                                     output_length=spring_dim,
                                 )
 
@@ -1009,7 +1012,7 @@ class Model:
             self.soil_properties["x_bottom [m]"] - self.soil.top_elevation
         )
         # add vertical stress at top and bottom of each element
-        condition_below_water_table = self.soil_properties["x_top [m]"] <= self.soil.water_elevation
+        condition_below_water_table = self.soil_properties["x_top [m]"] <= self.soil.water_line
         self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
             self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
         )
@@ -1324,7 +1327,13 @@ class Model:
             base_moment=base_moment,
             base_axial=base_axial,
         )
-        obj._postinit()
+
+        warnings.warn(
+            "\nThe method Model.create() will be removed in version 1.0.0."
+            "\nPlease use the base class to create a Pile instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         return obj
 

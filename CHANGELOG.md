@@ -16,7 +16,8 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 - new `SoilProfile.plot()` method to visualize the soil profile
 - API sand and API clay curves and models now accept `kind` instead of `Neq` arguments to differentiate between 
   static and cyclic curves
-- create() methods are now deprecated and should not be used anymore. Precisely, that is the case for `openpile.construct.Pile.create()` and `openpile.construct.Model.create()`. 
+- create() methods are now deprecated and should not be used anymore. Precisely, that is the case for 
+  `openpile.  construct.Pile.create()` and `openpile.construct.Model.create()`. 
 
 ## [0.1.0] - 2023-04-10
 ### Added

@@ -4,7 +4,7 @@ API
 
 .. automodule:: openpile.construct
     :members:
-    :exclude-members: __init__, PydanticConfig, soil_and_pile_bottom_elevation_match
+    :exclude-members: __init__, PydanticConfig, soil_and_pile_bottom_elevation_match, create
 
 .. automodule:: openpile.soilmodels
     :members: 

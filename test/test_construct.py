@@ -13,7 +13,7 @@ class TestPile:
         has even entries and that steel E value is 210GPa
         """
         # create a steel and circular pile
-        pile = construct.Pile.create(kind='Circular',
+        pile = construct.Pile(kind='Circular',
                             name = "",
                             material='Steel',
                             top_elevation = 0,
@@ -29,7 +29,7 @@ class TestPile:
         assert pile.data.values.shape[0] % 2 == 0
 
     def test_pile_width(self):
-        pile = construct.Pile.create(kind='Circular',
+        pile = construct.Pile(kind='Circular',
                             name = "",
                             material='Steel',
                             top_elevation = 0.1,
@@ -40,10 +40,10 @@ class TestPile:
                             }
                             )
         
-        assert pile.width == 8.00
+        assert pile.width.mean() == 8.00
 
     def test_pile_length(self):
-        pile = construct.Pile.create(kind='Circular',
+        pile = construct.Pile(kind='Circular',
                             name = "",
                             material='Steel',
                             top_elevation = 10,
@@ -57,7 +57,7 @@ class TestPile:
         assert pile.length == 38.0
 
     def test_pile_bottom(self):
-        pile = construct.Pile.create(kind='Circular',
+        pile = construct.Pile(kind='Circular',
                             name = "",
                             material='Steel',
                             top_elevation = 10,
@@ -75,7 +75,7 @@ class TestPile:
         """check pile area 
         """
         # Create a pile instance with two sections of respectively 10m and 30m length.
-        pile = construct.Pile.create(name = "",
+        pile = construct.Pile(name = "",
                 kind='Circular',
                 material='Steel',
                 top_elevation = 0,
@@ -86,10 +86,10 @@ class TestPile:
                 }
             )
         
-        assert pile.area == 0.25*m.pi
+        assert pile.area.mean() == 0.25*m.pi
 
     def test_pile_area2(self):
-        pile = construct.Pile.create(name = "",
+        pile = construct.Pile(name = "",
                 kind='Circular',
                 material='Steel',
                 top_elevation = 0,
@@ -100,7 +100,7 @@ class TestPile:
                 }
             )
         
-        assert m.isclose(pile.area, m.pi*0.001, rel_tol=0.01)
+        assert m.isclose(pile.area.mean(), m.pi*0.001, rel_tol=0.01)
 
 class TestLayer:
     def test_constructor(self):
@@ -109,7 +109,7 @@ class TestLayer:
                             top=0,
                             bottom=-10,
                             weight=19,
-                            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), 
+                            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], kind="cyclic"), 
                         )
         except Exception:
             assert False, "Constructor did not work"
@@ -120,7 +120,7 @@ class TestLayer:
                             top=-10,
                             bottom=0,
                             weight=19,
-                            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), 
+                            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], kind="cyclic"), 
                         )
 
     def test_equal_top_and_bottom(self):
@@ -129,7 +129,7 @@ class TestLayer:
                             top=-5,
                             bottom=-5,
                             weight=19,
-                            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), 
+                            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], kind="cyclic"), 
                         )
 
     def test_wrong_unit_weight(self):
@@ -142,7 +142,7 @@ class TestLayer:
                             top=0,
                             bottom=-10,
                             weight=10,
-                            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), 
+                            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], kind="static"), 
                         )
             
 class TestSoilProfile:
@@ -186,7 +186,7 @@ class TestSoilProfile:
             
     def test_wrong_top_elevation(self):
         with pytest.raises(ValidationError):
-            sp = construct.SoilProfile.create(
+            sp = construct.SoilProfile(
                 name = "", 
                 top_elevation=10, 
                 water_line=0,
@@ -229,21 +229,23 @@ class TestModel:
         """
         check that model can still be created with no lateral or axial models""" 
         try:
-            model = construct.Model.create(
+            model = construct.Model(
                 name="",
-                pile=construct.Pile.create(
+                pile=construct.Pile(
                     name="",
                     top_elevation=20,
+                    kind="Circular",
+                    material="Steel",
                     pile_sections={
                         'length':[50],
                         'diameter':[7],
                         'wall thickness':[0.08]
                     }
                 ),
-                soil = construct.SoilProfile.create(
+                soil = construct.SoilProfile(
                     name = "", 
                     top_elevation=10, 
-                    water_elevation=0,
+                    water_line=0,
                     layers=[
                         construct.Layer(name= "",
                                         top=10,

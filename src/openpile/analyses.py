@@ -24,6 +24,31 @@ import openpile.core.misc as misc
 class PydanticConfig:
     arbitrary_types_allowed = True
 
+def springs_mob_to_df(model, d):
+
+    # elevations
+    x = model.nodes_coordinates["x [m]"].values
+    x = kernel.double_inner_njit(x)
+
+    # PY springs
+    # py secant stiffness
+    py_ks = kernel.calculate_py_springs_stiffness(u=d[1::3],springs=model._py_springs, kind="secant").flatten()
+    py_u = kernel.double_inner_njit(d[1::3])
+    py_mob = py_u*py_ks
+    # calculate max spring values
+    max_springs_values = model._py_springs[:,:,0].max(axis=2).flatten()
+
+    #create DataFrame
+    df = pd.DataFrame(
+        data={
+            "Elevation [m]": x,
+            "p_mobilized [kN/m]": np.abs(py_mob),
+            "p_max [kN/m]": max_springs_values,
+        }
+    )
+
+    return df
+
 
 def structural_forces_to_df(model, q):
     x = model.nodes_coordinates["x [m]"].values
@@ -70,6 +95,7 @@ class Result:
     name: str
     displacements: pd.DataFrame
     forces: pd.DataFrame
+    springs_mobilization: pd.DataFrame
 
     class Config:
         frozen = True
@@ -106,6 +132,17 @@ class Result:
             Table with the nodes elevations along the pile and their rotations
         """
         return self.displacements[["Elevation [m]", "Rotation [rad]"]]
+
+    @property
+    def py_mobilization(self):
+        """Retrieves mobilized resistance of p-y curves.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and the mobilized resistance in kN/m.
+        """
+        return self.springs_mobilization[["Elevation [m]", "p_mobilized [kN/m]", "p_max [kN/m]"]]
 
     def plot_deflection(self, assign=False):
         """
@@ -322,6 +359,7 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             name=f"{model.name} ({model.pile.name}/{model.soil.name})",
             displacements=disp_to_df(model, d),
             forces=structural_forces_to_df(model, q_int),
+            springs_mobilization=springs_mob_to_df(model, d)
         )
 
         return results

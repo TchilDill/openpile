@@ -19,6 +19,22 @@ Geotechnical super-toolbox for pile-related calculations.
 
 Please see [official documentation](https://openpile.readthedocs.io/en/latest/) for more information.
 
+This package is an open source python library that provides users a tool box for geotechnical pile
+calculations.
+
+This package allows the user to:
+
+* Use basic Euler-Bernoulli beam theory (as well as Timoshenko's variation) to compute 
+  forces, deflection of a beam (or a pile) under adequate loading and 
+  support conditions.
+* Use Winkler's approach of a beam (or a pile) supported by linear or non-linear lateral and/or 
+  rotational springs to compute forces and deflection of the pile based on recognised 
+  soil models such as the widely used traditional API models for sand and clay or more recent models that stem from 
+  the PISA joint-industry project.
+
+This library supports the following versions of python: 3.7-3.10. 
+Python 3.11 is not supported!
+
 ## Installation Instructions
 
 **Prerequisites**:

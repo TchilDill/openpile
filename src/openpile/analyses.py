@@ -25,6 +25,34 @@ class PydanticConfig:
     arbitrary_types_allowed = True
 
 
+def springs_mob_to_df(model, d):
+
+    # elevations
+    x = model.nodes_coordinates["x [m]"].values
+    x = kernel.double_inner_njit(x)
+
+    # PY springs
+    # py secant stiffness
+    py_ks = kernel.calculate_py_springs_stiffness(
+        u=d[1::3], springs=model._py_springs, kind="secant"
+    ).flatten()
+    py_u = kernel.double_inner_njit(d[1::3])
+    py_mob = py_u * py_ks
+    # calculate max spring values
+    max_springs_values = model._py_springs[:, :, 0].max(axis=2).flatten()
+
+    # create DataFrame
+    df = pd.DataFrame(
+        data={
+            "Elevation [m]": x,
+            "p_mobilized [kN/m]": np.abs(py_mob),
+            "p_max [kN/m]": max_springs_values,
+        }
+    )
+
+    return df
+
+
 def structural_forces_to_df(model, q):
     x = model.nodes_coordinates["x [m]"].values
     x = misc.repeat_inner(x)
@@ -70,6 +98,7 @@ class Result:
     name: str
     displacements: pd.DataFrame
     forces: pd.DataFrame
+    springs_mobilization: pd.DataFrame
 
     class Config:
         frozen = True
@@ -106,6 +135,17 @@ class Result:
             Table with the nodes elevations along the pile and their rotations
         """
         return self.displacements[["Elevation [m]", "Rotation [rad]"]]
+
+    @property
+    def py_mobilization(self):
+        """Retrieves mobilized resistance of p-y curves.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and the mobilized resistance in kN/m.
+        """
+        return self.springs_mobilization[["Elevation [m]", "p_mobilized [kN/m]", "p_max [kN/m]"]]
 
     def plot_deflection(self, assign=False):
         """
@@ -219,7 +259,7 @@ def simple_beam_analysis(model):
         return results
 
 
-def simple_winkler_analysis(model, solver="NR", max_iter: int = 100):
+def simple_winkler_analysis(model, max_iter: int = 100):
     """
     Function where loading or displacement defined in the model boundary conditions
     are used to solve the system of equations, .
@@ -230,8 +270,6 @@ def simple_winkler_analysis(model, solver="NR", max_iter: int = 100):
     ----------
     model : `openpile.construct.Model` object
         Model where structure and boundary conditions are defined.
-    solver: str, by default 'MNR'
-        solver. literally 'NR': "Newton-Raphson" or 'MNR': "Modified Newton-Raphson"
     max_iter: int, by defaut 100
         maximum number of iterations for convergence
 
@@ -253,8 +291,9 @@ def simple_winkler_analysis(model, solver="NR", max_iter: int = 100):
         d = np.zeros(U.shape)
 
         # initialise global stiffness matrix
-        K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
-
+        K = kernel.build_stiffness_matrix(model, f=None, u=d, kind="initial")
+        # initialise internal forces
+        q_int = np.zeros((model.element_number * 6))
         # initialise global supports vector
         supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
 
@@ -266,9 +305,7 @@ def simple_winkler_analysis(model, solver="NR", max_iter: int = 100):
 
         # incremental calculations to convergence
         iter_no = 0
-        while iter_no <= 100:
-            iter_no += 1
-
+        while iter_no <= max_iter:
             # solve system
             try:
                 u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
@@ -286,43 +323,45 @@ def simple_winkler_analysis(model, solver="NR", max_iter: int = 100):
             # add up increment displacements
             d += u_inc
 
-            # internal forces
-            K_secant = kernel.build_stiffness_matrix(model, u=d, kind="secant")
-            F_int = K_secant.dot(d)
+            # calculate internal forces
+            K_secant = kernel.build_stiffness_matrix(model, f=q_int, u=d, kind="secant")
+            F_int = -K_secant.dot(d)
 
             # calculate residual forces
-            Rg = F_ext - F_int
+            Rg = F_ext + F_int
 
             # check if converged
             if np.linalg.norm(Rg[~supports]) < 1e-4 * control:
-                print(f"Converged at iteration no. {iter_no}")
-                break
+                # do not accept convergence without iteration (without a second call to solve equations)
+                if iter_no > 0:
+                    print(f"Converged at iteration no. {iter_no}")
+                    break
 
             if iter_no == 100:
                 print("Not converged after 100 iterations.")
 
+            # Internal forces calculations with dim(nelem,6,6)
+            q_int = kernel.struct_internal_force(model, q_int, d)
+
             # re-calculate global stiffness matrix for next iterations
-            if solver == "NR":
-                K = kernel.build_stiffness_matrix(model, u=d, kind="tangent")
-            elif solver == "MNR":
-                if model.distributed_moment:
-                    pass
-                    # K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
-                else:
-                    pass
+            K = kernel.build_stiffness_matrix(model, f=q_int, u=d, kind="tangent")
 
             # reset prescribed displacements to converge properly in case
             # of displacement-driven analysis
             U[:] = 0.0
 
+            # nump iteration number
+            iter_no += 1
+
         # Internal forces calculations with dim(nelem,6,6)
-        q_int = kernel.struct_internal_force(model, d)
+        q_int = kernel.struct_internal_force(model, q_int, d)
 
         # Final results
         results = Result(
             name=f"{model.name} ({model.pile.name}/{model.soil.name})",
             displacements=disp_to_df(model, d),
             forces=structural_forces_to_df(model, q_int),
+            springs_mobilization=springs_mob_to_df(model, d),
         )
 
         return results

@@ -7,6 +7,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
+
+## [0.2.0] - 2023-XX-XX (not releaset yet)
+- new Pile constructor `openpile.construct.Pile.create_tubular` creating a 
+  circular and hollow steel pile of constant cross section.
+- new properties for `openpile.construct.Pile`: `weight` and `volume`
+- new `openpile.construct.Pile` method: `set_I()` to change the second moment of area of a given pile segment
+- new `SoilProfile.plot()` method to visualize the soil profile
+- API sand and API clay curves and models now accept `kind` instead of `Neq` arguments to differentiate between 
+  static and cyclic curves
+- create() methods in the construct module are now deprecated and should not be used anymore. Precisely, that is the 
+  case for `openpile.  construct.Pile.create()` and `openpile.construct.Model.create()`. 
+
 ## [0.1.0] - 2023-04-10
 ### Added
 - PISA sand and clay models (called Dunkirk_sand and Cowden_clay models)

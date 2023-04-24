@@ -8,23 +8,39 @@ calculations.
 This package allows the user to:
 
 * Use basic Euler-Bernoulli beam theory (as well as Timoshenko's variation) to compute 
-  forces, deflection of a beam (or a pile) under adequate loading conditions and 
+  forces, deflection of a beam (or a pile) under adequate loading and 
   support conditions.
-* Use Winkler's approach of a beam (or a pile) supported by non-linear lateral and/or 
+* Use Winkler's approach of a beam (or a pile) supported by linear or non-linear lateral and/or 
   rotational springs to compute forces and deflection of the pile based on recognised 
-  soil models such as the widely known API models for sand and clay or more recent models that stem from 
+  soil models such as the widely used traditional API models for sand and clay or more recent models that stem from 
   the PISA joint-industry project.
 
-You must have a version of python installed on your machine (supported versions: 3.7-3.10)
+This library supports the following versions of python: 3.7-3.10. 
+Python 3.11 is not supported!
+
+
+System of units
+^^^^^^^^^^^^^^^
+
+The unit system used in this library is the `International System of Units (SI) <https://en.wikipedia.org/wiki/International_System_of_Units>`_. 
+The primary units used in OpenPile are kN (kilonewton) and m (meter). 
+The documentation should show the units to the user. If there are any ambiguity, 
+please create an issue so that we can solve this.
 
 
 Installation
 ^^^^^^^^^^^^
 
+Installing OpenPile is as easy as installing well-known python packages such as Pandas or Numpy. This is done 
+via the below pip command.
+
 .. code-block:: console
 
     pip install openpile
 
+
+Some more help on installing python before OpenPile
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Via the generic Python distribution
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,7 +74,7 @@ Via the Anaconda distribution
 #. To switch to a specific environment, select it from the list and click the "Activate" button.
 #. To install a package in the environment using pip, open a terminal window by clicking the 
    "Open Terminal" button in the "Environments" tab.
-#. Use the following command to install a package using pip in the environment:
+#. Use the following command in the Anaconda command prompt or via the navigator to install a package using pip in the environment:
    
    .. code-block:: console
 
@@ -76,7 +92,7 @@ represent real-world situations or account for all possible variables and condit
 
 Users of this package assume all responsibility and liability for any consequences
 resulting from its use. The developers and contributors of this package make no 
-warranties or guarantees, express or implied, regarding its accuracy, reliability,
+warranties or guarantees, expressed or implied, regarding its accuracy, reliability,
 or fitness for any particular purpose.
 
 Users should exercise caution and use their professional judgement when interpreting

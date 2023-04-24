@@ -12,15 +12,14 @@ an interactive experience.
 Example 1 - Create a pile 
 =========================
 
-A pile can be created in the following way in openpile. It is strongly advised to use 
-the :py:meth:`openpile.construct.Pile.create` constructor to ensure that data validation and post-processing of the object is performed.
+A pile can be created in the simple following way in openpile. 
 
 .. code-block:: python
 
     from openpile.construct import Pile
 
     # Create a pile instance with two sections of respectively 10m and 30m length.
-    pile = Pile.create(name = "",
+    pile = Pile(name = "",
             kind='Circular',
             material='Steel',
             top_elevation = 0,
@@ -30,6 +29,11 @@ the :py:meth:`openpile.construct.Pile.create` constructor to ensure that data va
                 'wall thickness':[0.07, 0.08],
             }
         )
+
+Additional methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
+For instance:
+
+* :py:meth:`openpile.construct.Pile.create_tubular` which creates a circular pile of constant diameter.
 
 Once the pile (object) is created, the user can use its properties and methods to interact with it. 
 A simple view of the pile can be extracted by printing the object as below: 
@@ -64,28 +68,28 @@ axial or lateral loading.
     # Check updated second moment of area
     print(pile)
         Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0           7.5               <NA>  1.633942    1.11
-    1          -10.0           7.5               <NA>  1.633942    1.11
-    2          -10.0           7.5               <NA>  1.864849    1.11
-    3          -40.0           7.5               <NA>  1.864849    1.11
+    0            0.0           7.5               0.07  1.633942    1.11
+    1          -10.0           7.5               0.07  1.633942    1.11
+    2          -10.0           7.5               0.08  1.864849    1.11
+    3          -40.0           7.5               0.08  1.864849    1.11
     # Override pile's width or pile's diameter [in meters]
     pile.width = 2.22
     # Check updated width or diameter
     print(pile)
         Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          2.22               <NA>  1.633942    1.11
-    1          -10.0          2.22               <NA>  1.633942    1.11
-    2          -10.0          2.22               <NA>  1.864849    1.11
-    3          -40.0          2.22               <NA>  1.864849    1.11
+    0            0.0          2.22               0.07  1.633942    1.11
+    1          -10.0          2.22               0.07  1.633942    1.11
+    2          -10.0          2.22               0.08  1.864849    1.11
+    3          -40.0          2.22               0.08  1.864849    1.11
     # Override pile's area  [in meters^2]
     pile.area = 1.0
     # Check updated width or diameter
     print(pile)
         Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          2.22               <NA>       1.0    1.11
-    1          -10.0          2.22               <NA>       1.0    1.11
-    2          -10.0          2.22               <NA>       1.0    1.11
-    3          -40.0          2.22               <NA>       1.0    1.11
+    0            0.0          2.22               0.07       1.0    1.11
+    1          -10.0          2.22               0.07       1.0    1.11
+    2          -10.0          2.22               0.08       1.0    1.11
+    3          -40.0          2.22               0.08       1.0    1.11
 
 
 
@@ -97,11 +101,14 @@ Example 2 - Calculate and plot a p-y curve
 openpile allows for quick access to soil curves. The below example shows
 how one can quickly calculate a soil spring at a given elevation and plot it.
 
-The different curves available can be found in:
+The different curves available can be found in the below modules.
 
-* :py:mod:`openpile.utils.py_curves`
-* :py:mod:`openpile.utils.mt_curves`
-* :py:mod:`openpile.utils.tz_curves`
+* :py:mod:`openpile.utils.py_curves` (distributed lateral curves)
+* :py:mod:`openpile.utils.mt_curves` (distributed rotational curves)
+* :py:mod:`openpile.utils.tz_curves` (distributed axial curves)
+* :py:mod:`openpile.utils.qz_curves` (base axial curves)
+* :py:mod:`openpile.utils.Hb_curves` (base shear curves)
+* :py:mod:`openpile.utils.Mb_curves` (base moment curves)
 
 Here below is an example of a quick check of how a static curve for the 
 API sand model looks like.
@@ -178,7 +185,7 @@ Example 4 - Create a soil profile
     sp = SoilProfile(
         name="Offshore Soil Profile",
         top_elevation=0,
-        water_elevation=15,
+        water_line=15,
         layers=[
             Layer(
                 name='medium dense sand',
@@ -237,7 +244,7 @@ Example 5 - Create a Model and run an analysis
     from openpile.soilmodels import API_clay, API_sand
 
     # Create a pile instance with two sections of respectively 10m and 30m length.
-    p = Pile.create(name = "",
+    p = Pile(name = "",
             kind='Circular',
             material='Steel',
             top_elevation = 0,
@@ -252,7 +259,7 @@ Example 5 - Create a Model and run an analysis
     sp = SoilProfile(
         name="Offshore Soil Profile",
         top_elevation=0,
-        water_elevation=15,
+        water_line=15,
         layers=[
             Layer(
                 name='medium dense sand',
@@ -272,7 +279,7 @@ Example 5 - Create a Model and run an analysis
     )
 
     # Create Model 
-    M = Model.create(name="", pile=p, soil=sp)
+    M = Model(name="", pile=p, soil=sp)
 
     # Apply bottom fixity along x-axis 
     M.set_support(elevation=-40, Tx = True)

@@ -4,13 +4,13 @@ API
 
 .. automodule:: openpile.construct
     :members:
-    :exclude-members: __init__, PydanticConfig, soil_and_pile_bottom_elevation_match
-
+    :exclude-members: __init__, PydanticConfig, soil_and_pile_bottom_elevation_match, create
 
 .. automodule:: openpile.soilmodels
     :members: 
-    :exclude-members: __init__, PydanticConfig, PydanticConfigFrozen, ConstitutiveModel, LateralModel, AxialModel
-
+    :exclude-members: __init__, PydanticConfig, PydanticConfigFrozen, ConstitutiveModel, 
+                      LateralModel, AxialModel, py_spring_fct, mt_spring_fct, Hb_spring_fct, 
+                      Mb_spring_fct, spring_signature
 
 .. automodule:: openpile.analyses
     :members: 

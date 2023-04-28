@@ -92,8 +92,11 @@ def test_api_clay(make_pmax_api_clay,xsigma, xX, xSu, xe50, xD, xJ, xkind):
     #check if origin is (0,0)
     assert p[0] == 0.0
     assert y[0] == 0.0
-    #calculate pmax
+    #check initial stiffness
     pmax = make_pmax_api_clay(xsigma,xX,xSu,xD,xJ)
+    kini = 0.23*pmax/(0.25*xe50*xD)
+    assert m.isclose( (p[1]-p[0])/(y[1]-y[0]), kini, rel_tol=0.02 )
+    #calculate pmax
     #check residual and max p
     Xr = max((6 * xD) / (xsigma / xX * xD / xSu + xJ), 2.5 * xD)
 
@@ -110,3 +113,4 @@ def test_api_clay(make_pmax_api_clay,xsigma, xX, xSu, xe50, xD, xJ, xkind):
         pu = pmax
     assert m.isclose(p[-1],pres, rel_tol=0.01, abs_tol=0.1)
     assert m.isclose(np.max(p), pu, rel_tol=0.01, abs_tol=0.1)
+

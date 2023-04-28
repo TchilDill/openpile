@@ -19,7 +19,8 @@ def api_clay(
     Su: float,
     D: float,
     residual: float = 0.9,
-    output_length: int = 8,
+    tensile_factor: float = 1.0,
+    output_length: int = 15,
 ):
     """
     Creates the API clay t-z curve from relevant input.
@@ -35,8 +36,10 @@ def api_clay(
     residual: float
         residual strength after peak strength, according to API-RP-2A,
         this value is between 0.7 and 0.9, default to 0.9
+    tensile_factor: float
+        strength factor for negative values of the curve
     output_length : int, optional
-        Number of discrete point along the springs, cannot be lower than 7, by default 7
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
 
     Returns
     -------
@@ -45,9 +48,9 @@ def api_clay(
     numpy 1darray
         z vector [unit: m]
     """
-    # cannot have less than 8
-    if output_length < 8:
-        output_length = 8
+    # cannot have less than 15
+    if output_length < 15:
+        output_length = 15
 
     # important variables
     if sig == 0.0:
@@ -69,9 +72,10 @@ def api_clay(
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32) * D
-
+    z = np.concatenate((-z[-1:0:-1],z))
     # define t vector
     t = np.array(tlist, dtype=np.float32) * f
+    t = np.concatenate((-tensile_factor*t[-1:0:-1],t))
 
     add_values = output_length - len(z)
     add_z_values = np.zeros((add_values), dtype=np.float32)
@@ -98,7 +102,8 @@ def api_sand(
     sig: float,
     delta: float,
     K: float = 0.8,
-    output_length: int = 4,
+    tensile_factor: float = 1.0,
+    output_length: int = 7,
 ):
     """
     Creates the API sand t-z curve from relevant input.
@@ -111,8 +116,10 @@ def api_sand(
         interface friction angle [unit: degrees]
     K: float
         coefficient of lateral pressure (0.8 for open-ended piles and 1.0 for cloased-ended)
+    tensile_factor: float
+        strength factor for negative values of the curve
     output_length : int, optional
-        Number of discrete point along the springs, cannot be lower than 4, by default 4
+        Number of discrete point along the springs, cannot be lower than 7, by default 7
 
     Returns
     -------
@@ -121,9 +128,9 @@ def api_sand(
     numpy 1darray
         z vector [unit: m]
     """
-    # cannot have less than 4
-    if output_length < 4:
-        output_length = 4
+    # cannot have less than 7
+    if output_length < 7:
+        output_length = 7
 
     # important variables
     delta_table = np.array([0, 15, 20, 25, 30, 35, 100], dtype=np.float32)
@@ -141,9 +148,10 @@ def api_sand(
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32)
-
+    z = np.concatenate((-z[-1:0:-1],z))
     # define t vector
     t = np.array(tlist, dtype=np.float32) * f
+    t = np.concatenate((-tensile_factor*t[-1:0:-1],t))
 
     add_values = output_length - len(z)
     add_z_values = np.zeros((add_values), dtype=np.float32)

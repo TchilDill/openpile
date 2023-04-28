@@ -32,7 +32,7 @@ def api_sand(
     D : float
         Pile diameter [unit: m]
     output_length : int, optional
-        Number of discrete point along the springs, cannot be lower than 7, by default 7
+        Number of discrete point along the springs, cannot be lower than 8, by default 8
 
     Returns
     -------
@@ -41,9 +41,9 @@ def api_sand(
     numpy 1darray
         z vector [unit: m]
     """
-    # cannot have less than 7
-    if output_length < 7:
-        output_length = 7
+    # cannot have less than 8
+    if output_length < 8:
+        output_length = 8
 
     # important variables
     delta_table = np.array([0, 15, 20, 25, 30, 35, 100], dtype=np.float32)
@@ -57,8 +57,8 @@ def api_sand(
     f = min(Qmax, sig * Nq)
 
     # piecewise function
-    zlist = [0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]
-    Qlist = [0.0, 0.25, 0.50, 0.75, 0.90, 1.00, 1.00]
+    zlist = [-0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]
+    Qlist = [0.0, 0.0, 0.25, 0.50, 0.75, 0.90, 1.00, 1.00]
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32) * D
@@ -102,7 +102,7 @@ def api_clay(
     D: float
         Pile diameter [unit: m]
     output_length : int, optional
-        Number of discrete point along the springs, cannot be lower than 7, by default 7
+        Number of discrete point along the springs, cannot be lower than 8, by default 8
 
     Returns
     -------
@@ -111,16 +111,16 @@ def api_clay(
     numpy 1darray
         z vector [unit: m]
     """
-    # cannot have less than 7
-    if output_length < 7:
-        output_length = 7
+    # cannot have less than 8
+    if output_length < 8:
+        output_length = 8
 
     # Unit end-bearing [kPa]
     f = 9 * Su
 
     # piecewise function
-    zlist = [0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]
-    Qlist = [0.0, 0.25, 0.50, 0.75, 0.90, 1.00, 1.00]
+    zlist = [-0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]
+    Qlist = [0.0, 0.0, 0.25, 0.50, 0.75, 0.90, 1.00, 1.00]
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32) * D

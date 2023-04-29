@@ -11,6 +11,8 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 ## [0.3.0] - 2023-XX-XX (not releaset yet)
 - ??? new method to retrieve the p-y mobilisation of springs in Results via the `.py_mobilization()`
 - ??? new plot for py mob?
+- update to the connectivity plot `openpile.construct.Model.plot()` that adds the soil profile to the plot if a soil profile is fed to the model.
+- tz-curves are new
 
 
 ## [0.2.0] - 2023-04-24

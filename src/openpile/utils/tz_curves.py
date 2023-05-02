@@ -72,10 +72,10 @@ def api_clay(
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32) * D
-    z = np.concatenate((-z[-1:0:-1],z))
+    z = np.concatenate((-z[-1:0:-1], z))
     # define t vector
     t = np.array(tlist, dtype=np.float32) * f
-    t = np.concatenate((-tensile_factor*t[-1:0:-1],t))
+    t = np.concatenate((-tensile_factor * t[-1:0:-1], t))
 
     add_values = output_length - len(z)
     add_z_values = np.zeros((add_values), dtype=np.float32)
@@ -148,10 +148,10 @@ def api_sand(
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32)
-    z = np.concatenate((-z[-1:0:-1],z))
+    z = np.concatenate((-z[-1:0:-1], z))
     # define t vector
     t = np.array(tlist, dtype=np.float32) * f
-    t = np.concatenate((-tensile_factor*t[-1:0:-1],t))
+    t = np.concatenate((-tensile_factor * t[-1:0:-1], t))
 
     add_values = output_length - len(z)
     add_z_values = np.zeros((add_values), dtype=np.float32)

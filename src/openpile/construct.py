@@ -186,7 +186,7 @@ class Pile:
 
     def __str__(self):
         return self.data.to_string()
-    
+
     @property
     def bottom_elevation(self) -> float:
         """
@@ -292,7 +292,6 @@ class Pile:
             print("Please first create the pile with the Pile.create() method")
         except Exception as e:
             print(e)
-
 
     @classmethod
     def create(
@@ -402,7 +401,6 @@ class Pile:
 
         return obj
 
-
     def set_I(self, value: float, section: int) -> None:
         """set second moment of area for a particular section of the pile.
 
@@ -428,7 +426,6 @@ class Pile:
         except Exception as e:
             raise Exception
 
-
     def plot(self, assign=False):
         """Creates a plot of the pile with the properties.
 
@@ -451,7 +448,6 @@ class Pile:
         """
         fig = graphics.pile_plot(self)
         return fig if assign else None
-
 
 
 @dataclass(config=PydanticConfig)
@@ -674,7 +670,7 @@ class SoilProfile:
         return self.top_elevation - sum([abs(x.top - x.bottom) for x in self.layers])
 
     def plot(self, assign=False):
-        """Creates a plot illustrating the stratigraphy.  
+        """Creates a plot illustrating the stratigraphy.
 
         Parameters
         ----------
@@ -799,7 +795,7 @@ class Model:
 
     @root_validator(skip_on_failure=True)
     def soil_and_pile_bottom_elevation_match(cls, values):  # pylint: disable=no-self-argument
-        if values['soil'] is None:
+        if values["soil"] is None:
             pass
         else:
             if values["pile"].bottom_elevation < values["soil"].bottom_elevation:
@@ -1177,10 +1173,8 @@ class Model:
         if self.soil is None:
             return self.pile.top_elevation
         else:
-            return max(self.pile.top_elevation,
-                        self.soil.top_elevation,
-                        self.soil.water_line)
-            
+            return max(self.pile.top_elevation, self.soil.top_elevation, self.soil.water_line)
+
     @property
     def bottom(self) -> float:
         """bottom elevation of the model [m].
@@ -1193,9 +1187,7 @@ class Model:
         if self.soil is None:
             return self.pile.bottom_elevation
         else:
-            return min(self.pile.bottom_elevation,
-                        self.soil.bottom_elevation)
-            
+            return min(self.pile.bottom_elevation, self.soil.bottom_elevation)
 
     def get_structural_properties(self) -> pd.DataFrame:
         """
@@ -1218,7 +1210,6 @@ class Model:
             print("Data not found. Please create Model with the Model.create() method.")
         except Exception as e:
             print(e)
-
 
     def get_pointload(self, output=False, verbose=True):
         """
@@ -1526,4 +1517,3 @@ class Model:
 
     def __str__(self):
         return self.element_properties.to_string()
-

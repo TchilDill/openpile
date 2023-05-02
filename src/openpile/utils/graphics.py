@@ -317,6 +317,12 @@ def connectivity_plot(model):
 
     if model.soil is not None:
 
+        ax.set_ylim(
+            min(model.bottom,ylim[0]) - 0.11 * total_length, 
+            max(model.top,ylim[1]) + 0.11 * total_length
+            )
+
+
         for layer in model.soil.layers:
             ax.add_patch(
                 Rectangle(

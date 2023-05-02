@@ -186,6 +186,113 @@ class Pile:
 
     def __str__(self):
         return self.data.to_string()
+    
+    @property
+    def bottom_elevation(self) -> float:
+        """
+        Bottom elevation of the pile [m VREF].
+        """
+        return self.top_elevation - sum(self.pile_sections["length"])
+
+    @property
+    def length(self) -> float:
+        """
+        Pile length [m].
+        """
+        return sum(self.pile_sections["length"])
+
+    @property
+    def volume(self) -> float:
+        """
+        Pile volume [m3].
+        """
+        A = self.data["Area [m2]"].values[1:]
+        L = np.abs(np.diff(self.data["Elevation [m]"].values))
+        return round((A * L).sum(), 2)
+
+    @property
+    def weight(self) -> float:
+        """
+        Pile weight [kN].
+        """
+        return round(self.volume * self._uw, 2)
+
+    @property
+    def E(self) -> float:
+        """
+        Young modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
+        """
+        try:
+            return self._young_modulus
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @E.setter
+    def E(self, value: float) -> None:
+        try:
+            self._young_modulus = value
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @property
+    def I(self) -> float:
+        """
+        Second moment of area of the pile [m4].
+
+        The user can use the method :py:meth:`openpile.construct.Pile.set_I` to customise the second
+        moment of area for different sections of the pile.
+        """
+        try:
+            return self.data["I [m4]"]
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @property
+    def width(self) -> float:
+        """
+        Width of the pile [m]. (Used to compute soil springs)
+        """
+        try:
+            return self.data.loc[:, "Diameter [m]"]
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @width.setter
+    def width(self, value: float) -> None:
+        try:
+            self.data.loc[:, "Diameter [m]"] = value
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @property
+    def area(self) -> float:
+        "Sectional area of the pile [m2]"
+        try:
+            return self.data.loc[:, "Area [m2]"]
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+    @area.setter
+    def area(self, value: float) -> None:
+        try:
+            self.data.loc[:, "Area [m2]"] = value
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
 
     @classmethod
     def create(
@@ -295,71 +402,6 @@ class Pile:
 
         return obj
 
-    @property
-    def bottom_elevation(self) -> float:
-        """
-        Bottom elevation of the pile [m VREF].
-        """
-        return self.top_elevation - sum(self.pile_sections["length"])
-
-    @property
-    def length(self) -> float:
-        """
-        Pile length [m].
-        """
-        return sum(self.pile_sections["length"])
-
-    @property
-    def volume(self) -> float:
-        """
-        Pile volume [m3].
-        """
-        A = self.data["Area [m2]"].values[1:]
-        L = np.abs(np.diff(self.data["Elevation [m]"].values))
-        return round((A * L).sum(), 2)
-
-    @property
-    def weight(self) -> float:
-        """
-        Pile weight [kN].
-        """
-        return round(self.volume * self._uw, 2)
-
-    @property
-    def E(self) -> float:
-        """
-        Young modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
-        """
-        try:
-            return self._young_modulus
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @E.setter
-    def E(self, value: float) -> None:
-        try:
-            self._young_modulus = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
-    def I(self) -> float:
-        """
-        Second moment of area of the pile [m4].
-
-        The user can use the method :py:meth:`openpile.construct.Pile.set_I` to customise the second
-        moment of area for different sections of the pile.
-        """
-        try:
-            return self.data["I [m4]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
 
     def set_I(self, value: float, section: int) -> None:
         """set second moment of area for a particular section of the pile.
@@ -386,45 +428,6 @@ class Pile:
         except Exception as e:
             raise Exception
 
-    @property
-    def width(self) -> float:
-        """
-        Width of the pile [m]. (Used to compute soil springs)
-        """
-        try:
-            return self.data.loc[:, "Diameter [m]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @width.setter
-    def width(self, value: float) -> None:
-        try:
-            self.data.loc[:, "Diameter [m]"] = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
-    def area(self) -> float:
-        "Sectional area of the pile [m2]"
-        try:
-            return self.data.loc[:, "Area [m2]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @area.setter
-    def area(self, value: float) -> None:
-        try:
-            self.data.loc[:, "Area [m2]"] = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
 
     def plot(self, assign=False):
         """Creates a plot of the pile with the properties.
@@ -448,6 +451,7 @@ class Pile:
         """
         fig = graphics.pile_plot(self)
         return fig if assign else None
+
 
 
 @dataclass(config=PydanticConfig)
@@ -802,28 +806,6 @@ class Model:
                 raise UserWarning("The pile ends deeper than the soil profile.")
         return values
 
-    def get_structural_properties(self) -> pd.DataFrame:
-        """
-        Returns a table with the structural properties of the pile sections.
-        """
-        try:
-            return self.element_properties
-        except AttributeError:
-            print("Data not found. Please create Model with the Model.create() method.")
-        except Exception as e:
-            print(e)
-
-    def get_soil_properties(self) -> pd.DataFrame:
-        """
-        Returns a table with the soil main properties and soil models of each element.
-        """
-        try:
-            return self.soil_properties
-        except AttributeError:
-            print("Data not found. Please create Model with the Model.create() method.")
-        except Exception as e:
-            print(e)
-
     def __post_init__(self):
         def check_springs(arr):
             check_nan = np.isnan(arr).any()
@@ -1152,6 +1134,91 @@ class Model:
         self.global_restrained["Ty"] = False
         self.global_restrained["Rz"] = False
 
+    @property
+    def py_springs(self) -> pd.DataFrame:
+        """Table with p-y springs computed for the given Model.
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with p-y springs, i.e. p-value [kN/m] and y-value [m].
+        """
+        if self.soil is None:
+            return None
+        else:
+            return misc.get_springs(
+                springs=self._py_springs,
+                elevations=self.nodes_coordinates["x [m]"].values,
+                kind="p-y",
+            )
+
+    @property
+    def embedment(self) -> float:
+        """Pile embedment length [m].
+
+        Returns
+        -------
+        float (or None if no SoilProfile is present)
+            Pile embedment
+        """
+        if self.soil is None:
+            return None
+        else:
+            return self.soil.top_elevation - self.pile.bottom_elevation
+
+    @property
+    def top(self) -> float:
+        """top elevation of the model [m].
+
+        Returns
+        -------
+        float
+        """
+        if self.soil is None:
+            return self.pile.top_elevation
+        else:
+            return max(self.pile.top_elevation,
+                        self.soil.top_elevation,
+                        self.soil.water_line)
+            
+    @property
+    def bottom(self) -> float:
+        """bottom elevation of the model [m].
+
+        Returns
+        -------
+        float
+        """
+
+        if self.soil is None:
+            return self.pile.bottom_elevation
+        else:
+            return min(self.pile.bottom_elevation,
+                        self.soil.bottom_elevation)
+            
+
+    def get_structural_properties(self) -> pd.DataFrame:
+        """
+        Returns a table with the structural properties of the pile sections.
+        """
+        try:
+            return self.element_properties
+        except AttributeError:
+            print("Data not found. Please create Model with the Model.create() method.")
+        except Exception as e:
+            print(e)
+
+    def get_soil_properties(self) -> pd.DataFrame:
+        """
+        Returns a table with the soil main properties and soil models of each element.
+        """
+        try:
+            return self.soil_properties
+        except AttributeError:
+            print("Data not found. Please create Model with the Model.create() method.")
+        except Exception as e:
+            print(e)
+
 
     def get_pointload(self, output=False, verbose=True):
         """
@@ -1460,34 +1527,3 @@ class Model:
     def __str__(self):
         return self.element_properties.to_string()
 
-    @property
-    def py_springs(self) -> pd.DataFrame:
-        """Table with p-y springs computed for the given Model.
-
-        Returns
-        -------
-        pd.DataFrame (or None if no SoilProfile is present)
-            Table with p-y springs, i.e. p-value [kN/m] and y-value [m].
-        """
-        if self.soil is None:
-            return None
-        else:
-            return misc.get_springs(
-                springs=self._py_springs,
-                elevations=self.nodes_coordinates["x [m]"].values,
-                kind="p-y",
-            )
-
-    @property
-    def embedment(self) -> float:
-        """Pile embedment length [m].
-
-        Returns
-        -------
-        float (or None if no SoilProfile is present)
-            Pile embedment
-        """
-        if self.soil is None:
-            return None
-        else:
-            return self.soil.top_elevation - self.pile.bottom_elevation

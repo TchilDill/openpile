@@ -63,10 +63,11 @@ def plot_results(result):
 
 def soil_plot(SoilProfile):
     def add_soil_profile(SoilProfile, ax, pile=None):
+
         ax.set_title(label=f"Soil Profile overview - {SoilProfile.name}")
+        ax.set_xlim(left=0, right=1)
 
         # make data
-        ax.set_xlim(left=0, right=1)
         offset = 5
         yBot = SoilProfile.bottom_elevation
         if pile is None:
@@ -86,12 +87,13 @@ def soil_plot(SoilProfile):
         for layer in SoilProfile.layers:
             ax.add_patch(
                 Rectangle(
-                    xy=(0, layer.bottom),
-                    width=1,
+                    xy=(-100, layer.bottom),
+                    width=200,
                     height=layer.top - layer.bottom,
                     facecolor=layer.color,
                 )
             )
+
             ax.text(
                 0.02,
                 0.5 * (layer.top + layer.bottom),
@@ -99,13 +101,22 @@ def soil_plot(SoilProfile):
                 bbox={"facecolor": [0.98, 0.96, 0.85], "alpha": 1, "edgecolor": "none", "pad": 1},
             )
 
+        ax.plot(
+            np.array([-100, 0.1, 100]),
+            SoilProfile.water_line + np.zeros((3)),
+            mfc="dodgerblue",
+            marker=7,
+            linewidth=1,
+            color="dodgerblue",
+        )
+
         # grid
         ax.minorticks_on()
         ax.grid()
         ax.grid(axis="y", which="minor", color=[0.75, 0.75, 0.75], linestyle="-", linewidth=0.5)
 
         ax.plot(
-            np.array([-1, 0.1, 2]),
+            np.array([-100, 0.1, 100]),
             SoilProfile.water_line + np.zeros((3)),
             mfc="dodgerblue",
             marker=7,
@@ -177,10 +188,10 @@ def connectivity_plot(model):
     y = model.nodes_coordinates["y [m]"]
     ax.plot(y, x, "-k", marker="+")
 
-    total_length = max(
-        (model.nodes_coordinates["x [m]"].max() - model.nodes_coordinates["x [m]"].min()),
-        (model.nodes_coordinates["y [m]"].max() - model.nodes_coordinates["y [m]"].min()),
-    )
+    total_length = (
+        (model.nodes_coordinates["x [m]"].max() - model.nodes_coordinates["x [m]"].min()) ** 2
+        + (model.nodes_coordinates["y [m]"].max() - model.nodes_coordinates["y [m]"].min()) ** 2
+    ) ** (0.5)
 
     ylim = ax.get_ylim()
 
@@ -300,10 +311,48 @@ def connectivity_plot(model):
                         )
                     )
 
+    ax.set_ylim(ylim[0] - 0.11 * total_length, ylim[1] + 0.11 * total_length)
+
+    if model.soil is not None:
+
+        ax.set_ylim(
+            min(model.bottom, ylim[0]) - 0.11 * total_length,
+            max(model.top, ylim[1]) + 0.11 * total_length,
+        )
+
+        for layer in model.soil.layers:
+            ax.add_patch(
+                Rectangle(
+                    xy=(-2 * total_length, layer.bottom),
+                    width=4 * total_length,
+                    height=layer.top - layer.bottom,
+                    facecolor=layer.color,
+                    alpha=0.4,
+                )
+            )
+
+            ax.text(
+                -1 * total_length,
+                0.5 * (layer.top + layer.bottom) + 0.1 * (layer.top - layer.bottom),
+                layer.name,
+                bbox={"facecolor": [0.98, 0.96, 0.85], "alpha": 1, "edgecolor": "none", "pad": 1},
+            )
+
+            ax.plot(
+                np.array([-2 * total_length, -0.6 * total_length, 2 * total_length]),
+                model.soil.water_line + np.zeros((3)),
+                mfc="dodgerblue",
+                marker=7,
+                linewidth=1,
+                color="dodgerblue",
+            )
+        ax.set_xlim((-0.7 * total_length, 0.3 * total_length))
+
+    else:
+        ax.set_xlim((-0.5 * total_length, 0.5 * total_length))
+
     for arrow in arrows:
         ax.add_patch(arrow)
-
-    ax.set_ylim(ylim[0] - 0.11 * total_length, ylim[1] + 0.11 * total_length)
 
     return fig
 

@@ -1,10 +1,15 @@
 from setuptools import setup
 from pathlib import Path
-import openpile
+import re
 
 if __name__ == "__main__":
+    version = re.findall(
+        r'VERSION = "(\d+.\d+.\d+[^"]*)"',
+        Path("src/openpile/globals.py").read_text(encoding="utf-8"),
+    )[0]
+
     setup(
-        version=openpile.__version__,
+        version=version,
         long_description=Path("README.md").read_text(encoding="utf-8"),
         long_description_content_type="text/markdown",
         project_urls={

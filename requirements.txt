@@ -44,7 +44,7 @@ mypy-extensions==1.0.0
 nest-asyncio==1.5.6
 numba==0.56.4
 numpy==1.21.6
--e git+https://github.com/TchilDill/openpile.git@1fecd41a8abbcea2e6d06b087eec031cbfc45ea0#egg=openpile
+-e git+https://github.com/TchilDill/openpile.git
 packaging==23.0
 pandas==1.3.5
 parso==0.8.3

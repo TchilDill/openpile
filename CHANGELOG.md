@@ -8,7 +8,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 
-## [0.2.0] - 2023-XX-XX (not releaset yet)
+## [0.4.0] - 2023-XX-XX (not released yet) 
+- *blank*
+
+## [0.3.0] - 2023-05-02 
+- new method to retrieve the p-y mobilisation of springs in Results via the `.py_mobilization()`
+- update to the connectivity plot `openpile.construct.Model.plot()` that adds the soil profile to the plot 
+  if a soil profile is fed to the model.
+- tz- and Qz-curves following the well-known API standards are now included in `openpile.utils`
+- updates to the documentation
+- API p-y curves now officially unit tested
+
+## [0.2.0] - 2023-04-24
 - new Pile constructor `openpile.construct.Pile.create_tubular` creating a 
   circular and hollow steel pile of constant cross section.
 - new properties for `openpile.construct.Pile`: `weight` and `volume`

@@ -48,7 +48,7 @@ A simple view of the pile can be extracted by printing the object as below:
     2          -10.0           7.5                0.08   1.864849  12.835479
     3          -40.0           7.5                0.08   1.864849  12.835479
 
-The user can also extract easily the pile's length, its elevations and other properties.
+The user can also extract easily the pile length, elevations and other properties.
 Please see the :py:class:`openpile.construct.Pile`
 
 
@@ -113,10 +113,9 @@ The different curves available can be found in the below modules.
 Here below is an example of a quick check of how a static curve for the 
 API sand model looks like.
 
-
 .. code-block:: python
     
-    import matplotlib.pyplot as plt
+    # import p-y curve for api_sand from openpile.utils
     from openpile.utils.py_curves import api_sand
 
     p, y = api_sand(sig=50, # vertical stress in kPa 
@@ -124,11 +123,14 @@ API sand model looks like.
                     phi = 35, # internal angle of friction 
                     D = 5, # the pile diameter
                     below_water_table=True, # use initial subgrade modulus under water
-                    Neq=1, # static curve
+                    kind="static", # static curve
                     )
 
+    # create a plot of the results with Matplotlib
+    import matplotlib.pyplot as plt
+
     plt.plot(y,p)
-    plt.ylabel('p [kN/m/m]')
+    plt.ylabel('p [kN/m]')
     plt.xlabel('y [m]')
 
 .. image:: _static/usage/pycurves/api_sand_example_build.png
@@ -153,7 +155,7 @@ A Lateral and/or Axial soil model can be assigned to a layer.
                 top=0,
                 bottom=-10,
                 weight=18,
-                lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100), )
+                lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], kind="static"), )
 
     print(layer1)
 
@@ -167,7 +169,7 @@ Printing the layer would give the following output:
     Lateral model: 	API clay
         Su = 30.0-35.0 kPa
         eps50 = 0.01-0.02
-        Cyclic, N = 100 cycles
+        static curves
     Axial model: None
 
 
@@ -192,14 +194,14 @@ Example 4 - Create a soil profile
                 top=0,
                 bottom=-20,
                 weight=18,
-                lateral_model= API_sand(phi=33, Neq=100)
+                lateral_model= API_sand(phi=33, kind="cyclic")
             ),
             Layer(
                 name='firm clay',
                 top=-20,
                 bottom=-40,
                 weight=18,
-                lateral_model= API_clay(Su=[50, 70], eps50=0.015, Neq=100)
+                lateral_model= API_clay(Su=[50, 70], eps50=0.015, kind="cyclic")
             ),
         ]
     )
@@ -217,7 +219,7 @@ The output of the print out will yield the following:
     Weight: 18.0 kN/m3
     Lateral model: 	API sand
         phi = 33.0°
-        Cyclic, N = 100 cycles
+        cyclic curves
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Layer 2
@@ -228,7 +230,7 @@ The output of the print out will yield the following:
     Lateral model: 	API clay
         Su = 50.0-70.0 kPa
         eps50 = 0.015
-        Cyclic, N = 100 cycles
+        cyclic curves
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -243,17 +245,10 @@ Example 5 - Create a Model and run an analysis
     from openpile.construct import Pile, SoilProfile, Layer, Model
     from openpile.soilmodels import API_clay, API_sand
 
-    # Create a pile instance with two sections of respectively 10m and 30m length.
-    p = Pile(name = "",
-            kind='Circular',
-            material='Steel',
-            top_elevation = 0,
-            pile_sections={
-                'length':[10,30],
-                'diameter':[7.5,7.5],
-                'wall thickness':[0.07, 0.08],
-            }
-        )
+
+    p = Pile.create_tubular(
+        name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=7.5, wt=0.075
+    )
 
     # Create a 40m deep offshore Soil Profile with a 15m water column
     sp = SoilProfile(
@@ -262,38 +257,47 @@ Example 5 - Create a Model and run an analysis
         water_line=15,
         layers=[
             Layer(
-                name='medium dense sand',
+                name="medium dense sand",
                 top=0,
                 bottom=-20,
                 weight=18,
-                lateral_model= API_sand(phi=33, Neq=100)
+                lateral_model=API_sand(phi=33, kind="cyclic"),
             ),
             Layer(
-                name='firm clay',
+                name="firm clay",
                 top=-20,
                 bottom=-40,
                 weight=18,
-                lateral_model= API_clay(Su=[50, 70], eps50=0.015, Neq=100)
+                lateral_model=API_clay(Su=[50, 70], eps50=0.015, kind="cyclic"),
             ),
-        ]
+        ],
     )
 
-    # Create Model 
-    M = Model(name="", pile=p, soil=sp)
+    # Create Model
+    M = Model(name="<model name>", pile=p, soil=sp)
 
-    # Apply bottom fixity along x-axis 
-    M.set_support(elevation=-40, Tx = True)
+    # Apply bottom fixity along x-axis
+    M.set_support(elevation=-40, Tx=True)
     # Apply axial and lateral loads
-    M.set_pointload(elevation=0,Px=-20e3, Py = 5e3)
+    M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
 
     # Run analysis
     from openpile.analyses import simple_winkler_analysis
-
     Result = simple_winkler_analysis(M)
 
+    # plot the results
     Result.plot()
 
 .. image:: _static/usage/analyses_plots/main_results_plot.png
     :width: 65%
 
+Finally, if one would like to check the input of the model, a quick visual on this
+can be provided by simply plotting the model.
 
+.. code-block:: python
+
+    # plot the model (mesh, boundary conditions and soil profile)
+    M.plot()
+
+.. image:: _static/usage/analyses_plots/model_plot_with_soil.png
+    :width: 65%

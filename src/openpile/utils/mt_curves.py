@@ -65,7 +65,7 @@ def cowden_clay(
     t, m = conic(psi_max, n, k, m_max, output_length)
 
     # return non-normalised curve
-    return m * (Su * D**2), t * (Su / G0)
+    return m * (Su * D), t * (Su / G0)
 
 
 @njit(cache=True)

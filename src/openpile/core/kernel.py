@@ -629,11 +629,13 @@ def build_stiffness_matrix(model, f, u=None, kind=None):
 
     K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
 
-    if model.base_shear:
-        K[-2:-2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
+    # add soil contribution
+    if model.soil is not None:
+        if model.base_shear:
+            K[-2,-2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
 
-    if model.base_moment:
-        K[-1:-1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
+        if model.base_moment:
+            K[-1,-1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
 
     return K
 
@@ -675,11 +677,11 @@ def struct_internal_force(model, f, u) -> np.ndarray:
         kind = "secant"
         if model.distributed_lateral:
             k += elem_py_stiffness_matrix(model, u, kind)
-        elif model.distributed_moment:
+        if model.distributed_moment:
             k += elem_mt_stiffness_matrix(model, u, kind)
-        elif model.base_shear:
+        if model.base_shear:
             k[-1, -2, -2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
-        elif model.base_moment:
+        if model.base_moment:
             k[-1, -1, -1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
 
     # create array u of shape [n_elem x 6 x 1]

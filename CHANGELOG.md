@@ -11,9 +11,14 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 ## [0.4.0] - 2023-XX-XX (not released yet) 
 - *blank*
 
+## [0.3.2] - 2023-05-xx 
+- fixed bug in the kernel when applying base springs.
+- clean up some part of the root directory
+- benchmark for Cowden Clay soil model against literature from Byrne et al (2020).
+
 ## [0.3.1] - 2023-05-16 
-- fixed bug in `openpile.utils.mtcurves.cowden_clay()` and `openpile.soilmodels.Cowden_clay` that was amplifying
-  the soil resistance and yielding unrealistic forces in the pile.
+- fixed bug in kernel that was amplifying the soil resistance and yielding unrealistic forces in the
+  pile.
 
 ## [0.3.0] - 2023-05-02 
 - new method to retrieve the p-y mobilisation of springs in Results via the `.py_mobilization()`

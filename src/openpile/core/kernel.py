@@ -632,10 +632,10 @@ def build_stiffness_matrix(model, f, u=None, kind=None):
     # add soil contribution
     if model.soil is not None:
         if model.base_shear:
-            K[-2,-2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
+            K[-2, -2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
 
         if model.base_moment:
-            K[-1,-1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
+            K[-1, -1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
 
     return K
 

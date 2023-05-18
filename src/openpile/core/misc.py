@@ -132,8 +132,8 @@ def conic(
     output_length: int,
 ):
     # Create x vector with 10% extension
-    x = np.array([0, 0.005, 0.01, 0.02]).astype(np.float32)*x_u
-    x = np.append(x, np.linspace(0.05*x_u, x_u, output_length - 5).astype(np.float32))
+    x = np.array([0, 0.001, 0.005, 0.01]).astype(np.float32)*x_u
+    x = np.append(x, np.linspace(0.02*x_u, x_u, output_length - 5).astype(np.float32))
     x = np.append(x, 1.1 * x_u)
 
     a = 1 - 2 * n
@@ -141,7 +141,7 @@ def conic(
     y = np.zeros((len(x)), dtype=np.float32)
 
     for i in range(len(x)):
-        if abs(x[i] - x_u) < 1e-4:
+        if abs(x[i] - x_u) < 1e-2:
             y[i] = y_u
         elif x[i] < x_u:
             b = 2 * n * x[i] / x_u - (1 - n) * (1 + x[i] * k / y_u)

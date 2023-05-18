@@ -11,7 +11,7 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 ## [0.4.0] - 2023-XX-XX (not released yet) 
 - *blank*
 
-## [0.3.2] - 2023-05-xx 
+## [0.3.2] - 2023-05-18 
 - fixed bug in the kernel when applying base springs.
 - clean up some part of the root directory
 - benchmark for Cowden Clay soil model against literature from Byrne et al (2020).

@@ -989,7 +989,7 @@ class Model:
                             # calculate Hb spring
                             (Hb[0, 0, 0], Hb[0, 0, 1]) = layer.lateral_model.Hb_spring_fct(
                                 sig=sig_v_tip,
-                                X=self.pile.bottom_elevation,
+                                X=-self.pile.bottom_elevation,
                                 layer_height=(layer.top - layer.bottom),
                                 depth_from_top_of_layer=(
                                     layer.top - self.pile.bottom_elevation
@@ -1006,7 +1006,7 @@ class Model:
 
                             (Mb[0, 0, 0], Mb[0, 0, 1]) = layer.lateral_model.Mb_spring_fct(
                                 sig=sig_v_tip,
-                                X=self.pile.bottom_elevation,
+                                X=-self.pile.bottom_elevation,
                                 layer_height=(layer.top - layer.bottom),
                                 depth_from_top_of_layer=(
                                     layer.top - self.pile.bottom_elevation

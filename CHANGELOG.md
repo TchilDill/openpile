@@ -11,10 +11,14 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 ## [0.4.0] - 2023-XX-XX (not released yet) 
 - *blank*
 
+## [0.3.3] - 2023-05-19 
+- fix error in Dunkirk_sand rotational springs
+- benchmarked Dunkirk sand soil model against literature from Burd et al (2020). 
+
 ## [0.3.2] - 2023-05-18 
 - fixed bug in the kernel when applying base springs.
 - clean up some part of the root directory
-- benchmark for Cowden Clay soil model against literature from Byrne et al (2020).
+- benchmarked Cowden Clay soil model against literature from Byrne et al (2020).
 
 ## [0.3.1] - 2023-05-16 
 - fixed bug in kernel that was amplifying the soil resistance and yielding unrealistic forces in the

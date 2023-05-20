@@ -975,48 +975,48 @@ class Model:
                                     output_length=spring_dim,
                                 )
 
-                        # check if pile tip is within layer
-                        if (
-                            layer.top >= self.pile.bottom_elevation
-                            and layer.bottom <= self.pile.bottom_elevation
-                        ):
+                    # check if pile tip is within layer
+                    if (
+                        layer.top >= self.pile.bottom_elevation
+                        and layer.bottom <= self.pile.bottom_elevation
+                    ):
 
-                            # Hb curve
-                            sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
+                        # Hb curve
+                        sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
 
-                            if layer.lateral_model.spring_signature[1] and self.base_shear:
+                        if layer.lateral_model.spring_signature[1] and self.base_shear:
 
-                                # calculate Hb spring
-                                (Hb[0, 0, 0], Hb[0, 0, 1]) = layer.lateral_model.Hb_spring_fct(
-                                    sig=sig_v_tip,
-                                    X=self.pile.bottom_elevation,
-                                    layer_height=(layer.top - layer.bottom),
-                                    depth_from_top_of_layer=(
-                                        layer.top - self.pile.bottom_elevation
-                                    ),
-                                    D=pile_width,
-                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=self.pile.bottom_elevation
-                                    <= self.soil.water_line,
-                                    output_length=spring_dim,
-                                )
+                            # calculate Hb spring
+                            (Hb[0, 0, 0], Hb[0, 0, 1]) = layer.lateral_model.Hb_spring_fct(
+                                sig=sig_v_tip,
+                                X=-self.pile.bottom_elevation,
+                                layer_height=(layer.top - layer.bottom),
+                                depth_from_top_of_layer=(
+                                    layer.top - self.pile.bottom_elevation
+                                ),
+                                D=pile_width,
+                                L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                below_water_table=self.pile.bottom_elevation
+                                <= self.soil.water_line,
+                                output_length=spring_dim,
+                            )
 
-                            # Mb curve
-                            if layer.lateral_model.spring_signature[3] and self.base_moment:
+                        # Mb curve
+                        if layer.lateral_model.spring_signature[3] and self.base_moment:
 
-                                (Mb[0, 0, 0], Mb[0, 0, 1]) = layer.lateral_model.Mb_spring_fct(
-                                    sig=sig_v_tip,
-                                    X=self.pile.bottom_elevation,
-                                    layer_height=(layer.top - layer.bottom),
-                                    depth_from_top_of_layer=(
-                                        layer.top - self.pile.bottom_elevation
-                                    ),
-                                    D=pile_width,
-                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=self.pile.bottom_elevation
-                                    <= self.soil.water_line,
-                                    output_length=spring_dim,
-                                )
+                            (Mb[0, 0, 0], Mb[0, 0, 1]) = layer.lateral_model.Mb_spring_fct(
+                                sig=sig_v_tip,
+                                X=-self.pile.bottom_elevation,
+                                layer_height=(layer.top - layer.bottom),
+                                depth_from_top_of_layer=(
+                                    layer.top - self.pile.bottom_elevation
+                                ),
+                                D=pile_width,
+                                L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                below_water_table=self.pile.bottom_elevation
+                                <= self.soil.water_line,
+                                output_length=spring_dim,
+                            )
 
             if check_springs(py):
                 print("py springs have negative or NaN values.")

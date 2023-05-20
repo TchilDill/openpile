@@ -133,4 +133,4 @@ def dunkirk_sand(
     t, m = conic(psi_max, n, k, m_max, output_length)
 
     # return non-normalised curve
-    return m * (p * D**2), t * (sig / G0)
+    return m * (p * D), t * (sig / G0)

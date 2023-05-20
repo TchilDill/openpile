@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 # from pydantic import BaseModel, Field, root_validator
 from pydantic.dataclasses import dataclass
+from typing import Optional, Union
 
 from openpile.core import kernel
 import openpile.core.validation as validation
@@ -36,17 +37,28 @@ def springs_mob_to_df(model, d):
     py_ks = kernel.calculate_py_springs_stiffness(
         u=d[1::3], springs=model._py_springs, kind="secant"
     ).flatten()
-    py_u = kernel.double_inner_njit(d[1::3])
-    py_mob = py_u * py_ks
+    py_mob = kernel.double_inner_njit(d[1::3]) * py_ks
     # calculate max spring values
-    max_springs_values = model._py_springs[:, :, 0].max(axis=2).flatten()
+    py_max = model._py_springs[:, :, 0].max(axis=2).flatten()
+
+    # mt springs
+    # mt secant stiffness
+    mt_ks = kernel.calculate_mt_springs_stiffness(
+        d[2::3], model._mt_springs, model._py_springs, py_mob.reshape((-1,2,1,1)),
+        kind="secant"
+    ).flatten()
+    mt_mob = kernel.double_inner_njit(d[2::3]) * mt_ks
+    # calculate max spring values
+    mt_max = model._mt_springs[:, :, 0, -1].max(axis=2).flatten()
 
     # create DataFrame
     df = pd.DataFrame(
         data={
             "Elevation [m]": x,
             "p_mobilized [kN/m]": np.abs(py_mob),
-            "p_max [kN/m]": max_springs_values,
+            "p_max [kN/m]": py_max,
+            "m_mobilized [kNm/m]": np.abs(mt_mob),
+            "m_max [kNm/m]": mt_max,
         }
     )
 
@@ -98,10 +110,13 @@ class Result:
     name: str
     displacements: pd.DataFrame
     forces: pd.DataFrame
-    springs_mobilization: pd.DataFrame
+    springs_mobilization: Optional[pd.DataFrame]
 
     class Config:
         frozen = True
+
+
+
 
     @property
     def settlement(self):
@@ -138,14 +153,56 @@ class Result:
 
     @property
     def py_mobilization(self):
-        """Retrieves mobilized resistance of p-y curves.
+        """Retrieves mobilized resistance of districuted lateral p-y curves.
 
         Returns
         -------
         pandas.DataFrame
             Table with the nodes elevations along the pile and the mobilized resistance in kN/m.
         """
-        return self.springs_mobilization[["Elevation [m]", "p_mobilized [kN/m]", "p_max [kN/m]"]]
+
+        if self.springs_mobilization is None:
+            return None
+        else:
+            return self.springs_mobilization[["Elevation [m]", "p_mobilized [kN/m]", "p_max [kN/m]"]]
+
+    @property
+    def mt_mobilization(self):
+        """Retrieves mobilized resistance of distributed moment rotational curves.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and the mobilized resistance in kNm/m.
+        """
+        if self.springs_mobilization is None:
+            return None
+        else:
+            return self.springs_mobilization[["Elevation [m]", "m_mobilized [kNm/m]", "m_max [kNm/m]"]]
+
+
+    @property
+    def Hb_mobilization(self):
+        """Retrieves mobilized resistance of base shear.
+
+        Returns
+        -------
+        tuple
+            the mobilised value and the maximum resistance in kN
+        """
+        pass
+
+    @property
+    def Mb_mobilization(self):
+        """Retrieves mobilized resistance of base moment.
+
+        Returns
+        -------
+        tuple
+            the mobilised value and the maximum resistance in kNm
+        """
+        pass
+
 
     def plot_deflection(self, assign=False):
         """

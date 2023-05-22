@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 # from pydantic import BaseModel, Field, root_validator
 from pydantic.dataclasses import dataclass
+from pydantic import PrivateAttr
 from typing import Optional, Union
 
 from openpile.core import kernel
@@ -24,6 +25,8 @@ import openpile.core.misc as misc
 
 class PydanticConfig:
     arbitrary_types_allowed = True
+    frozen = True
+    underscore_attrs_are_private = True
 
 
 def springs_mob_to_df(model, d):
@@ -111,12 +114,8 @@ class Result:
     displacements: pd.DataFrame
     forces: pd.DataFrame
     springs_mobilization: Optional[pd.DataFrame]
-
-    class Config:
-        frozen = True
-
-
-
+    base_shear_mobilization: Optional[tuple]
+    base_moment_mobilization: Optional[tuple]
 
     @property
     def settlement(self):
@@ -419,6 +418,14 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             displacements=disp_to_df(model, d),
             forces=structural_forces_to_df(model, q_int),
             springs_mobilization=springs_mob_to_df(model, d),
+            base_shear_mobilization = (abs(d[-2])*kernel.calculate_base_spring_stiffness(d[-2], 
+                                                                           model._Hb_spring, 
+                                                                           kind="secant"), 
+                                model._Hb_spring.flatten().max()),
+            base_moment_mobilization = (abs(d[-1])*kernel.calculate_base_spring_stiffness(d[-1], 
+                                                                           model._Mb_spring, 
+                                                                           kind="secant"), 
+                                model._Mb_spring.flatten().max()),
         )
 
         return results

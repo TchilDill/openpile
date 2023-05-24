@@ -17,7 +17,7 @@ mpl.rcParams["figure.subplot.wspace"] = 0.4
 def plot_deflection(result):
     fig, ax = plt.subplots()
 
-    fig.suptitle(f"{result.name} - Pile Deflection")
+    fig.suptitle(f"{result._name} - Pile Deflection")
 
     ax = U_plot(ax, result)
 
@@ -29,7 +29,7 @@ def plot_forces(result):
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
-    fig.suptitle(f"{result.name} - Sectional forces")
+    fig.suptitle(f"{result._name} - Sectional forces")
 
     ax1 = F_plot(ax1, result, "N [kN]")
     ax2 = F_plot(ax2, result, "V [kN]")
@@ -47,7 +47,7 @@ def plot_results(result):
 
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4)
 
-    fig.suptitle(f"{result.name} - Analysis results")
+    fig.suptitle(f"{result._name} - Analysis results")
 
     ax1 = U_plot(ax1, result)
     ax2 = F_plot(ax2, result, "N [kN]")

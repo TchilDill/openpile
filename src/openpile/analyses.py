@@ -12,10 +12,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# from pydantic import BaseModel, Field, root_validator
-from pydantic.dataclasses import dataclass
-from pydantic import PrivateAttr
-from typing import Optional, Union
+from dataclasses import dataclass
 
 from openpile.core import kernel
 import openpile.core.validation as validation
@@ -108,14 +105,36 @@ def disp_to_df(model, u):
     return disp_to_DataFrame
 
 
-@dataclass(config=PydanticConfig)
+@dataclass
 class Result:
-    name: str
-    displacements: pd.DataFrame
-    forces: pd.DataFrame
-    springs_mobilization: Optional[pd.DataFrame]
-    base_shear_mobilization: Optional[tuple]
-    base_moment_mobilization: Optional[tuple]
+    _name: str
+    _d: pd.DataFrame
+    _f: pd.DataFrame
+    _dist_mob: pd.DataFrame = None
+    _hb_mob: tuple = None
+    _mb_mob: tuple = None
+
+    @property
+    def displacements(self):
+        """Retrieves displacements along each dimensions
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and their displacements
+        """
+        return self._d
+
+    @property
+    def forces(self):
+        """Retrieves forces along the pile (Normal force, shear force and bending moment)
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and their forces
+        """
+        return self._f
 
     @property
     def settlement(self):
@@ -126,7 +145,7 @@ class Result:
         pandas.DataFrame
             Table with the nodes elevations along the pile and their normal displacements
         """
-        return self.displacements[["Elevation [m]", "Settlement [m]"]]
+        return self._d[["Elevation [m]", "Settlement [m]"]]
 
     @property
     def deflection(self):
@@ -137,7 +156,7 @@ class Result:
         pandas.DataFrame
             Table with the nodes elevations along the pile and their transversal displacements
         """
-        return self.displacements[["Elevation [m]", "Deflection [m]"]]
+        return self._d[["Elevation [m]", "Deflection [m]"]]
 
     @property
     def rotation(self):
@@ -148,7 +167,7 @@ class Result:
         pandas.DataFrame
             Table with the nodes elevations along the pile and their rotations
         """
-        return self.displacements[["Elevation [m]", "Rotation [rad]"]]
+        return self._d[["Elevation [m]", "Rotation [rad]"]]
 
     @property
     def py_mobilization(self):
@@ -160,10 +179,10 @@ class Result:
             Table with the nodes elevations along the pile and the mobilized resistance in kN/m.
         """
 
-        if self.springs_mobilization is None:
+        if self._dist_mob is None:
             return None
         else:
-            return self.springs_mobilization[["Elevation [m]", "p_mobilized [kN/m]", "p_max [kN/m]"]]
+            return self._dist_mob[["Elevation [m]", "p_mobilized [kN/m]", "p_max [kN/m]"]]
 
     @property
     def mt_mobilization(self):
@@ -174,10 +193,10 @@ class Result:
         pandas.DataFrame
             Table with the nodes elevations along the pile and the mobilized resistance in kNm/m.
         """
-        if self.springs_mobilization is None:
+        if self._dist_mob is None:
             return None
         else:
-            return self.springs_mobilization[["Elevation [m]", "m_mobilized [kNm/m]", "m_max [kNm/m]"]]
+            return self._dist_mob[["Elevation [m]", "m_mobilized [kNm/m]", "m_max [kNm/m]"]]
 
 
     @property
@@ -189,7 +208,7 @@ class Result:
         tuple
             the mobilised value and the maximum resistance in kN
         """
-        pass
+        return self._hb_mob if self._hb_mob is not None else None
 
     @property
     def Mb_mobilization(self):
@@ -200,7 +219,7 @@ class Result:
         tuple
             the mobilised value and the maximum resistance in kNm
         """
-        pass
+        return self._mb_mob if self._mb_mob is not None else None
 
 
     def plot_deflection(self, assign=False):
@@ -307,9 +326,9 @@ def simple_beam_analysis(model):
 
         # Final results
         results = Result(
-            name=f"{model.name} ({model.pile.name}/{model.soil.name})",
-            displacements=disp_to_df(model, u),
-            forces=structural_forces_to_df(model, q_int),
+            _name=f"{model.name} ({model.pile.name})",
+            _d=disp_to_df(model, u),
+            _f=structural_forces_to_df(model, q_int),
         )
 
         return results
@@ -414,15 +433,15 @@ def simple_winkler_analysis(model, max_iter: int = 100):
 
         # Final results
         results = Result(
-            name=f"{model.name} ({model.pile.name}/{model.soil.name})",
-            displacements=disp_to_df(model, d),
-            forces=structural_forces_to_df(model, q_int),
-            springs_mobilization=springs_mob_to_df(model, d),
-            base_shear_mobilization = (abs(d[-2])*kernel.calculate_base_spring_stiffness(d[-2], 
+            _name=f"{model.name} ({model.pile.name}/{model.soil.name})",
+            _d=disp_to_df(model, d),
+            _f=structural_forces_to_df(model, q_int),
+            _dist_mob=springs_mob_to_df(model, d),
+            _hb_mob = (abs(d[-2])*kernel.calculate_base_spring_stiffness(d[-2], 
                                                                            model._Hb_spring, 
                                                                            kind="secant"), 
                                 model._Hb_spring.flatten().max()),
-            base_moment_mobilization = (abs(d[-1])*kernel.calculate_base_spring_stiffness(d[-1], 
+            _mb_mob = (abs(d[-1])*kernel.calculate_base_spring_stiffness(d[-1], 
                                                                            model._Mb_spring, 
                                                                            kind="secant"), 
                                 model._Mb_spring.flatten().max()),

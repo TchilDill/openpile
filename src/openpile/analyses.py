@@ -107,6 +107,12 @@ def disp_to_df(model, u):
 
 @dataclass
 class Result:
+    """The `Result` class is created by any analyses from the :py:mod:`openpile.analyses` module.
+    
+    As such the user can use the following properties and/or methods for any return values of an analysis. 
+
+    
+    """
     _name: str
     _d: pd.DataFrame
     _f: pd.DataFrame

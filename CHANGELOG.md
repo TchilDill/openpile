@@ -9,7 +9,10 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 
 ## [0.4.0] - 2023-XX-XX (not released yet) 
-- *blank*
+- Update in documentation
+- fix bug in `openpile.analyses.simple_beam_analysis()`
+- new methods available for `openpile.analyses.Result` class
+
 
 ## [0.3.3] - 2023-05-19 
 - fix error in Dunkirk_sand rotational springs

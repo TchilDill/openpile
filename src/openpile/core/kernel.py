@@ -573,7 +573,7 @@ def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     return K
 
 
-def build_stiffness_matrix(model, f=None, u=None, kind=None):
+def build_stiffness_matrix(model, f, u=None, kind=None):
     """Builds the stiffness matrix based on the model(element and node) properties
 
     Element stiffness matrices are first computed for each element and then loaded in the global stiffness matrix through summation.
@@ -661,7 +661,7 @@ def mesh_to_global_restrained_dof_vector(df: pd.DataFrame) -> np.ndarray:
     return restrained_dof_vector
 
 
-def struct_internal_force(model, u, f=None) -> np.ndarray:
+def struct_internal_force(model, f, u) -> np.ndarray:
     # number of dof per node
     ndof_per_node = 3
     # number of nodes per element

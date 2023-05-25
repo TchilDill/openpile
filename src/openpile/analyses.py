@@ -328,7 +328,7 @@ def simple_beam_analysis(model):
         u, _ = kernel.solve_equations(K, F, U, restraints=supports)
 
         # internal forces
-        q_int = kernel.struct_internal_force(model, u)
+        q_int = kernel.struct_internal_force(model, u=u)
 
         # Final results
         results = Result(

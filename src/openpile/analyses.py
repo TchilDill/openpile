@@ -65,6 +65,25 @@ def springs_mob_to_df(model, d):
     return df
 
 
+def reaction_forces_to_df(model, Q):
+    x = model.nodes_coordinates["x [m]"].values
+    Q = Q.reshape(-1,3)
+
+    df = pd.DataFrame(
+        data={
+            "Elevation [m]": x,
+            "Nr [kN]": Q[:,0],
+            "Vr [kN]": Q[:,1],
+            "Mr [kNm]": Q[:,2],
+        }
+    )
+    df[["Nr [kN]"]] = df[["Nr [kN]"]].mask( df[["Nr [kN]"]].abs() < 1e-3, 0.0)
+    df[["Vr [kN]"]] = df[["Vr [kN]"]].mask( df[["Vr [kN]"]].abs() < 1e-3, 0.0)
+    df[["Mr [kNm]"]] = df[["Mr [kNm]"]].mask( df[["Mr [kNm]"]].abs() < 1e-3, 0.0)
+
+    return df[np.any(df[["Nr [kN]","Vr [kN]","Mr [kNm]"]].abs() > 1e-3, axis=1)].reset_index(drop=True)
+
+
 def structural_forces_to_df(model, q):
     x = model.nodes_coordinates["x [m]"].values
     x = misc.repeat_inner(x)
@@ -116,6 +135,7 @@ class Result:
     _name: str
     _d: pd.DataFrame
     _f: pd.DataFrame
+    _Q: pd.DataFrame
     _dist_mob: pd.DataFrame = None
     _hb_mob: tuple = None
     _mb_mob: tuple = None
@@ -141,6 +161,17 @@ class Result:
             Table with the nodes elevations along the pile and their forces
         """
         return self._f
+    
+    @property
+    def reactions(self):
+        """Retrieves reaction forces (where supports are given)
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with the nodes elevations along the pile and their forces
+        """
+        return self._Q
 
     @property
     def settlement(self):
@@ -325,7 +356,7 @@ def simple_beam_analysis(model):
         # validate boundary conditions
         validation.check_boundary_conditions(model)
 
-        u, _ = kernel.solve_equations(K, F, U, restraints=supports)
+        u, Q = kernel.solve_equations(K, F, U, restraints=supports)
 
         # internal forces
         q_int = kernel.struct_internal_force(model, u=u)
@@ -335,6 +366,7 @@ def simple_beam_analysis(model):
             _name=f"{model.name} ({model.pile.name})",
             _d=disp_to_df(model, u),
             _f=structural_forces_to_df(model, q_int),
+            _Q=reaction_forces_to_df(model, Q),
         )
 
         return results
@@ -442,6 +474,7 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             _name=f"{model.name} ({model.pile.name}/{model.soil.name})",
             _d=disp_to_df(model, d),
             _f=structural_forces_to_df(model, q_int),
+            _Q=reaction_forces_to_df(model, Q),
             _dist_mob=springs_mob_to_df(model, d),
             _hb_mob = (abs(d[-2])*kernel.calculate_base_spring_stiffness(d[-2], 
                                                                            model._Hb_spring, 

@@ -454,7 +454,7 @@ def elem_mt_stiffness_matrix(model, u, kind):
     return km
 
 
-def elem_p_delta_stiffness_matrix(model, f):
+def elem_p_delta_stiffness_matrix(model, u):
     """creates stress stiffness matrix based on axial stress in pile.
 
     #TODO: proof here
@@ -463,7 +463,7 @@ def elem_p_delta_stiffness_matrix(model, f):
     ----------
     model : openpile class object `openpile.construct.Model`
         includes information on soil/structure, elements, nodes and other model-related data.
-    f: np.ndarray
+    u: np.ndarray
         Global displacement vector
 
     Returns
@@ -482,6 +482,7 @@ def elem_p_delta_stiffness_matrix(model, f):
     L = mesh_to_element_length(model)
 
     # internal forces
+    f = pile_internal_forces(model, u)
     P = f[::6].reshape(-1, 1, 1)
 
     # elastic properties
@@ -497,6 +498,8 @@ def elem_p_delta_stiffness_matrix(model, f):
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
         N = 0 * L
+        N1 = 0 * L
+        N2 = 0 * L
         A = 6 / (5 * L)
         B = N + 1 / 10
         C = 2 * L / 15
@@ -523,6 +526,8 @@ def elem_p_delta_stiffness_matrix(model, f):
         phi = (12 * omega + 1) ** 2
 
         N = 0 * L
+        N1 = 0 / L
+        N2 = 0 / L
         A = 6 * (120 * omega**2 + 20 * omega + 1) / ((5 * L) * phi) + 12 * I / (A * L**3 * phi)
         B = 1 / (10 * phi) + 6 * I / (A * L**2 * phi)
         C = (2 * L * (90 * omega**2 + 15 * omega + 1)) / (15 * phi) + 4 * I * (
@@ -540,12 +545,12 @@ def elem_p_delta_stiffness_matrix(model, f):
     k = (
         np.block(
             [
-                [N, N, N, N, N, N],
-                [N, A, B, N, -A, B],
-                [N, B, C, N, -B, D],
-                [N, N, N, N, N, N],
-                [N, -A, -B, N, A, -B],
-                [N, B, D, N, -B, C],
+                [ N, N, N1,  N,  N, N2],
+                [ N, A,  B,  N, -A,  B],
+                [N1, B,  C,-N1, -B,  D],
+                [ N, N,-N1,  N,  N,-N2],
+                [ N,-A, -B,  N,  A, -B],
+                [N2, B,  D,-N2, -B,  C],
             ]
         )
         * -P
@@ -573,7 +578,7 @@ def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     return K
 
 
-def build_stiffness_matrix(model, f=None, u=None, kind=None):
+def build_stiffness_matrix(model, u=None, kind=None):
     """Builds the stiffness matrix based on the model(element and node) properties
 
     Element stiffness matrices are first computed for each element and then loaded in the global stiffness matrix through summation.
@@ -609,8 +614,8 @@ def build_stiffness_matrix(model, f=None, u=None, kind=None):
 
     # mechanical stiffness properties
     k = elem_mechanical_stiffness_matrix(model)
-    if f is not None:
-        k += elem_p_delta_stiffness_matrix(model, f=f)
+    k += elem_p_delta_stiffness_matrix(model, u)
+
     # add soil contribution
     if model.soil is not None:
         # gives warning if soil is given without displacements or type of stiffness
@@ -629,7 +634,7 @@ def build_stiffness_matrix(model, f=None, u=None, kind=None):
 
     K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
 
-    # add soil contribution
+    # add base springs contribution
     if model.soil is not None:
         if model.base_shear:
             K[-2, -2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
@@ -661,7 +666,7 @@ def mesh_to_global_restrained_dof_vector(df: pd.DataFrame) -> np.ndarray:
     return restrained_dof_vector
 
 
-def struct_internal_force(model, f=None, u=None) -> np.ndarray:
+def pile_internal_forces(model, u):
     # number of dof per node
     ndof_per_node = 3
     # number of nodes per element
@@ -669,27 +674,13 @@ def struct_internal_force(model, f=None, u=None) -> np.ndarray:
 
     # create mech consistent stiffness matrix
     k = elem_mechanical_stiffness_matrix(model)
-    if f is not None:
-        k += elem_p_delta_stiffness_matrix(model, f=f)
-
-    # add soil contribution
-    if model.soil is not None:
-        kind = "secant"
-        if model.distributed_lateral:
-            k += elem_py_stiffness_matrix(model, u, kind)
-        if model.distributed_moment:
-            k += elem_mt_stiffness_matrix(model, u, kind)
-        if model.base_shear:
-            k[-1, -2, -2] += calculate_base_spring_stiffness(u[-2], model._Hb_spring, kind)
-        if model.base_moment:
-            k[-1, -1, -1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
 
     # create array u of shape [n_elem x 6 x 1]
     u = global_dof_vector_to_consistent_stacked_array(u, ndof_per_node * node_per_element)
     # compute internal forces and reshape into global dof vector
     F_int = (-1) * np.matmul(k, u).reshape((-1))
-
-    return F_int
+    
+    return F_int 
 
 
 @njit(cache=True)

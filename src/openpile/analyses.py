@@ -342,34 +342,40 @@ def simple_beam_analysis(model):
     results : `openpile.compute.Result` object
         Results of the analysis
     """
+    # validate boundary conditions
+    validation.check_boundary_conditions(model)
 
-    if model.soil is None:
-        # initialise global force
-        F = kernel.mesh_to_global_force_dof_vector(model.global_forces)
-        # initiliase prescribed displacement vector
-        U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
-        # initialise global stiffness matrix
-        K = kernel.build_stiffness_matrix(model)
-        # initialise global supports vector
-        supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
+    # initialise global force
+    F = kernel.mesh_to_global_force_dof_vector(model.global_forces)
+    # initiliase prescribed displacement vector
+    U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
+    # initialise global supports vector
+    supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
+    
+    # initialise displacement vectors
+    d = np.zeros(U.shape)
 
-        # validate boundary conditions
-        validation.check_boundary_conditions(model)
+    # initialise global stiffness matrix
+    K = kernel.build_stiffness_matrix(model, d)
+    # first run with no stress stiffness matrix
+    d, Q = kernel.solve_equations(K, F, U, restraints=supports)
+    # rerun global stiffness matrix
+    K = kernel.build_stiffness_matrix(model, d)
+    # second run with stress stiffness matrix
+    d, Q = kernel.solve_equations(K, F, U, restraints=supports)
 
-        u, Q = kernel.solve_equations(K, F, U, restraints=supports)
+    # internal forces
+    q_int = kernel.pile_internal_forces(model, d)
 
-        # internal forces
-        q_int = kernel.struct_internal_force(model, u=u)
+    # Final results
+    results = Result(
+        _name=f"{model.name} ({model.pile.name})",
+        _d=disp_to_df(model, d),
+        _f=structural_forces_to_df(model, q_int),
+        _Q=reaction_forces_to_df(model, Q),
+    )
 
-        # Final results
-        results = Result(
-            _name=f"{model.name} ({model.pile.name})",
-            _d=disp_to_df(model, u),
-            _f=structural_forces_to_df(model, q_int),
-            _Q=reaction_forces_to_df(model, Q),
-        )
-
-        return results
+    return results
 
 
 def simple_winkler_analysis(model, max_iter: int = 100):
@@ -402,11 +408,8 @@ def simple_winkler_analysis(model, max_iter: int = 100):
         U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
         # initialise displacement vectors
         d = np.zeros(U.shape)
-
         # initialise global stiffness matrix
-        K = kernel.build_stiffness_matrix(model, f=None, u=d, kind="initial")
-        # initialise internal forces
-        q_int = np.zeros((model.element_number * 6))
+        K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
         # initialise global supports vector
         supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
 
@@ -437,7 +440,7 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             d += u_inc
 
             # calculate internal forces
-            K_secant = kernel.build_stiffness_matrix(model, f=q_int, u=d, kind="secant")
+            K_secant = kernel.build_stiffness_matrix(model, u=d, kind="secant")
             F_int = -K_secant.dot(d)
 
             # calculate residual forces
@@ -453,21 +456,18 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             if iter_no == 100:
                 print("Not converged after 100 iterations.")
 
-            # Internal forces calculations with dim(nelem,6,6)
-            q_int = kernel.struct_internal_force(model, q_int, d)
-
             # re-calculate global stiffness matrix for next iterations
-            K = kernel.build_stiffness_matrix(model, f=q_int, u=d, kind="tangent")
+            K = kernel.build_stiffness_matrix(model, u=d, kind="tangent")
 
             # reset prescribed displacements to converge properly in case
             # of displacement-driven analysis
             U[:] = 0.0
 
-            # nump iteration number
+            # bump iteration number
             iter_no += 1
 
         # Internal forces calculations with dim(nelem,6,6)
-        q_int = kernel.struct_internal_force(model, q_int, d)
+        q_int = kernel.pile_internal_forces(model, d)
 
         # Final results
         results = Result(

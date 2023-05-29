@@ -7,3 +7,12 @@ The `calculate` module is used to run various functions outside the scope of the
 Every function from this module returns an `openpile.compute.CalculateResult` object. 
 
 """
+
+class CalculateResult:
+    _values: tuple
+
+def api_axial_capacity(
+        model,
+    ) -> CalculateResult:
+
+    pass

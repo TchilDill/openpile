@@ -947,7 +947,7 @@ class Model:
 
                             # calculate springs (top and) for each element
                             for j in [0, 1]:
-                                (py[i, j, 0], py[i, j, 1]) = layer.lateral_model.py_spring_fct(
+                                (py[i, j, 1], py[i, j, 0]) = layer.lateral_model.py_spring_fct(
                                     sig=sig_v[j],
                                     X=depth_from_ground[j],
                                     layer_height=(layer.top - layer.bottom),
@@ -964,7 +964,7 @@ class Model:
 
                             # calculate springs (top and) for each element
                             for j in [0, 1]:
-                                (mt[i, j, 0], mt[i, j, 1]) = layer.lateral_model.mt_spring_fct(
+                                (mt[i, j, 1], mt[i, j, 0]) = layer.lateral_model.mt_spring_fct(
                                     sig=sig_v[j],
                                     X=depth_from_ground[j],
                                     layer_height=(layer.top - layer.bottom),
@@ -987,7 +987,7 @@ class Model:
                         if layer.lateral_model.spring_signature[1] and self.base_shear:
 
                             # calculate Hb spring
-                            (Hb[0, 0, 0], Hb[0, 0, 1]) = layer.lateral_model.Hb_spring_fct(
+                            (Hb[0, 0, 1], Hb[0, 0, 0]) = layer.lateral_model.Hb_spring_fct(
                                 sig=sig_v_tip,
                                 X=-self.pile.bottom_elevation,
                                 layer_height=(layer.top - layer.bottom),
@@ -1004,7 +1004,7 @@ class Model:
                         # Mb curve
                         if layer.lateral_model.spring_signature[3] and self.base_moment:
 
-                            (Mb[0, 0, 0], Mb[0, 0, 1]) = layer.lateral_model.Mb_spring_fct(
+                            (Mb[0, 0, 1], Mb[0, 0, 0]) = layer.lateral_model.Mb_spring_fct(
                                 sig=sig_v_tip,
                                 X=-self.pile.bottom_elevation,
                                 layer_height=(layer.top - layer.bottom),

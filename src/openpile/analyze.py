@@ -1,10 +1,10 @@
 """
-`Analyses` module
+`analyses` module
 ==================
 
-The `analyses` module is used to run various simulations. 
+The `analyses` module is used to run 1D Finite Element analyses. 
 
-Every function from this module returns an `openpile.compute.Result` object. 
+Every function from this module returns an `openpile.analyze.AnalyzeResult` object. 
 
 """
 

@@ -66,7 +66,7 @@ def cowden_clay(
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p * (Su * D), y * (Su * D / G0)
+    return y * (Su * D / G0), p * (Su * D)
 
 
 @njit(cache=True)
@@ -129,7 +129,7 @@ def dunkirk_sand(
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p * (sig * D), y * (sig * D / G0)
+    return y * (sig * D / G0), p * (sig * D)
 
 
 # API sand function
@@ -227,7 +227,7 @@ def api_sand(
         else:
             p[i] = A * Pmax * m.tanh((k_phi * X * y[i]) / (A * Pmax))
 
-    return p, y
+    return y, p
 
 
 # API sand function
@@ -354,4 +354,4 @@ def api_clay(
         if y[i] == 0.1 * y50:
             p[i] = 0.23 * Pmax
 
-    return p, y
+    return y, p

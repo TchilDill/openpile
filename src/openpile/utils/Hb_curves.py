@@ -75,7 +75,7 @@ def dunkirk_sand(
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p * (sig * D**2), y * (sig * D / G0)
+    return  y * (sig * D / G0), p * (sig * D**2)
 
 
 @njit(cache=True)
@@ -135,4 +135,4 @@ def cowden_clay(
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p * (Su * D**2), y * (Su * D / G0)
+    return y * (Su * D / G0), p * (Su * D**2)

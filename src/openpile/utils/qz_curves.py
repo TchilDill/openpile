@@ -82,7 +82,7 @@ def api_sand(
 
     Q = Q[z_id_sorted]
 
-    return Q, z
+    return z, Q
 
 
 # API clay Q-z function
@@ -144,4 +144,4 @@ def api_clay(
 
     Q = Q[z_id_sorted]
 
-    return Q, z
+    return z, Q

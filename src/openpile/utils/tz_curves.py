@@ -2,6 +2,10 @@
 `tz_curves` module
 ==================
 
+.. Rubric:: References
+
+
+
 """
 
 # Import libraries
@@ -10,7 +14,83 @@ import numpy as np
 from numba import njit, prange
 from random import random
 
+# maximum resistance values
+
+@njit(cache=True)
+def _fmax_api_clay(
+    sig: float,
+    Su: float,
+) -> float:
+    """Creates the maximum skin friction.
+     
+    The methdology follows the API clay method of axial capacity found in . 
+
+    Parameters
+    ----------
+    sig : float
+        vertical effcitve stress in kPa.
+    Su : float
+        undrained shear strength in kPa.
+
+    Returns
+    -------
+    float
+        unit skin friction in kPa.
+    """
+    # important variables
+    if sig == 0.0:
+        psi = Su / 0.001
+    else:
+        psi = Su / sig
+
+    if psi > 1.0:
+        alpha = min(0.5 * psi ** (-0.25), 1.0)
+    else:
+        alpha = min(0.5 * psi ** (-0.5), 1.0)
+
+    # Unit skin friction [kPa]
+    return alpha * Su
+
+
 # SPRING FUNCTIONS --------------------------------------------
+
+# API sand function
+@njit(cache=True)
+def _fmax_api_sand(
+    sig: float,
+    delta: float,
+    K: float = 0.8,
+) -> float:
+    """Creates the maximum skin friction.
+     
+    The methdology follows the API sand method of axial capacity found in . 
+
+    Parameters
+    ----------
+    sig : float
+        vertical effcitve stress in kPa.
+    delta: float
+        interface friction angle in degrees
+    K: float
+        coefficient of lateral pressure. 
+        (0.8 for open-ended piles and 1.0 for cloased-ended)
+
+    Returns
+    -------
+    float
+        unit skin friction in kPa.
+    """
+    
+    # important variables
+    delta_table = np.array([0, 15, 20, 25, 30, 35, 100], dtype=np.float32)
+    fs_max_table = np.array([47.8, 47.8, 67, 81.3, 95.7, 114.8, 114.8], dtype=np.float32)
+
+    # limit unit skin friction according to API ref page 59
+    fs_max = np.interp(delta, delta_table, fs_max_table)
+
+    # Unit skin friction [kPa]
+    return min(fs_max, K * sig * m.tan(delta * m.pi / 180.0))
+
 
 # API clay function
 @njit(cache=True)
@@ -52,19 +132,8 @@ def api_clay(
     if output_length < 15:
         output_length = 15
 
-    # important variables
-    if sig == 0.0:
-        psi = Su / 0.001
-    else:
-        psi = Su / sig
-
-    if psi > 1.0:
-        alpha = min(0.5 * psi ** (-0.25), 1.0)
-    else:
-        alpha = min(0.5 * psi ** (-0.5), 1.0)
-
-    # Unit skin friction [kPa]
-    f = alpha * Su
+    # unit skin friction 
+    f = _fmax_api_clay(sig, Su)
 
     # piecewise function
     zlist = [0.0, 0.0016, 0.0031, 0.0057, 0.0080, 0.0100, 0.0200, 0.0300]
@@ -93,7 +162,7 @@ def api_clay(
 
     t = t[z_id_sorted]
 
-    return t, z
+    return z, t
 
 
 # API sand function
@@ -132,15 +201,8 @@ def api_sand(
     if output_length < 7:
         output_length = 7
 
-    # important variables
-    delta_table = np.array([0, 15, 20, 25, 30, 35, 100], dtype=np.float32)
-    fs_max_table = np.array([47.8, 47.8, 67, 81.3, 95.7, 114.8, 114.8], dtype=np.float32)
-
-    # limit unit skin friction according to API ref page 59
-    fs_max = np.interp(delta, delta_table, fs_max_table)
-
-    # Unit skin friction [kPa]
-    f = min(fs_max, K * sig * m.tan(delta * m.pi / 180.0))
+    # unit skin friction
+    f = _fmax_api_sand(sig, delta, K)
 
     # piecewise function
     zlist = [0.0, 0.0254, 0.03, 0.04]
@@ -169,4 +231,4 @@ def api_sand(
 
     t = t[z_id_sorted]
 
-    return t, z
+    return z, t

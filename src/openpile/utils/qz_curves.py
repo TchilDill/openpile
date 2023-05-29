@@ -10,6 +10,8 @@ import numpy as np
 from numba import njit, prange
 from random import random
 
+import openpile.utils.misc as misc
+
 # SPRING FUNCTIONS --------------------------------------------
 
 # API sand function
@@ -45,16 +47,8 @@ def api_sand(
     if output_length < 8:
         output_length = 8
 
-    # important variables
-    delta_table = np.array([0, 15, 20, 25, 30, 35, 100], dtype=np.float32)
-    Nq_table = np.array([8, 8, 12, 20, 40, 50, 50], dtype=np.float32)
-    Qmax_table = np.array([1900, 1900, 2900, 4800, 9600, 12000, 12000], dtype=np.float32)
-
-    Nq = np.interp(delta, delta_table, Nq_table)
-    Qmax = np.interp(delta, delta_table, Qmax_table)
-
-    # Unit end-bearing [kPa]
-    f = min(Qmax, sig * Nq)
+    # unit toe reistance [kPa]
+    f = misc._Qmax_api_sand(sig, delta)
 
     # piecewise function
     zlist = [-0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]
@@ -115,8 +109,8 @@ def api_clay(
     if output_length < 8:
         output_length = 8
 
-    # Unit end-bearing [kPa]
-    f = 9 * Su
+    # unit toe reistance [kPa]
+    f = misc._Qmax_api_clay
 
     # piecewise function
     zlist = [-0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]

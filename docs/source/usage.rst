@@ -118,7 +118,7 @@ API sand model looks like.
     # import p-y curve for api_sand from openpile.utils
     from openpile.utils.py_curves import api_sand
 
-    p, y = api_sand(sig=50, # vertical stress in kPa 
+    y, p = api_sand(sig=50, # vertical stress in kPa 
                     X = 5, # depth in meter
                     phi = 35, # internal angle of friction 
                     D = 5, # the pile diameter

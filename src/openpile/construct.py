@@ -1130,9 +1130,17 @@ class Model:
         self.global_restrained["Ty"] = False
         self.global_restrained["Rz"] = False
 
-    @property
-    def py_springs(self) -> pd.DataFrame:
-        """Table with p-y springs computed for the given Model.
+    def get_py_springs(self, 
+                   kind:str="node") -> pd.DataFrame:
+        """Table with p-y springs computed for the given Model. 
+
+        Posible to extract the springs at the node level (i.e. spring at each node)
+        or element level (i.e. top and bottom springs at each element)    
+
+        Parameters
+        ----------
+        kind : str
+            can be of ("node", "element").
 
         Returns
         -------
@@ -1142,11 +1150,21 @@ class Model:
         if self.soil is None:
             return None
         else:
-            return misc.get_springs(
-                springs=self._py_springs,
-                elevations=self.nodes_coordinates["x [m]"].values,
-                kind="p-y",
-            )
+            if kind == "element":
+                return misc.get_full_springs(
+                    springs=self._py_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="p-y",
+                )
+            elif kind == "node":
+                return misc.get_reduced_springs(
+                    springs=self._py_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="p-y",
+                )
+            else:
+                return None
+
 
     @property
     def embedment(self) -> float:

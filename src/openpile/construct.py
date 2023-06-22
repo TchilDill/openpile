@@ -1130,40 +1130,6 @@ class Model:
         self.global_restrained["Ty"] = False
         self.global_restrained["Rz"] = False
 
-    def get_py_springs(self, 
-                   kind:str="node") -> pd.DataFrame:
-        """Table with p-y springs computed for the given Model. 
-
-        Posible to extract the springs at the node level (i.e. spring at each node)
-        or element level (i.e. top and bottom springs at each element)    
-
-        Parameters
-        ----------
-        kind : str
-            can be of ("node", "element").
-
-        Returns
-        -------
-        pd.DataFrame (or None if no SoilProfile is present)
-            Table with p-y springs, i.e. p-value [kN/m] and y-value [m].
-        """
-        if self.soil is None:
-            return None
-        else:
-            if kind == "element":
-                return misc.get_full_springs(
-                    springs=self._py_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
-                    kind="p-y",
-                )
-            elif kind == "node":
-                return misc.get_reduced_springs(
-                    springs=self._py_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
-                    kind="p-y",
-                )
-            else:
-                return None
 
 
     @property
@@ -1432,6 +1398,77 @@ class Model:
         except Exception:
             print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
+        
+    def get_py_springs(self, 
+                   kind:str="node") -> pd.DataFrame:
+        """Table with p-y springs computed for the given Model. 
+
+        Posible to extract the springs at the node level (i.e. spring at each node)
+        or element level (i.e. top and bottom springs at each element)    
+
+        Parameters
+        ----------
+        kind : str
+            can be of ("node", "element").
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with p-y springs, i.e. p-value [kN/m] and y-value [m].
+        """
+        if self.soil is None:
+            return None
+        else:
+            if kind == "element":
+                return misc.get_full_springs(
+                    springs=self._py_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="p-y",
+                )
+            elif kind == "node":
+                return misc.get_reduced_springs(
+                    springs=self._py_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="p-y",
+                )
+            else:
+                return None
+
+    def get_mt_springs(self, 
+                   kind:str="node") -> pd.DataFrame:
+        """Table with m-t (rotational) springs computed for the given Model. 
+
+        Posible to extract the springs at the node level (i.e. spring at each node)
+        or element level (i.e. top and bottom springs at each element)    
+
+        Parameters
+        ----------
+        kind : str
+            can be of ("node", "element").
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with m-t springs, i.e. m-value [kNm] and t-value [-].
+        """
+        if self.soil is None:
+            return None
+        else:
+            if kind == "element":
+                return misc.get_full_springs(
+                    springs=self._mt_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="m-t",
+                )
+            elif kind == "node":
+                return misc.get_reduced_springs(
+                    springs=self._mt_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="m-t",
+                )
+            else:
+                return None
+
 
     def plot(self, assign=False):
         """Create a plot of the model with the mesh and boundary conditions.

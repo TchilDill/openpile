@@ -87,6 +87,10 @@ def get_reduced_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) 
         Soil springs
     """
 
+    # get rid of the dimension dependent on the p-value, we keep max m-t spring
+    if kind == "m-t":
+        springs = springs.max(axis=3)
+
     spring_dim = springs.shape[-1]
     nelem = springs.shape[0]
     nnode = len(elevations)
@@ -132,7 +136,7 @@ def get_reduced_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) 
 
 def get_full_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.DataFrame:
     """
-    Returns soil springs created for the given model in one DataFrame.
+    Returns soil springs in created for the given model in one DataFrame. 
 
     Parameters
     ----------
@@ -148,6 +152,10 @@ def get_full_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> 
     pd.DataFrame
         Soil springs
     """
+
+    # get rid of the dimension dependent on the p-value, we keep max m-t spring
+    if kind == "m-t":
+        springs = springs.max(axis=3)
 
     spring_dim = springs.shape[-1]
     nelem = springs.shape[0]

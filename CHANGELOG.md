@@ -12,7 +12,9 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 - Update in documentation
 - fix bug in `openpile.analyses.simple_beam_analysis()`
 - new methods available for `openpile.analyses.Result` class
-
+- new methods available for `openpile.construct.Model` class:
+  - `openpile.construct.Model.get_py_springs()`
+  - `openpile.construct.Model.get_mt_springs()`
 
 ## [0.3.3] - 2023-05-19 
 - fix error in Dunkirk_sand rotational springs

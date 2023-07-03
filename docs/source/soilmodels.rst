@@ -1,10 +1,10 @@
-PY soil models
-==============
+Soil models
+===========
 
-The following PY models are included in openpile. 
+The following models are included in openpile. 
 
-* :ref:`API-sand` 
-* :ref:`API-clay` 
+* :ref:`API-sand`: `openpile.soilmodels.API_sand`
+* :ref:`API-clay`: `openpile.soilmodels.API_clay`
 
 The function :py:func:`openpile.utils.py_curves.[<PY soil model>]` generates the p-y curve for 
 the relevant PY soil model.
@@ -32,6 +32,9 @@ Please refer to the API or Usage sections for more practical information.
 .. [BaCA06] Battacharya,  S.,  Carrington,  T.  M.  and  Aldridge,  T.  R.  (2006),  
     *Design  of  FPSO  Piles  against  Storm  Loading*. Proceedings Annual Offshore Technology 
     Conference, OTC17861, Houston, Texas, May, 2006. 
+.. [KrRK81] Kraft, L.M., Ray, R.P., and Kagawa, T. (1981). *Theoretical t-z curves*. 
+    Journal of the Geotechnical Engineering Division, ASCE, Vol. 107, No. GT11, pp. 1543-1561.
+
 
 
 .. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

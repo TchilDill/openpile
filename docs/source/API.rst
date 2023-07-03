@@ -12,9 +12,9 @@ API
                       LateralModel, AxialModel, py_spring_fct, mt_spring_fct, Hb_spring_fct, 
                       Mb_spring_fct, spring_signature
 
-.. automodule:: openpile.analyses
+.. automodule:: openpile.analyze
     :members: 
-    :exclude-members: PydanticConfig, structural_forces_to_df, disp_to_df, Result
+    :exclude-members: PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, AnalyzeResult
 
 
 `utils` module
@@ -43,7 +43,7 @@ API
 The `Result` class
 ==================
 
-.. autoclass:: openpile.analyses.Result
+.. autoclass:: openpile.analyze.AnalyzeResult
     :members:
     :exclude-members: Config, __init__
 

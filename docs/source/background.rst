@@ -6,4 +6,4 @@ Background and Theory
    :maxdepth: 1
    :caption: Contents:
 
-   PYmodels
+   soilmodels

@@ -2,7 +2,6 @@
 `tz_curves` module
 ==================
 
-.. Rubric:: References
 
 """
 
@@ -15,7 +14,72 @@ from numba import njit, prange
 from random import random
 
 
+# Kraft et al (1989) formulation 
+@njit(cache=True)
+def kraft_modification(
+    fmax: float,
+    D: float,
+    G0: float,
+    residual: float = 1.0,
+    tensile_factor: float = 1.0,
+    RF: float = 0.9,
+    IF: float = 10.0,
+    output_length: int = 15,
+):
+    """
+    Creates the t-z curve from relevant input with the Kraft et al (1981) formulation.
 
+    Parameters
+    ----------
+    fmax: float
+        unit skin friction [unit: kPa]
+    D: float
+        Pile diameter [unit: m]
+    G0: float
+        small-strain stiffness [unit: kPa]
+    residual: float
+        residual strength after peak strength
+    tensile_factor: float
+        strength factor for negative values of the curve
+    RF: float
+        curve fitting factor as per Kraft et al. (1981), by default 0.9
+    IF: float
+        radius of the zone of influence in meters around the pile as per Kraft et al (1981), by default 10.0
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
+
+    Returns
+    -------
+    numpy 1darray
+        t vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
+
+    See also
+    --------
+    `API_clay`_
+
+    """
+
+    if output_length < 15:
+        output_length = 15
+
+    # dimensional zone of influence as per Kraft et al (1989)
+    zif = IF/(0.5*D)
+
+    # define t till tmax
+    tpos = np.linspace(0,fmax,output_length-2)
+    # define z till zmax
+    zpos = tpos * 0.5*D/G0 * np.log( (zif - RF*tpos/fmax)/(1 - RF*tpos/fmax) )
+    # define z where t = tmax, a.k.a zmax here
+    zmax = fmax * D/(2*G0) * m.log( (zif - RF)/(1-RF) ) 
+    # define z where z=tres, which is zmax + 5mm
+    zres = zmax + 0.005
+
+    z = np.append(zpos,[zres,zres + 0.005])
+    t = np.append(tpos,[residual*fmax,residual*fmax])
+
+    return np.append(-z[-1::-1], np.append([0.0], z[1:]) ), np.append(-t[-1::-1]*tensile_factor, np.append([0.0], t[1:]))
 
 # API clay function
 @njit(cache=True)
@@ -52,10 +116,16 @@ def api_clay(
         t vector [unit: kPa]
     numpy 1darray
         z vector [unit: m]
+
+    See also
+    --------
+    `API_clay`_
+
     """
     # cannot have less than 15
     if output_length < 15:
         output_length = 15
+
 
     # unit skin friction 
     f = misc._fmax_api_clay(sig, Su)
@@ -86,6 +156,7 @@ def api_clay(
     z_id_sorted = np.argsort(z)
 
     t = t[z_id_sorted]
+
 
     return z, t
 
@@ -121,6 +192,11 @@ def api_sand(
         t vector [unit: kPa]
     numpy 1darray
         z vector [unit: m]
+
+    See also
+    --------
+    `API_sand`_
+        
     """
     # cannot have less than 7
     if output_length < 7:

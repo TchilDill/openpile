@@ -1470,6 +1470,62 @@ class Model:
                 return None
 
 
+    def get_Hb_spring(self) -> pd.DataFrame:
+        """Table with Hb (base shear) spring computed for the given Model. 
+
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with Hb spring, i.e. H-value [kN] and y-value [m].
+        """
+        if self.soil is None:
+            return None
+        else:
+            spring_dim = self._Hb_spring.shape[-1]
+            
+            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
+            
+            df = pd.DataFrame(
+                data={
+                    "Node no.": [self.element_number+1]*2,
+                    "Elevation [m]": [self.pile.bottom_elevation]*2,
+                }
+            )
+            df["type"] = ["Hb","y"]
+            df[column_values_spring] = self._Hb_spring.reshape(2,spring_dim)
+
+            return df
+
+    def get_Mb_spring(self) -> pd.DataFrame:
+        """Table with Mb (base moment) spring computed for the given Model. 
+
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with Mb spring, i.e. M-value [kNn] and t-value [-].
+        """
+        if self.soil is None:
+            return None
+        else:
+            spring_dim = self._Hb_spring.shape[-1]
+            
+            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
+            
+            df = pd.DataFrame(
+                data={
+                    "Node no.": [self.element_number+1]*2,
+                    "Elevation [m]": [self.pile.bottom_elevation]*2,
+                }
+            )
+            df["type"] = ["Mb","t"]
+            df[column_values_spring] = self._Hb_spring.reshape(2,spring_dim)
+
+            return df
+
+
+
     def plot(self, assign=False):
         """Create a plot of the model with the mesh and boundary conditions.
 

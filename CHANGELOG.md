@@ -15,6 +15,8 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 - new methods available for `openpile.construct.Model` class:
   - `openpile.construct.Model.get_py_springs()`
   - `openpile.construct.Model.get_mt_springs()`
+  - `openpile.construct.Model.get_Hb_spring()`
+  - `openpile.construct.Model.get_Mb_spring()`
 
 ## [0.3.3] - 2023-05-19 
 - fix error in Dunkirk_sand rotational springs

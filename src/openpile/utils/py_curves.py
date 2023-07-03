@@ -230,7 +230,7 @@ def api_sand(
     return y, p
 
 
-# API sand function
+# API clay function
 @njit(parallel=True, cache=True)
 def api_clay(
     sig: float,

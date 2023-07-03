@@ -1,8 +1,8 @@
 """
-`analyses` module
+`analyze` module
 ==================
 
-The `analyses` module is used to run 1D Finite Element analyses. 
+The `analyze` module is used to run 1D Finite Element analyses. 
 
 Every function from this module returns an `openpile.analyze.AnalyzeResult` object. 
 
@@ -130,7 +130,6 @@ class AnalyzeResult:
     
     As such the user can use the following properties and/or methods for any return values of an analysis. 
 
-    
     """
     _name: str
     _d: pd.DataFrame
@@ -139,6 +138,7 @@ class AnalyzeResult:
     _dist_mob: pd.DataFrame = None
     _hb_mob: tuple = None
     _mb_mob: tuple = None
+
 
     @property
     def displacements(self):

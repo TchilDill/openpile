@@ -48,7 +48,7 @@ class AxialModel(ConstitutiveModel):
 
 
 @dataclass(config=PydanticConfigFrozen)
-class API_clay(AxialModel):
+class API_clay_axial(AxialModel):
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
     Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: t-multiplier
@@ -82,6 +82,12 @@ class Cowden_clay(LateralModel):
         multiplier for m-values
     t_multiplier: float
         multiplier for t-values
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.cowden_clay`, :py:func:`openpile.utils.mt_curves.cowden_clay`, 
+    :py:func:`openpile.utils.Hb_curves.cowden_clay`, :py:func:`openpile.utils.Mb_curves.cowden_clay`
+
     """
 
     #: Undrained shear strength [kPa], if a variation in values, two values can be given.
@@ -269,6 +275,12 @@ class Dunkirk_sand(LateralModel):
         multiplier for m-values
     t_multiplier: float
         multiplier for t-values
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.dunkirk_sand`, :py:func:`openpile.utils.mt_curves.dunkirk_sand`, 
+    :py:func:`openpile.utils.Hb_curves.dunkirk_sand`, :py:func:`openpile.utils.Mb_curves.dunkirk_sand`
+
     """
 
     #: soil friction angle [deg], if a variation in values, two values can be given.
@@ -462,6 +474,10 @@ class API_sand(LateralModel):
     y_multiplier: float
         multiplier for y-values
 
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.api_sand`
+
     """
 
     #: soil friction angle [deg], if a variation in values, two values can be given.
@@ -534,6 +550,10 @@ class API_clay(LateralModel):
         multiplier for p-values
     y_multiplier: float
         multiplier for y-values
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.api_clay`
 
     """
 

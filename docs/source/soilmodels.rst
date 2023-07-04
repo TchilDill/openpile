@@ -26,7 +26,7 @@ Please refer to the API or Usage sections for more practical information.
 .. [DNV-RP-C212] DNVGL RP-C212. *Recommended Practice, Geotechnical design*.
     Edition 2019-09 - Amended 2021-09.
 .. [API2GEO-2011] API, April 2011. *Geotechnical and Foundation Design Considerations, 
-    ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute, p. 103
+    ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
 .. [Matl70] Matlock, H. (1970). *Correlations for Design of Laterally Loaded Piles in Soft Clay*. 
     Offshore Technology Conference Proceedings, Paper No. OTC 1204, Houston, Texas. 
 .. [BaCA06] Battacharya,  S.,  Carrington,  T.  M.  and  Aldridge,  T.  R.  (2006),  

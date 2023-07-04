@@ -13,8 +13,7 @@ import numpy as np
 from numba import njit, prange
 from random import random
 
-
-# Kraft et al (1989) formulation 
+# Kraft et al (1989) formulation aid to ease up implementation
 @njit(cache=True)
 def kraft_modification(
     fmax: float,
@@ -23,7 +22,7 @@ def kraft_modification(
     residual: float = 1.0,
     tensile_factor: float = 1.0,
     RF: float = 0.9,
-    IF: float = 10.0,
+    zif: float = 10.0,
     output_length: int = 15,
 ):
     """
@@ -43,8 +42,8 @@ def kraft_modification(
         strength factor for negative values of the curve
     RF: float
         curve fitting factor as per Kraft et al. (1981), by default 0.9
-    IF: float
-        radius of the zone of influence in meters around the pile as per Kraft et al (1981), by default 10.0
+    zif: float
+        dimensionless zone of influence as per Kraft et al (1981) that corresponds to the radius of the zone of influence divided by the pile radius, by default 10.0
     output_length : int, optional
         Number of discrete point along the springs, cannot be lower than 15, by default 15
 
@@ -55,17 +54,10 @@ def kraft_modification(
     numpy 1darray
         z vector [unit: m]
 
-    See also
-    --------
-    `API_clay`_
-
     """
 
     if output_length < 15:
         output_length = 15
-
-    # dimensional zone of influence as per Kraft et al (1989)
-    zif = IF/(0.5*D)
 
     # define t till tmax
     tpos = np.linspace(0,fmax,output_length-2)
@@ -121,6 +113,11 @@ def api_clay(
     --------
     `API_clay`_
 
+    References
+    ----------
+    .. [1] API, April 2011. *Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
+
+
     """
     # cannot have less than 15
     if output_length < 15:
@@ -161,6 +158,63 @@ def api_clay(
     return z, t
 
 
+@njit(cache=True)
+def api_clay_kraft(
+    sig: float,
+    Su:float,
+    D: float,
+    G0: float,
+    residual: float = 1.0,
+    tensile_factor: float = 1.0,
+    RF: float = 0.9,
+    zif: float = 10.0,
+    output_length: int = 15,          
+):
+    """
+    Creates the API clay t-z curve with the [1] Kraft et al (1981) formulation.
+
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    D: float
+        Pile diameter [unit: m]
+    G0: float
+        small-strain stiffness [unit: kPa]
+    residual: float
+        residual strength after peak strength, by default 1.0
+    tensile_factor: float
+        strength factor for negative values of the curve, by default 1.0
+    RF: float
+        curve fitting factor as per Kraft et al. (1981), by default 0.9
+    zif: float
+        dimensionless zone of influence as per Kraft et al (1981) that corresponds to the radius of the zone of influence divided by the pile radius, by default 10.0
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
+
+    Returns
+    -------
+    numpy 1darray
+        t vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
+
+    See also
+    --------
+    `API_clay`_, :py:func:`openpile.utils.tz_curves.api_clay`
+
+    References
+    ----------
+    .. [1] Kraft, L.M., Cox, W.R., and Verner, E.A. (1981) Pile Load Tests: Cyclic Loads and Varying Load Rates, Journal of the Geotechnical Engineering Division, ASCE, Vol.107, No. GT1, pp. 1-19.
+    .. [2] API, April 2011. *Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
+
+    """
+    return kraft_modification(misc._fmax_api_clay(sig,Su), D, G0, residual, tensile_factor, RF, zif, output_length)
+
+
+
 # API sand function
 @njit(cache=True)
 def api_sand(
@@ -196,7 +250,11 @@ def api_sand(
     See also
     --------
     `API_sand`_
-        
+
+    References
+    ----------
+    .. [1] API, April 2011. *Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
+    
     """
     # cannot have less than 7
     if output_length < 7:
@@ -233,3 +291,64 @@ def api_sand(
     t = t[z_id_sorted]
 
     return z, t
+
+
+
+@njit(cache=True)
+def api_sand_kraft(
+    sig: float,
+    delta: float,
+    D: float,
+    G0: float,
+    K: float = 0.8,    
+    residual: float = 1.0,
+    tensile_factor: float = 1.0,
+    RF: float = 0.9,
+    zif: float = 10.0,
+    output_length: int = 15,          
+):
+    """
+    Creates the API sand t-z curve with the [1] Kraft et al (1981) formulation.
+
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    delta: float
+        interface friction angle [unit: degrees]
+    D: float
+        Pile diameter [unit: m]
+    G0: float
+        small-strain stiffness [unit: kPa]
+    K: float
+        coefficient of lateral pressure (0.8 for open-ended piles and 1.0 for cloased-ended), by default 0.8
+    residual: float
+        residual strength after peak strength, by default 1.0
+    tensile_factor: float
+        strength factor for negative values of the curve, by default 1.0
+    RF: float
+        curve fitting factor as per Kraft et al. (1981), by default 0.9
+    zif: float
+        dimensionless zone of influence as per Kraft et al (1981) that corresponds to the radius of the zone of influence divided by the pile radius, by default 10.0
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
+
+    Returns
+    -------
+    numpy 1darray
+        t vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
+
+    See also
+    --------
+    `API_sand`_, :py:func:`openpile.utils.tz_curves.api_sand`
+
+    References
+    ----------
+    .. [1] Kraft, L.M., Cox, W.R., and Verner, E.A. (1981) Pile Load Tests: Cyclic Loads and Varying Load Rates, Journal of the Geotechnical Engineering Division, ASCE, Vol.107, No. GT1, pp. 1-19.
+    .. [2] API, April 2011. *Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
+
+    """
+    return kraft_modification(misc._fmax_api_sand(sig,delta,K), D, G0, residual, tensile_factor, RF, zif, output_length)
+

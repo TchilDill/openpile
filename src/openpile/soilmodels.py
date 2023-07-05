@@ -474,8 +474,9 @@ class API_sand(LateralModel):
         multiplier for p-values
     y_multiplier: float
         multiplier for y-values
-    ext: str, by default None
+    extension: str, by default None
         turn on extensions by calling them in this variable
+        for API_sand, rotational springs can be added to the model with the extension "mt_curves"
 
     See also
     --------
@@ -494,12 +495,12 @@ class API_sand(LateralModel):
     #: y-multiplier
     y_multiplier: confloat(gt=0.0) = 1.0
     #: extensions available for soil model
-    ext: Optional[Literal["mt_curves"]] = None
+    extension: Optional[Literal["mt_curves"]] = None
 
     def __post_init__(self):
         # spring signature which tells that API sand only has p-y curves in normal conditions
         # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-        if self.ext == "mt_curves":
+        if self.extension == "mt_curves":
             self.spring_signature = np.array([True, False, True, False], dtype=bool)
         else:
             self.spring_signature = np.array([True, False, False, False], dtype=bool)
@@ -597,9 +598,8 @@ class API_sand(LateralModel):
         tz_pos = np.append(tz_pos, [tz_pos[-1]]*diff_length_t)
         z_pos = np.append(z_pos, [z_pos[-1] + i*0.1 for i in range(diff_length_z)])
 
-        for count, p_iter in enumerate(p_norm):
-            t[count,:] = np.arctan(z_pos/(0.5*D))
-            m[count,:] = 1/4*np.pi*D**2*tz_pos*p_iter
+        t = np.arctan(z_pos.reshape((1,-1))/(0.5*D)) * np.ones((output_length,1))
+        m = 1/4*np.pi*D**2*tz_pos.reshape((1,-1)) * p_norm.reshape((-1,1))
 
         return t, m
 
@@ -626,8 +626,9 @@ class API_clay(LateralModel):
         multiplier for p-values
     y_multiplier: float
         multiplier for y-values
-    ext: str, by default None
+    extension: str, by default None
         turn on extensions by calling them in this variable
+        for API_clay, rotational springs can be added to the model with the extension "mt_curves"
 
 
     See also
@@ -653,14 +654,15 @@ class API_clay(LateralModel):
     #: y-multiplier
     y_multiplier: confloat(gt=0.0) = 1.0
     #: extensions available for soil model
-    ext: Optional[Literal["mt_curves"]] = None
+    extension: Optional[Literal["mt_curves"]] = None
 
-    # spring signature which tells that API sand only has p-y curves in normal conditions
-    # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-    if ext == "mt_curves":
-        spring_signature = np.array([True, False, True, False], dtype=bool)
-    else:
-        spring_signature = np.array([True, False, False, False], dtype=bool)
+    def __post_init__(self):
+        # spring signature which tells that API clay only has p-y curves in normal conditions
+        # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
+        if self.extension == "mt_curves":
+            self.spring_signature = np.array([True, False, True, False], dtype=bool)
+        else:
+            self.spring_signature = np.array([True, False, False, False], dtype=bool)
 
 
     def __str__(self):
@@ -704,3 +706,51 @@ class API_clay(LateralModel):
         )
 
         return y * self.y_multiplier, p * self.p_multiplier
+
+    def mt_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+
+        m = np.zeros((output_length, output_length), dtype=np.float32)
+        t = np.zeros((output_length, output_length), dtype=np.float32)
+
+        z, tz = tz_curves.api_clay(
+            sig=sig,
+            Su=Su,
+            D = D,
+            residual=1.0,
+            tensile_factor=1.0,
+            output_length=output_length,
+        )
+
+        # trasnform tz vector so that we only get the positive side of the vectors
+        tz_pos = tz[tz>=0]
+        z_pos = z[z>=0]
+        # check how many elements we got rid off
+        diff_length_t = output_length - len(tz_pos)
+        diff_length_z = output_length - len(z_pos)
+        # add new elements at the end of the positive only vectors 
+        tz_pos = np.append(tz_pos, [tz_pos[-1]]*diff_length_t)
+        z_pos = np.append(z_pos, [z_pos[-1] + i*0.1 for i in range(diff_length_z)])
+
+        # calculate m and t vectors (they are all the same for clay)
+        t = np.arctan(z_pos.reshape((1,-1))/(0.5*D)) * np.ones((output_length,1))
+        m = 1/4*np.pi*D**2*tz_pos.reshape((1,-1)) * np.ones((output_length,1))
+
+        return t, m

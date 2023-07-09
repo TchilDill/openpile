@@ -84,7 +84,7 @@ def api_clay(
     output_length: int = 15,
 ):
     """
-    Creates the API clay t-z curve from relevant input.
+    Creates the API clay t-z curve from relevant input as per [API2GEO-2011]_.
 
     Parameters
     ----------
@@ -112,11 +112,6 @@ def api_clay(
     See also
     --------
     `API_clay`_
-
-    References
-    ----------
-    .. [1] API, April 2011. *Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
-
 
     """
     # cannot have less than 15
@@ -171,7 +166,7 @@ def api_clay_kraft(
     output_length: int = 15,          
 ):
     """
-    Creates the API clay t-z curve with the [1] Kraft et al (1981) formulation.
+    Creates the API clay t-z curve (see [API2GEO-2011]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
 
     Parameters
     ----------
@@ -205,11 +200,6 @@ def api_clay_kraft(
     --------
     `API_clay`_, :py:func:`openpile.utils.tz_curves.api_clay`
 
-    References
-    ----------
-    .. [1] Kraft, L.M., Cox, W.R., and Verner, E.A. (1981) Pile Load Tests: Cyclic Loads and Varying Load Rates, Journal of the Geotechnical Engineering Division, ASCE, Vol.107, No. GT1, pp. 1-19.
-    .. [2] API, April 2011. *Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
-
     """
     return kraft_modification(misc._fmax_api_clay(sig,Su), D, G0, residual, tensile_factor, RF, zif, output_length)
 
@@ -225,7 +215,7 @@ def api_sand(
     output_length: int = 7,
 ):
     """
-    Creates the API sand t-z curve from relevant input.
+    Creates the API sand t-z curve (see [API2GEO-2011]_).
 
     Parameters
     ----------
@@ -250,10 +240,6 @@ def api_sand(
     See also
     --------
     `API_sand`_
-
-    References
-    ----------
-    .. [1] API, April 2011. *Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
     
     """
     # cannot have less than 7
@@ -308,7 +294,7 @@ def api_sand_kraft(
     output_length: int = 15,          
 ):
     """
-    Creates the API sand t-z curve with the [1] Kraft et al (1981) formulation.
+    Creates the API sand t-z curve (see [API2GEO-2011]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
 
     Parameters
     ----------
@@ -343,11 +329,6 @@ def api_sand_kraft(
     See also
     --------
     `API_sand`_, :py:func:`openpile.utils.tz_curves.api_sand`
-
-    References
-    ----------
-    .. [1] Kraft, L.M., Cox, W.R., and Verner, E.A. (1981) Pile Load Tests: Cyclic Loads and Varying Load Rates, Journal of the Geotechnical Engineering Division, ASCE, Vol.107, No. GT1, pp. 1-19.
-    .. [2] API, April 2011. *Geotechnical and Foundation Design Considerations, ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
 
     """
     return kraft_modification(misc._fmax_api_sand(sig,delta,K), D, G0, residual, tensile_factor, RF, zif, output_length)

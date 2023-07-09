@@ -1,51 +1,31 @@
-Soil models
-===========
+Lateral soil models
+===================
 
-The following models are included in openpile. 
+The following lateral models are included in openpile. 
 
-* :ref:`API-sand`: `openpile.soilmodels.API_sand`
-* :ref:`API-clay`: `openpile.soilmodels.API_clay`
-
-The function :py:func:`openpile.utils.py_curves.[<PY soil model>]` generates the p-y curve for 
-the relevant PY soil model.
-
-Furthermore, the user can include the PY soil models discussed here in a soil profile's :py:class:`openpile.construct.Layer` 
-by calling the class :py:class:`openpile.soilmodels.[<PY soil model>]` 
-
-This part of the documentation discusses the theory and calculations. 
-Please refer to the API or Usage sections for more practical information.
-
-.. rubric:: References 
-
-.. [MuOn83] Murchison, J.M., and O'Neill, M.,W., 1983. *An Evaluation of p-y Relationships 
-    in Sands.* Rserach Report No. GT.DF02-83, Department of Civil Engineering, 
-    University of Houston, Houston, Texas, May, 1983.
-.. [MuOn84] Murchison, J.M., and O'Neill, M.,W., 1984. *Evaluation of p-y relationships 
-    in cohesionless soils.* In Proceedings of Analysis and Design of Pile Foundations, 
-    San Francisco, October 1-5, pp. 174-191. 
-.. [DNV-RP-C212] DNVGL RP-C212. *Recommended Practice, Geotechnical design*.
-    Edition 2019-09 - Amended 2021-09.
-.. [API2GEO-2011] API, April 2011. *Geotechnical and Foundation Design Considerations, 
-    ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
-.. [Matl70] Matlock, H. (1970). *Correlations for Design of Laterally Loaded Piles in Soft Clay*. 
-    Offshore Technology Conference Proceedings, Paper No. OTC 1204, Houston, Texas. 
-.. [BaCA06] Battacharya,  S.,  Carrington,  T.  M.  and  Aldridge,  T.  R.  (2006),  
-    *Design  of  FPSO  Piles  against  Storm  Loading*. Proceedings Annual Offshore Technology 
-    Conference, OTC17861, Houston, Texas, May, 2006. 
-.. [KrRK81] Kraft, L.M., Ray, R.P., and Kagawa, T. (1981). *Theoretical t-z curves*. 
-    Journal of the Geotechnical Engineering Division, ASCE, Vol. 107, No. GT11, pp. 1543-1561.
-
-
+* :ref:`API-lat-sand`
+* :ref:`API-lat-clay`
+* :ref:`Dunkirk-sand`
+* :ref:`Cowden-clay`
 
 .. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-.. _API-sand:
+.. _API-lat-sand:
 
 API sand
 --------
 
-The p-y formulation called API sand is based on the publication by 
+The API sand soil model is based on the publication by 
 O'neill and Murchison, preceded by work from Reese, L.C. and others (
 see [MuOn83]_ and [MuOn84]_). 
+
+OpenPile's use of this model is done by calling the following class in a layer:
+
+* :py:class:`openpile.soilmodels.API_sand`
+
+This soil model provides soil springs as given by the function(s):
+
+* :py:func:`openpile.utils.py_curves.api_sand`
+
 
 p-y formulation
 ^^^^^^^^^^^^^^^
@@ -139,17 +119,24 @@ where:
 * :math:`\sigma^{\prime}` is the vertical effective stress
 
 .. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-.. _API-clay:
+.. _API-lat-clay:
 
 API clay
 --------
 
-The p-y formulation called API clay is based on the work conducted by Matlock (1970) (see [Matl70]_).  
+The lateral soil model called API clay is based on the work conducted by Matlock (1970) (see [Matl70]_).  
 
-The API clay formulation is presented in both the API and DNVGL standards,
+OpenPile's use of this model is done by calling the following class in a layer:
+
+* :py:class:`openpile.soilmodels.API_clay`
+
+This soil model provides soil springs as given by the function(s):
+
+* :py:func:`openpile.utils.py_curves.api_clay`
+
+The p-y clay formulation is presented in both the API and DNVGL standards,
 see [DNV-RP-C212]_ and [API2GEO-2011]_. 
 
-The below section describes how this model is formulated and computed by openpile. 
 
 .. note::
     From an undrained shear strength of 96 kPa (assumed as the threshold at which a clay is considered stiff), 
@@ -280,3 +267,12 @@ the p-y curve can be generated according to:
     \end{cases}  
 
 
+.. _Dunkirk-sand:
+
+Dunkirk-sand (PISA model)
+-------------------------
+
+.. _Cowden-clay:
+
+Cowden-clay (PISA model)
+------------------------

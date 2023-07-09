@@ -25,7 +25,7 @@ def dunkirk_sand(
 ):
     """
     Creates the base shear spring from the PISA sand formulation
-    published by Burd et al (2020).
+    published by Burd et al (2020) (see [BTZA20]_).
     Also called the General Dunkirk Sand Model (GDSM).
 
     Parameters
@@ -89,7 +89,7 @@ def cowden_clay(
 ):
     """
     Creates the base shear spring from the PISA clay formulation
-    published by Byrne et al (2020) and calibrated based pile
+    published by Byrne et al 2020 (see [BHBG20]_) and calibrated based pile
     load tests at Cowden (north east coast of England).
 
     Parameters
@@ -113,6 +113,14 @@ def cowden_clay(
         Hb vector [unit: kN]
     1darray
         y vector [unit: m]
+
+    References
+    ----------
+    .. [1] Byrne, B. W., Houlsby, G. T., Burd, H. J., Gavin, K. G., Igoe, D. J. P., Jardine, 
+           R. J., Martin, C. M., McAdam, R. A., Potts, D. M., Taborda, D. M. G. & Zdravkovic ́, 
+           L. (2020). PISA design model for monopiles for offshore wind turbines: application 
+           to a stiff glacial clay till. Géotechnique, https://doi.org/10.1680/ jgeot.18.P.255.
+
     """
 
     # Generalised Dunkirk Sand Model parameters

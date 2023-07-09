@@ -23,8 +23,8 @@ def cowden_clay(
 ):
     """
     Create the rotational springs from the PISA clay formulation
-    published by Byrne et al (2020) and calibrated based pile load tests
-    at Cowden (north east coast of England).
+    published by Byrne et al 2020 (see [BHBG20]_) and calibrated based pile
+    load tests at Cowden (north east coast of England).
 
     Parameters
     ----------
@@ -45,6 +45,7 @@ def cowden_clay(
         m vector [unit: kN]
     1darray
         t vector of length [unit: rad]
+    
     """
 
     # Cowden clay parameters
@@ -81,7 +82,7 @@ def dunkirk_sand(
 ):
     """
     Create the rotational springs from the PISA sand
-    formulation published by Burd et al (2020).
+    formulation published by Burd et al (2020) (see [BTZA20]_).
     Also called the General Dunkirk Sand Model (GDSM)
 
     Parameters

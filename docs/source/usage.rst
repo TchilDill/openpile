@@ -1,10 +1,13 @@
+
+.. _usage:
+
 -----
 Usage
 -----
 
 The package allows a quick input by the user (given in this section) and quick calculation. 
 
-Jupyter Notebooks/IPython are recommended platforms to learn how to use openpile as it provides 
+Jupyter Notebooks/IPython are recommended platforms to use openpile as it provides 
 an interactive experience. 
 
 .. _Ex1-create_a_pile:

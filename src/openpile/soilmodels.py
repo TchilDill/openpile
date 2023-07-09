@@ -65,7 +65,7 @@ class API_clay_axial(AxialModel):
 
 @dataclass(config=PydanticConfigFrozen)
 class Cowden_clay(LateralModel):
-    """A class to establish the PISA Cowden clay model.
+    """A class to establish the PISA Cowden clay model as per Byrne et al 2020 (see [BHBG20]_).
 
     Parameters
     ----------
@@ -86,6 +86,7 @@ class Cowden_clay(LateralModel):
     --------
     :py:func:`openpile.utils.py_curves.cowden_clay`, :py:func:`openpile.utils.mt_curves.cowden_clay`, 
     :py:func:`openpile.utils.Hb_curves.cowden_clay`, :py:func:`openpile.utils.Mb_curves.cowden_clay`
+
 
     """
 
@@ -258,7 +259,7 @@ class Cowden_clay(LateralModel):
 
 @dataclass(config=PydanticConfigFrozen)
 class Dunkirk_sand(LateralModel):
-    """A class to establish the PISA Dunkirk sand model.
+    """A class to establish the PISA Dunkirk sand model as per  Burd et al (2020) (see [BTZA20]_)..
 
     Parameters
     ----------

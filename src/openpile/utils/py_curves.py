@@ -23,7 +23,7 @@ def cowden_clay(
 ):
     """
     Creates the lateral springs from the PISA clay formulation
-    published by Byrne et al (2020) and calibrated based pile
+    published by Byrne et al 2020 (see [BHBG20]_) and calibrated based pile
     load tests at Cowden (north east coast of England).
 
     Parameters
@@ -45,6 +45,7 @@ def cowden_clay(
         p vector [unit: kN/m]
     1darray
         y vector [unit: m]
+
     """
 
     # # Cowden clay parameters
@@ -81,7 +82,7 @@ def dunkirk_sand(
 ):
     """
     Creates the lateral spring from the PISA sand formulation
-    published by Burd et al (2020).
+    published  by Burd et al (2020) (see [BTZA20]_).
     Also called the General Dunkirk Sand Model (GDSM).
 
     Parameters

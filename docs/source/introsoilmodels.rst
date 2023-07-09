@@ -27,16 +27,16 @@ Please refer to the :ref:`ApplicationProgrammingInterface` for more details and 
     University of Houston, Houston, Texas, May, 1983.
 .. [MuOn84] Murchison, J.M., and O'Neill, M.,W., 1984. *Evaluation of p-y relationships 
     in cohesionless soils.* In Proceedings of Analysis and Design of Pile Foundations, 
-    San Francisco, October 1-5, pp. 174-191. 
+    San Francisco, October 1-5, pp. 174-191.
 .. [DNV-RP-C212] DNVGL RP-C212. *Recommended Practice, Geotechnical design*.
     Edition 2019-09 - Amended 2021-09.
 .. [API2GEO-2011] API, April 2011. *Geotechnical and Foundation Design Considerations, 
-    ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute
+    ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute.
 .. [Matl70] Matlock, H. (1970). *Correlations for Design of Laterally Loaded Piles in Soft Clay*. 
     Offshore Technology Conference Proceedings, Paper No. OTC 1204, Houston, Texas. 
 .. [BaCA06] Battacharya,  S.,  Carrington,  T.  M.  and  Aldridge,  T.  R.  (2006),  
     *Design  of  FPSO  Piles  against  Storm  Loading*. Proceedings Annual Offshore Technology 
-    Conference, OTC17861, Houston, Texas, May, 2006. 
+    Conference, OTC17861, Houston, Texas, May, 2006.
 .. [KrRK81] Kraft, L.M., Ray, R.P., and Kagawa, T. (1981). *Theoretical t-z curves*. 
     Journal of the Geotechnical Engineering Division, ASCE, Vol. 107, No. GT11, pp. 1543-1561.
 .. [BHBG20] Byrne, B. W., Houlsby, G. T., Burd, H. J., Gavin, K. G., Igoe, D. J. P., 

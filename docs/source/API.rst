@@ -35,7 +35,7 @@ API
 
 .. automodule:: openpile.utils.tz_curves
     :members:
-    :exclude-members: random
+    :exclude-members: random, kraft_modification
 
 
 .. automodule:: openpile.utils.qz_curves

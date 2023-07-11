@@ -29,7 +29,7 @@ Distributed springs - t-z curves
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The backbone curve is computed via the piecewise formulation 
-by [API2GEO-2011]_ or through 
+by [API2000]_ or through 
 Kraft's formulation that captures small-strain 
 characteristics of the soil [KrRK81]_ in the backbone curve.
 
@@ -52,17 +52,8 @@ The maximum resistance is calculated as follows:
   where :math:`S_u` is the clay undrained shear strength.
 * API sand: :math:`Q_{max} = N_q \sigma^\prime_v`
   where :math:`\sigma^\prime_v` is the overburden effective stress and :math:`N_q` is 
-  the end-bearing factor depending on the interface friction angle :math:`\delta = \phi - 5` given in [API2GEO-2011]_.
+  the end-bearing factor depending on the interface friction angle :math:`\delta = \phi - 5` given in [API2000]_.
 
 
 The backbone curve is computed via the piecewise formulation 
-by [API2GEO-2011]_ (see :numref:`qz_API_example_figure`).
-
-
-.. figure:: _static/plots/API_Qz_curve.png
-    :align: center
-    :width: 75%
-    :name: qz_API_example_figure
-
-    Backbone curve of API q-z spring, as per [API2GEO-2011]_.
-
+by [API2000]_.

@@ -84,7 +84,7 @@ def api_clay(
     output_length: int = 15,
 ):
     """
-    Creates the API clay t-z curve from relevant input as per [API2GEO-2011]_.
+    Creates the API clay t-z curve from relevant input as per [API2000]_.
 
     Parameters
     ----------
@@ -166,7 +166,7 @@ def api_clay_kraft(
     output_length: int = 15,          
 ):
     """
-    Creates the API clay t-z curve (see [API2GEO-2011]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
+    Creates the API clay t-z curve (see [API2000]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
 
     Parameters
     ----------
@@ -215,7 +215,7 @@ def api_sand(
     output_length: int = 7,
 ):
     """
-    Creates the API sand t-z curve (see [API2GEO-2011]_).
+    Creates the API sand t-z curve (see [API2000]_).
 
     Parameters
     ----------
@@ -294,7 +294,7 @@ def api_sand_kraft(
     output_length: int = 15,          
 ):
     """
-    Creates the API sand t-z curve (see [API2GEO-2011]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
+    Creates the API sand t-z curve (see [API2000]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
 
     Parameters
     ----------

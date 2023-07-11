@@ -31,7 +31,7 @@ p-y formulation
 ^^^^^^^^^^^^^^^
 
 The API sand formulation is presented in both the API and DNVGL standards,
-see, [DNV-RP-C212]_ and [API2GEO-2011]_.
+see, [DNV-RP-C212]_ and [API2000]_.
 
 Granular soils are modelled by the sand p-y model as described 
 with the following backbone formula:
@@ -135,7 +135,7 @@ This soil model provides soil springs as given by the function(s):
 * :py:func:`openpile.utils.py_curves.api_clay`
 
 The p-y clay formulation is presented in both the API and DNVGL standards,
-see [DNV-RP-C212]_ and [API2GEO-2011]_. 
+see [DNV-RP-C212]_ and [API2000]_. 
 
 
 .. note::

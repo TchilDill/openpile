@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from numba import njit, prange
 
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Callable
 from typing_extensions import Literal
 from pydantic import (
     BaseModel,
@@ -48,12 +48,13 @@ class AxialModel(ConstitutiveModel):
 
 @dataclass(config=PydanticConfigFrozen)
 class API_clay_axial(AxialModel):
+    
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
     Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: t-multiplier
-    t_multiplier: confloat(ge=0.0) = 1.0
+    t_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: z-multiplier
-    z_multiplier: confloat(gt=0.0) = 1.0
+    z_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: Q-multiplier
     Q_multiplier: confloat(ge=0.0) = 1.0
     #: w-multiplier
@@ -61,7 +62,6 @@ class API_clay_axial(AxialModel):
 
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
-
 
 @dataclass(config=PydanticConfigFrozen)
 class Cowden_clay(LateralModel):
@@ -73,13 +73,13 @@ class Cowden_clay(LateralModel):
         Undrained shear strength. Value to range from 0 to 100 [unit: kPa]
     G0: float or list[top_value, bottom_value]
         Small-strain shear modulus [unit: kPa]
-    p_multiplier: float
+    p_multiplier: float or function taking the depth as argument and returns the multiplier 
         multiplier for p-values
-    y_multiplier: float
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
-    m_multiplier: float
+    m_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for m-values
-    t_multiplier: float
+    t_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for t-values
 
     See also
@@ -95,13 +95,13 @@ class Cowden_clay(LateralModel):
     #: small-strain shear stiffness modulus [kPa]
     G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: p-multiplier
-    p_multiplier: confloat(ge=0.0) = 1.0
+    p_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
-    y_multiplier: confloat(gt=0.0) = 1.0
+    y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
     #: m-multiplier
-    m_multiplier: confloat(ge=0.0) = 1.0
+    m_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
     #: t-multiplier
-    t_multiplier: confloat(gt=0.0) = 1.0
+    t_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -141,7 +141,11 @@ class Cowden_clay(LateralModel):
             output_length=output_length,
         )
 
-        return y * self.y_multiplier, p * self.p_multiplier
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier,float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier,float) else self.p_multiplier(X)
+
+        return y * y_mult, p * p_mult
 
     def Hb_spring_fct(
         self,
@@ -220,7 +224,13 @@ class Cowden_clay(LateralModel):
                 output_length=output_length,
             )
 
-        return t * self.t_multiplier, m * self.m_multiplier
+
+        # parse multipliers and apply results
+        t_mult = self.t_multiplier if isinstance(self.t_multiplier,float) else self.t_multiplier(X)
+        m_mult = self.m_multiplier if isinstance(self.m_multiplier,float) else self.m_multiplier(X)
+
+        return t * t_mult, m * m_mult
+    
 
     def Mb_spring_fct(
         self,
@@ -267,13 +277,13 @@ class Dunkirk_sand(LateralModel):
         relative density of sand. Value to range from 0 to 100. [unit: -]
     G0: float or list[top_value, bottom_value]
         Small-strain shear modulus [unit: kPa]
-    p_multiplier: float
+    p_multiplier: float or function taking the depth as argument and returns the multiplier 
         multiplier for p-values
-    y_multiplier: float
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
-    m_multiplier: float
+    m_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for m-values
-    t_multiplier: float
+    t_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for t-values
 
     See also
@@ -288,13 +298,13 @@ class Dunkirk_sand(LateralModel):
     #: small-strain shear stiffness modulus [kPa]
     G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: p-multiplier
-    p_multiplier: confloat(ge=0.0) = 1.0
+    p_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
-    y_multiplier: confloat(gt=0.0) = 1.0
+    y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
     #: m-multiplier
-    m_multiplier: confloat(ge=0.0) = 1.0
+    m_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
     #: t-multiplier
-    t_multiplier: confloat(gt=0.0) = 1.0
+    t_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -336,7 +346,11 @@ class Dunkirk_sand(LateralModel):
             output_length=output_length,
         )
 
-        return y * self.y_multiplier, p * self.p_multiplier
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier,float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier,float) else self.p_multiplier(X)
+
+        return y * y_mult, p * p_mult
 
     def Hb_spring_fct(
         self,
@@ -421,8 +435,12 @@ class Dunkirk_sand(LateralModel):
                 output_length=output_length,
             )
 
-        return t * self.t_multiplier, m * self.m_multiplier
+        # parse multipliers and apply results
+        t_mult = self.t_multiplier if isinstance(self.t_multiplier,float) else self.t_multiplier(X)
+        m_mult = self.m_multiplier if isinstance(self.m_multiplier,float) else self.m_multiplier(X)
 
+        return t * t_mult, m * m_mult
+    
     def Mb_spring_fct(
         self,
         sig: float,
@@ -471,9 +489,9 @@ class API_sand(LateralModel):
         types of curves, can be of ("static","cyclic")
     G0: float or list[top_value, bottom_value] or None
         Small-strain shear modulus [unit: kPa], by default None
-    p_multiplier: float
+    p_multiplier: float or function taking the depth as argument and returns the multiplier 
         multiplier for p-values
-    y_multiplier: float
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
     extension: str, by default None
         turn on extensions by calling them in this variable
@@ -492,9 +510,9 @@ class API_sand(LateralModel):
     #: small-strain stiffness [kPa], if a variation in values, two values can be given.
     G0: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]] = None
     #: p-multiplier
-    p_multiplier: confloat(ge=0.0) = 1.0
+    p_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
-    y_multiplier: confloat(gt=0.0) = 1.0
+    y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
 
@@ -541,7 +559,12 @@ class API_sand(LateralModel):
             output_length=output_length,
         )
 
-        return y * self.y_multiplier, p * self.p_multiplier
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier,float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier,float) else self.p_multiplier(X)
+
+        return y * y_mult, p * p_mult
+    
 
     def mt_spring_fct(
         self,
@@ -623,9 +646,9 @@ class API_clay(LateralModel):
         Small-strain shear modulus [unit: kPa], by default None
     kind: str, by default "static"
         types of curves, can be of ("static","cyclic")
-    p_multiplier: float
+    p_multiplier: float or function taking the depth as argument and returns the multiplier 
         multiplier for p-values
-    y_multiplier: float
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
     extension: str, by default None
         turn on extensions by calling them in this variable
@@ -651,9 +674,9 @@ class API_clay(LateralModel):
     #: undrained shear strength [kPa] at which stiff clay curve is computed
     stiff_clay_threshold: PositiveFloat = 96
     #: p-multiplier
-    p_multiplier: confloat(ge=0.0) = 1.0
+    p_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
-    y_multiplier: confloat(gt=0.0) = 1.0
+    y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
 
@@ -706,8 +729,12 @@ class API_clay(LateralModel):
             output_length=output_length,
         )
 
-        return y * self.y_multiplier, p * self.p_multiplier
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier,float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier,float) else self.p_multiplier(X)
 
+        return y * y_mult, p * p_mult
+    
     def mt_spring_fct(
         self,
         sig: float,

@@ -35,6 +35,7 @@ from pydantic import (
     conlist,
     constr,
     Extra,
+    ValidationError
 )
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
@@ -531,6 +532,41 @@ class Layer:
             raise ValueError
         else:
             return values
+        
+    @root_validator
+    def check_multipliers_in_lateral_model(cls, values):
+        def check_multipliers_callable(multiplier, type):
+            # if not a float, it must be a callable, then we check for Real Positive float
+            if not isinstance(multiplier,float):
+                #defines depth to check
+                depths = np.linspace(start=values['top'], stop=values['bottom'], num=100)
+                #check if positive real float is returned
+                for depth in depths:
+                    result = multiplier(depth)
+                    if not isinstance(result,float):
+                        ValidationError(f"Result of the {type}-multiplier callable is not a float")
+                    else:
+                        if type in ['p', 'm']:
+                            if result < 0.0: 
+                                ValidationError("Result of the {type}-multiplier callable is not null or strictly positive")
+                        elif type in ['y', 't']:
+                            if not result > 0.0:
+                                ValidationError("Result of the {type}-multiplier callable is not strictly positive")
+
+        if values['lateral_model'] is not None:
+            #check p-multipliers
+            check_multipliers_callable(values['lateral_model'].p_multiplier, "p")
+            #check y-multipliers
+            check_multipliers_callable(values['lateral_model'].y_multiplier, "y")
+            #check m-multipliers
+            check_multipliers_callable(values['lateral_model'].m_multiplier, "m")
+            #check t-multipliers
+            check_multipliers_callable(values['lateral_model'].t_multiplier, "t")
+
+        return values 
+
+
+
 
 
 @dataclass(config=PydanticConfig)

@@ -516,6 +516,10 @@ class API_sand(LateralModel):
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
 
+    # define class variables needed for all soil models
+    m_multiplier = None
+    t_multiplier = None
+
     def __post_init__(self):
         # spring signature which tells that API sand only has p-y curves in normal conditions
         # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -679,6 +683,11 @@ class API_clay(LateralModel):
     y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
+
+
+    # define class variables needed for all soil models
+    m_multiplier = None
+    t_multiplier = None
 
     def __post_init__(self):
         # spring signature which tells that API clay only has p-y curves in normal conditions

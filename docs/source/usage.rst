@@ -285,8 +285,8 @@ Example 5 - Create a Model and run an analysis
     M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
 
     # Run analysis
-    from openpile.analyze import simple_winkler_analysis
-    Result = simple_winkler_analysis(M)
+    from openpile.analyze import winkler
+    Result = winkler(M)
 
     # plot the results
     Result.plot()

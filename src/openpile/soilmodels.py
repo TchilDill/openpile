@@ -517,8 +517,8 @@ class API_sand(LateralModel):
     extension: Optional[Literal["mt_curves"]] = None
 
     # define class variables needed for all soil models
-    m_multiplier = None
-    t_multiplier = None
+    m_multiplier = 1.0
+    t_multiplier = 1.0
 
     def __post_init__(self):
         # spring signature which tells that API sand only has p-y curves in normal conditions
@@ -629,7 +629,7 @@ class API_sand(LateralModel):
         t = np.arctan(z_pos.reshape((1,-1))/(0.5*D)) * np.ones((output_length,1))
         m = 1/4*np.pi*D**2*tz_pos.reshape((1,-1)) * p_norm.reshape((-1,1))
 
-        return t, m
+        return t , m
 
 
 @dataclass(config=PydanticConfigFrozen)
@@ -686,8 +686,8 @@ class API_clay(LateralModel):
 
 
     # define class variables needed for all soil models
-    m_multiplier = None
-    t_multiplier = None
+    m_multiplier = 1.0
+    t_multiplier = 1.0
 
     def __post_init__(self):
         # spring signature which tells that API clay only has p-y curves in normal conditions

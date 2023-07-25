@@ -11,6 +11,7 @@ Every function from this module returns an `openpile.analyze.AnalyzeResult` obje
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import warnings
 
 from dataclasses import dataclass
 
@@ -138,6 +139,7 @@ class AnalyzeResult:
     _dist_mob: pd.DataFrame = None
     _hb_mob: tuple = None
     _mb_mob: tuple = None
+    _details: dict = None
 
 
     @property
@@ -304,7 +306,7 @@ class AnalyzeResult:
         fig = graphics.plot_forces(self)
         return fig if assign else None
 
-    def plot(self, assign=False):
+    def plot_lateral_results(self, assign=False):
         """Plots the pile deflection and sectional forces.
 
         Parameters
@@ -327,7 +329,50 @@ class AnalyzeResult:
         return fig if assign else None
 
 
-def simple_beam_analysis(model):
+    def plot(self, assign=False):
+        """Same behaviour as :py:meth:`openpile.analyze.plot_lateral_results`.
+
+        Parameters
+        ----------
+        assign : bool, optional
+            by default False
+
+        Returns
+        -------
+        None or matplotlib.pyplot.figure
+            if assign is True, a matplotlib figure is returned
+
+        """
+        return self.plot_lateral_results(assign)
+    
+    def details(self) -> dict:
+        """Provide a summary of the results.
+
+        Returns
+        -------
+        dict
+            info on the results
+
+        """
+
+        return {
+            **self._details,
+            "Max. normal force [kN]": round(self._f["N [kN]"].max(),2),
+            "Min. normal force [kN]": round(self._f["N [kN]"].min(),2),
+            "Max. shear force [kN]": round(self._f["V [kN]"].max(),2),
+            "Min. shear force [kN]": round(self._f["V [kN]"].min(),2),
+            "Max. moment [kNm]": round(self._f["M [kNm]"].max(),2),
+            "Min. moment [kNm]": round(self._f["M [kNm]"].min(),2),
+            "Max. settlement [m]": round(self._d["Settlement [m]"].max(),3),
+            "Min. settlement [m]": round(self._d["Settlement [m]"].min(),3),
+            "Max. deflection [m]": round(self._d["Deflection [m]"].max(),3),
+            "Min. deflection [m]": round(self._d["Deflection [m]"].min(),3),
+            "Max. rotation [rad]": round(self._d["Rotation [rad]"].max(),3),
+            "Min. rotation [rad]": round(self._d["Rotation [rad]"].min(),3),
+        }
+
+
+def beam(model):
     """
     Function where loading or displacement defined in the model boundary conditions
     are used to solve the system of equations, .
@@ -342,6 +387,7 @@ def simple_beam_analysis(model):
     results : `openpile.compute.Result` object
         Results of the analysis
     """
+    
     # validate boundary conditions
     validation.check_boundary_conditions(model)
 
@@ -373,17 +419,21 @@ def simple_beam_analysis(model):
         _d=disp_to_df(model, d),
         _f=structural_forces_to_df(model, q_int),
         _Q=reaction_forces_to_df(model, Q),
+        _details={
+                'converged @ iter no.' : 1,
+                'error' : 0.0,
+                'tolerance': None,
+        }
     )
 
     return results
 
 
-def simple_winkler_analysis(model, max_iter: int = 100):
+
+def winkler(model, max_iter: int = 100):
     """
     Function where loading or displacement defined in the model boundary conditions
-    are used to solve the system of equations, .
-
-    #TODO
+    are used to solve the system of equations via the iterative Newton-Raphson scheme.
 
     Parameters
     ----------
@@ -435,6 +485,7 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             # External forces
             F_ext = F - Q
             control = np.linalg.norm(F_ext)
+            nr_tol = 1e-4 * control
 
             # add up increment displacements
             d += u_inc
@@ -447,7 +498,7 @@ def simple_winkler_analysis(model, max_iter: int = 100):
             Rg = F_ext + F_int
 
             # check if converged
-            if np.linalg.norm(Rg[~supports]) < 1e-4 * control:
+            if np.linalg.norm(Rg[~supports]) < nr_tol:
                 # do not accept convergence without iteration (without a second call to solve equations)
                 if iter_no > 0:
                     print(f"Converged at iteration no. {iter_no}")
@@ -484,6 +535,38 @@ def simple_winkler_analysis(model, max_iter: int = 100):
                                                                            model._Mb_spring, 
                                                                            kind="secant"), 
                                 model._Mb_spring.flatten().max()),
+            _details={
+                'converged @ iter no.' : 1,
+                'error [kN]' : round(np.linalg.norm(Rg[~supports]),3),
+                'tolerance [kN]': round(nr_tol,3),
+            }
         )
 
         return results
+
+
+
+def simple_winkler_analysis(model, max_iter: int = 100):
+
+    # deprecation warning
+    warnings.warn(
+        "\nThe method Analyze.simple_winkler_analysis() will be removed in version 1.0.0."
+        "\nPlease use the Analyze.winkler() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return winkler(model, max_iter)
+
+
+def simple_beam_analysis(model):
+    
+    # deprecation warning
+    warnings.warn(
+        "\nThe method Analyze.simple_beam_analysis() will be removed in version 1.0.0."
+        "\nPlease use the Analyze.beam() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    
+    return beam(model)  

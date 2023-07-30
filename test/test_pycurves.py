@@ -58,7 +58,7 @@ def make_pmax_api_clay():
 @pytest.mark.parametrize("xwater",[True,False])
 def test_api_sand(make_pmax_api_sand,xsigma,xX, xphi, xD, xkind, xwater):
     #create spring
-    p, y = py.api_sand(sig=xsigma,X=xX,phi=xphi, D=xD, kind=xkind, below_water_table=xwater)
+    y, p = py.api_sand(sig=xsigma,X=xX,phi=xphi, D=xD, kind=xkind, below_water_table=xwater)
     #helper fct
     is_sorted = lambda a: np.all(a[:-1] <= a[1:])
     #check if sorted
@@ -84,7 +84,7 @@ def test_api_sand(make_pmax_api_sand,xsigma,xX, xphi, xD, xkind, xwater):
 @pytest.mark.parametrize("xkind",["static","cyclic"])
 def test_api_clay(make_pmax_api_clay,xsigma, xX, xSu, xe50, xD, xJ, xkind):
     #create spring
-    p, y = py.api_clay(sig=xsigma, X=xX, Su=xSu, eps50=xe50, D=xD, J=xJ, kind=xkind)
+    y, p = py.api_clay(sig=xsigma, X=xX, Su=xSu, eps50=xe50, D=xD, J=xJ, kind=xkind)
     #helper fct
     is_sorted = lambda a: np.all(a[:-1] <= a[1:])
     #check if sorted

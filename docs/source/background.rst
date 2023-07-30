@@ -3,7 +3,9 @@ Background and Theory
 ---------------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
 
-   PYmodels
+   introsoilmodels
+   lateralsoilmodels
+   axialsoilmodels

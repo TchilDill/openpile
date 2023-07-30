@@ -1,3 +1,6 @@
+
+.. _ApplicationProgrammingInterface:
+
 ---
 API
 ---
@@ -12,9 +15,9 @@ API
                       LateralModel, AxialModel, py_spring_fct, mt_spring_fct, Hb_spring_fct, 
                       Mb_spring_fct, spring_signature
 
-.. automodule:: openpile.analyses
+.. automodule:: openpile.analyze
     :members: 
-    :exclude-members: PydanticConfig, structural_forces_to_df, disp_to_df, Result
+    :exclude-members: simple_winkler_analysis, simple_beam_analysis, PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, AnalyzeResult
 
 
 `utils` module
@@ -32,7 +35,7 @@ API
 
 .. automodule:: openpile.utils.tz_curves
     :members:
-    :exclude-members: random
+    :exclude-members: random, kraft_modification
 
 
 .. automodule:: openpile.utils.qz_curves
@@ -43,13 +46,7 @@ API
 The `Result` class
 ==================
 
-.. autoclass:: openpile.analyses.Result
+.. autoclass:: openpile.analyze.AnalyzeResult
     :members:
-    :exclude-members: name, displacements, forces, Config, __init__
+    :exclude-members: Config, __init__
 
-    Usage
-    -----
-
-    The `Result` class is created by any analyses from the :py:mod:`openpile.analyses` module.
-
-    As such the user can use the following properties and/or methods for any return values of an analysis. 

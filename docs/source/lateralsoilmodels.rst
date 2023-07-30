@@ -1,54 +1,37 @@
-PY soil models
-==============
+Lateral soil models
+===================
 
-The following PY models are included in openpile. 
+The following lateral models are included in openpile. 
 
-* :ref:`API-sand` 
-* :ref:`API-clay` 
-
-The function :py:func:`openpile.utils.py_curves.[<PY soil model>]` generates the p-y curve for 
-the relevant PY soil model.
-
-Furthermore, the user can include the PY soil models discussed here in a soil profile's :py:class:`openpile.construct.Layer` 
-by calling the class :py:class:`openpile.soilmodels.[<PY soil model>]` 
-
-This part of the documentation discusses the theory and calculations. 
-Please refer to the API or Usage sections for more practical information.
-
-.. rubric:: References 
-
-.. [MuOn83] Murchison, J.M., and O'Neill, M.,W., 1983. *An Evaluation of p-y Relationships 
-    in Sands.* Rserach Report No. GT.DF02-83, Department of Civil Engineering, 
-    University of Houston, Houston, Texas, May, 1983.
-.. [MuOn84] Murchison, J.M., and O'Neill, M.,W., 1984. *Evaluation of p-y relationships 
-    in cohesionless soils.* In Proceedings of Analysis and Design of Pile Foundations, 
-    San Francisco, October 1-5, pp. 174-191. 
-.. [DNV-RP-C212] DNVGL RP-C212. *Recommended Practice, Geotechnical design*.
-    Edition 2019-09 - Amended 2021-09.
-.. [API2GEO-2011] API, April 2011. *Geotechnical and Foundation Design Considerations, 
-    ANSI/API Recommended Practice 2GEO*, First Edition, American Petroleum Institute, p. 103
-.. [Matl70] Matlock, H. (1970). *Correlations for Design of Laterally Loaded Piles in Soft Clay*. 
-    Offshore Technology Conference Proceedings, Paper No. OTC 1204, Houston, Texas. 
-.. [BaCA06] Battacharya,  S.,  Carrington,  T.  M.  and  Aldridge,  T.  R.  (2006),  
-    *Design  of  FPSO  Piles  against  Storm  Loading*. Proceedings Annual Offshore Technology 
-    Conference, OTC17861, Houston, Texas, May, 2006. 
-
+* :ref:`API-lat-sand`
+* :ref:`API-lat-clay`
+* :ref:`Dunkirk-sand`
+* :ref:`Cowden-clay`
 
 .. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-.. _API-sand:
+.. _API-lat-sand:
 
 API sand
 --------
 
-The p-y formulation called API sand is based on the publication by 
+The API sand soil model is based on the publication by 
 O'neill and Murchison, preceded by work from Reese, L.C. and others (
 see [MuOn83]_ and [MuOn84]_). 
+
+OpenPile's use of this model is done by calling the following class in a layer:
+
+* :py:class:`openpile.soilmodels.API_sand`
+
+This soil model provides soil springs as given by the function(s):
+
+* :py:func:`openpile.utils.py_curves.api_sand`
+
 
 p-y formulation
 ^^^^^^^^^^^^^^^
 
 The API sand formulation is presented in both the API and DNVGL standards,
-see, [DNV-RP-C212]_ and [API2GEO-2011]_.
+see, [DNV-RP-C212]_ and [API2000]_.
 
 Granular soils are modelled by the sand p-y model as described 
 with the following backbone formula:
@@ -136,17 +119,24 @@ where:
 * :math:`\sigma^{\prime}` is the vertical effective stress
 
 .. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-.. _API-clay:
+.. _API-lat-clay:
 
 API clay
 --------
 
-The p-y formulation called API clay is based on the work conducted by Matlock (1970) (see [Matl70]_).  
+The lateral soil model called API clay is based on the work conducted by Matlock (1970) (see [Matl70]_).  
 
-The API clay formulation is presented in both the API and DNVGL standards,
-see [DNV-RP-C212]_ and [API2GEO-2011]_. 
+OpenPile's use of this model is done by calling the following class in a layer:
 
-The below section describes how this model is formulated and computed by openpile. 
+* :py:class:`openpile.soilmodels.API_clay`
+
+This soil model provides soil springs as given by the function(s):
+
+* :py:func:`openpile.utils.py_curves.api_clay`
+
+The p-y clay formulation is presented in both the API and DNVGL standards,
+see [DNV-RP-C212]_ and [API2000]_. 
+
 
 .. note::
     From an undrained shear strength of 96 kPa (assumed as the threshold at which a clay is considered stiff), 
@@ -276,4 +266,43 @@ the p-y curve can be generated according to:
     \end{split}
     \end{cases}  
 
+
+.. _Dunkirk-sand:
+
+Dunkirk-sand (PISA model)
+-------------------------
+
+This soil model was formulated as part of the Joint Industry Project PISA, that focused on formulating soil springs for large diameter monopiles as found in the offshore wind industry. 
+This resulted in soil springs formulated in a normalized space based on a conic function backbone curve and the few following soil parameters, 
+(i) undrained shear strength and (ii) small-strain shear stiffness. 
+This standard model only account for monotonic reaction curves and as usual, it reflects the site conditions of the site the curves were calibrated from, a site in Dunkirk, France where dense sand is found. 
+More details can be found in [BTZA20]_.
+
+The model is validated in the below figure by performing a benchmark of OpenPile
+against the source material, [BTZA20]_. OpenPile shows some differences in result for high lateral load. 
+This is due to the lack of clearer guidance in deriving `G0` in the source material.
+
+.. figure:: _static/validation/GDSM_D2t.png
+    :width: 80%
+
+    Validation against pile D2t documented in [BTZA20]_.
+
+.. _Cowden-clay:
+
+Cowden-clay (PISA model)
+------------------------
+
+This soil model was formulated as part of the Joint Industry Project PISA, that focused on formulating soil springs for large diameter monopiles as found in the offshore wind industry. 
+This resulted in soil springs formulated in a normalized space based on a conic function backbone curve and the few following soil parameters, 
+(i) undrained shear strength and (ii) small-strain shear stiffness. 
+This standard model only account for monotonic reaction curves and as usual, it reflects the site conditions of the site the curves were calibrated from, a site in Cowden, England where overconsolidated glacial till is found. 
+More details can be found in [BHBG20]_.
+
+The model is validated in the below figure by performing a benchmark of OpenPile
+against the source material, [BHBG20]_.
+
+.. figure:: _static/validation/CowdenClay_D1_D2.png
+    :width: 80%
+
+    Validation against piles D1 and D2 documented in [BHBG20]_.
 

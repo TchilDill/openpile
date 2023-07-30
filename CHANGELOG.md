@@ -8,8 +8,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 
-## [0.4.0] - 2023-XX-XX (not released yet) 
-- *blank*
+## [0.4.0] - 2023-07-30 (not released yet) 
+- Updates in documentation
+- new methods available for `openpile.analyze.Result` class:
+  - new method `winkler()` replacing `simple_winkler_analysis()`, the use of the latter triggers a deprecation warning when used.
+  - new method `beam()` replacing `simple_beam_analysis()`, the use of the latter triggers a deprecation warning when used.
+  - new method `openpile.analyze.details()` that provides summary of an `AnalyzeResult` object.
+- new methods available for `openpile.construct.Model` class:
+  - `openpile.construct.Model.get_py_springs()`
+  - `openpile.construct.Model.get_mt_springs()`
+  - `openpile.construct.Model.get_Hb_spring()`
+  - `openpile.construct.Model.get_Mb_spring()`
+- new feature which allow user to enter a function in place of a float for springs multipliers when creating `SoilModel` objects. the function must take as input a PositiveFloat representing the depth below ground level, and as output the multiplier that shall be used by the soil spring for this depth.
+- new `openpile.utils.multipliers` module that stores validated functions for use in multipliers in SoilModels objects.
 
 ## [0.3.3] - 2023-05-19 
 - fix error in Dunkirk_sand rotational springs

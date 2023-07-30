@@ -35,6 +35,7 @@ from pydantic import (
     conlist,
     constr,
     Extra,
+    ValidationError,
 )
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
@@ -649,6 +650,74 @@ class SoilProfile:
 
         return values
 
+    @root_validator
+    def check_multipliers_in_lateral_model(cls, values):
+        def check_multipliers_callable(multiplier, ground_level, top, bottom, type):
+            # if not a float, it must be a callable, then we check for Real Positive float
+            if not isinstance(multiplier, float):
+                # defines depth below ground to check
+                depths = ground_level - np.linspace(start=top, stop=bottom, num=100)
+                # check if positive real float is returned
+                for depth in depths:
+                    result = multiplier(depth)
+                    if not isinstance(result, float):
+                        TypeError(
+                            f"One or more results of the {type}-multiplier callable is not a float"
+                        )
+                        return None
+                    else:
+                        if type in ["p", "m"]:
+                            if result < 0.0:
+                                print(
+                                    f"One or more results of the {type}-multiplier callable is negative"
+                                )
+                                return None
+                        elif type in ["y", "t"]:
+                            if not result > 0.0:
+                                ValueError(
+                                    f"One or more results of the {type}-multiplier callable is not strictly positive"
+                                )
+                                return None
+
+        layers = values["layers"]
+
+        for layer in layers:
+            if layer.lateral_model is not None:
+                # check p-multipliers
+                check_multipliers_callable(
+                    layer.lateral_model.p_multiplier,
+                    values["top_elevation"],
+                    layer.top,
+                    layer.bottom,
+                    "p",
+                )
+                # check y-multipliers
+                check_multipliers_callable(
+                    layer.lateral_model.y_multiplier,
+                    values["top_elevation"],
+                    layer.top,
+                    layer.bottom,
+                    "y",
+                )
+                # check m-multipliers
+                check_multipliers_callable(
+                    layer.lateral_model.m_multiplier,
+                    values["top_elevation"],
+                    layer.top,
+                    layer.bottom,
+                    "m",
+                )
+                # check t-multipliers
+                check_multipliers_callable(
+                    layer.lateral_model.t_multiplier,
+                    values["top_elevation"],
+                    layer.top,
+                    layer.bottom,
+                    "t",
+                )
+
+        return values
+
     def __post_init__(self):
         pass
 
@@ -947,7 +1016,7 @@ class Model:
 
                             # calculate springs (top and) for each element
                             for j in [0, 1]:
-                                (py[i, j, 0], py[i, j, 1]) = layer.lateral_model.py_spring_fct(
+                                (py[i, j, 1], py[i, j, 0]) = layer.lateral_model.py_spring_fct(
                                     sig=sig_v[j],
                                     X=depth_from_ground[j],
                                     layer_height=(layer.top - layer.bottom),
@@ -964,7 +1033,7 @@ class Model:
 
                             # calculate springs (top and) for each element
                             for j in [0, 1]:
-                                (mt[i, j, 0], mt[i, j, 1]) = layer.lateral_model.mt_spring_fct(
+                                (mt[i, j, 1], mt[i, j, 0]) = layer.lateral_model.mt_spring_fct(
                                     sig=sig_v[j],
                                     X=depth_from_ground[j],
                                     layer_height=(layer.top - layer.bottom),
@@ -975,48 +1044,44 @@ class Model:
                                     output_length=spring_dim,
                                 )
 
-                        # check if pile tip is within layer
-                        if (
-                            layer.top >= self.pile.bottom_elevation
-                            and layer.bottom <= self.pile.bottom_elevation
-                        ):
+                    # check if pile tip is within layer
+                    if (
+                        layer.top >= self.pile.bottom_elevation
+                        and layer.bottom <= self.pile.bottom_elevation
+                    ):
 
-                            # Hb curve
-                            sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
+                        # Hb curve
+                        sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
 
-                            if layer.lateral_model.spring_signature[1] and self.base_shear:
+                        if layer.lateral_model.spring_signature[1] and self.base_shear:
 
-                                # calculate Hb spring
-                                (Hb[0, 0, 0], Hb[0, 0, 1]) = layer.lateral_model.Hb_spring_fct(
-                                    sig=sig_v_tip,
-                                    X=self.pile.bottom_elevation,
-                                    layer_height=(layer.top - layer.bottom),
-                                    depth_from_top_of_layer=(
-                                        layer.top - self.pile.bottom_elevation
-                                    ),
-                                    D=pile_width,
-                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=self.pile.bottom_elevation
-                                    <= self.soil.water_line,
-                                    output_length=spring_dim,
-                                )
+                            # calculate Hb spring
+                            (Hb[0, 0, 1], Hb[0, 0, 0]) = layer.lateral_model.Hb_spring_fct(
+                                sig=sig_v_tip,
+                                X=-self.pile.bottom_elevation,
+                                layer_height=(layer.top - layer.bottom),
+                                depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
+                                D=pile_width,
+                                L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                below_water_table=self.pile.bottom_elevation
+                                <= self.soil.water_line,
+                                output_length=spring_dim,
+                            )
 
-                            # Mb curve
-                            if layer.lateral_model.spring_signature[3] and self.base_moment:
+                        # Mb curve
+                        if layer.lateral_model.spring_signature[3] and self.base_moment:
 
-                                (Mb[0, 0, 0], Mb[0, 0, 1]) = layer.lateral_model.Mb_spring_fct(
-                                    sig=sig_v_tip,
-                                    X=self.pile.bottom_elevation,
-                                    layer_height=(layer.top - layer.bottom),
-                                    depth_from_top_of_layer=(
-                                        layer.top - self.pile.bottom_elevation
-                                    ),
-                                    D=pile_width,
-                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=self.pile.bottom_elevation
-                                    <= self.soil.water_line,
-                                    output_length=spring_dim,
-                                )
+                            (Mb[0, 0, 1], Mb[0, 0, 0]) = layer.lateral_model.Mb_spring_fct(
+                                sig=sig_v_tip,
+                                X=-self.pile.bottom_elevation,
+                                layer_height=(layer.top - layer.bottom),
+                                depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
+                                D=pile_width,
+                                L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                below_water_table=self.pile.bottom_elevation
+                                <= self.soil.water_line,
+                                output_length=spring_dim,
+                            )
 
             if check_springs(py):
                 print("py springs have negative or NaN values.")
@@ -1129,24 +1194,6 @@ class Model:
         self.global_restrained["Tx"] = False
         self.global_restrained["Ty"] = False
         self.global_restrained["Rz"] = False
-
-    @property
-    def py_springs(self) -> pd.DataFrame:
-        """Table with p-y springs computed for the given Model.
-
-        Returns
-        -------
-        pd.DataFrame (or None if no SoilProfile is present)
-            Table with p-y springs, i.e. p-value [kN/m] and y-value [m].
-        """
-        if self.soil is None:
-            return None
-        else:
-            return misc.get_springs(
-                springs=self._py_springs,
-                elevations=self.nodes_coordinates["x [m]"].values,
-                kind="p-y",
-            )
 
     @property
     def embedment(self) -> float:
@@ -1414,6 +1461,128 @@ class Model:
         except Exception:
             print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
+
+    def get_py_springs(self, kind: str = "node") -> pd.DataFrame:
+        """Table with p-y springs computed for the given Model.
+
+        Posible to extract the springs at the node level (i.e. spring at each node)
+        or element level (i.e. top and bottom springs at each element)
+
+        Parameters
+        ----------
+        kind : str
+            can be of ("node", "element").
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with p-y springs, i.e. p-value [kN/m] and y-value [m].
+        """
+        if self.soil is None:
+            return None
+        else:
+            if kind == "element":
+                return misc.get_full_springs(
+                    springs=self._py_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="p-y",
+                )
+            elif kind == "node":
+                return misc.get_reduced_springs(
+                    springs=self._py_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="p-y",
+                )
+            else:
+                return None
+
+    def get_mt_springs(self, kind: str = "node") -> pd.DataFrame:
+        """Table with m-t (rotational) springs computed for the given Model.
+
+        Posible to extract the springs at the node level (i.e. spring at each node)
+        or element level (i.e. top and bottom springs at each element)
+
+        Parameters
+        ----------
+        kind : str
+            can be of ("node", "element").
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with m-t springs, i.e. m-value [kNm] and t-value [-].
+        """
+        if self.soil is None:
+            return None
+        else:
+            if kind == "element":
+                return misc.get_full_springs(
+                    springs=self._mt_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="m-t",
+                )
+            elif kind == "node":
+                return misc.get_reduced_springs(
+                    springs=self._mt_springs,
+                    elevations=self.nodes_coordinates["x [m]"].values,
+                    kind="m-t",
+                )
+            else:
+                return None
+
+    def get_Hb_spring(self) -> pd.DataFrame:
+        """Table with Hb (base shear) spring computed for the given Model.
+
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with Hb spring, i.e. H-value [kN] and y-value [m].
+        """
+        if self.soil is None:
+            return None
+        else:
+            spring_dim = self._Hb_spring.shape[-1]
+
+            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
+
+            df = pd.DataFrame(
+                data={
+                    "Node no.": [self.element_number + 1] * 2,
+                    "Elevation [m]": [self.pile.bottom_elevation] * 2,
+                }
+            )
+            df["type"] = ["Hb", "y"]
+            df[column_values_spring] = self._Hb_spring.reshape(2, spring_dim)
+
+            return df
+
+    def get_Mb_spring(self) -> pd.DataFrame:
+        """Table with Mb (base moment) spring computed for the given Model.
+
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with Mb spring, i.e. M-value [kNn] and t-value [-].
+        """
+        if self.soil is None:
+            return None
+        else:
+            spring_dim = self._Hb_spring.shape[-1]
+
+            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
+
+            df = pd.DataFrame(
+                data={
+                    "Node no.": [self.element_number + 1] * 2,
+                    "Elevation [m]": [self.pile.bottom_elevation] * 2,
+                }
+            )
+            df["type"] = ["Mb", "t"]
+            df[column_values_spring] = self._Hb_spring.reshape(2, spring_dim)
+
+            return df
 
     def plot(self, assign=False):
         """Create a plot of the model with the mesh and boundary conditions.

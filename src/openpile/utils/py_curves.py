@@ -23,7 +23,7 @@ def cowden_clay(
 ):
     """
     Creates the lateral springs from the PISA clay formulation
-    published by Byrne et al (2020) and calibrated based pile
+    published by Byrne et al 2020 (see [BHBG20]_) and calibrated based pile
     load tests at Cowden (north east coast of England).
 
     Parameters
@@ -45,6 +45,7 @@ def cowden_clay(
         p vector [unit: kN/m]
     1darray
         y vector [unit: m]
+
     """
 
     # # Cowden clay parameters
@@ -66,7 +67,7 @@ def cowden_clay(
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p * (Su * D), y * (Su * D / G0)
+    return y * (Su * D / G0), p * (Su * D)
 
 
 @njit(cache=True)
@@ -81,7 +82,7 @@ def dunkirk_sand(
 ):
     """
     Creates the lateral spring from the PISA sand formulation
-    published by Burd et al (2020).
+    published  by Burd et al (2020) (see [BTZA20]_).
     Also called the General Dunkirk Sand Model (GDSM).
 
     Parameters
@@ -129,7 +130,7 @@ def dunkirk_sand(
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return p * (sig * D), y * (sig * D / G0)
+    return y * (sig * D / G0), p * (sig * D)
 
 
 # API sand function
@@ -227,10 +228,10 @@ def api_sand(
         else:
             p[i] = A * Pmax * m.tanh((k_phi * X * y[i]) / (A * Pmax))
 
-    return p, y
+    return y, p
 
 
-# API sand function
+# API clay function
 @njit(parallel=True, cache=True)
 def api_clay(
     sig: float,
@@ -354,4 +355,4 @@ def api_clay(
         if y[i] == 0.1 * y50:
             p[i] = 0.23 * Pmax
 
-    return p, y
+    return y, p

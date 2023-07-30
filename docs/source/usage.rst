@@ -1,10 +1,13 @@
+
+.. _usage:
+
 -----
 Usage
 -----
 
 The package allows a quick input by the user (given in this section) and quick calculation. 
 
-Jupyter Notebooks/IPython are recommended platforms to learn how to use openpile as it provides 
+Jupyter Notebooks/IPython are recommended platforms to use openpile as it provides 
 an interactive experience. 
 
 .. _Ex1-create_a_pile:
@@ -118,7 +121,7 @@ API sand model looks like.
     # import p-y curve for api_sand from openpile.utils
     from openpile.utils.py_curves import api_sand
 
-    p, y = api_sand(sig=50, # vertical stress in kPa 
+    y, p = api_sand(sig=50, # vertical stress in kPa 
                     X = 5, # depth in meter
                     phi = 35, # internal angle of friction 
                     D = 5, # the pile diameter
@@ -282,8 +285,8 @@ Example 5 - Create a Model and run an analysis
     M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
 
     # Run analysis
-    from openpile.analyses import simple_winkler_analysis
-    Result = simple_winkler_analysis(M)
+    from openpile.analyze import winkler
+    Result = winkler(M)
 
     # plot the results
     Result.plot()

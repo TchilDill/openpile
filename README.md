@@ -5,7 +5,7 @@ Geotechnical super-toolbox for pile-related calculations.
 <!-- [![Python Support](https://img.shields.io/pypi/pyversions/openpile.svg)](https://pypi.org/project/openpile/) -->
 [![License: LGPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Open Source? Yes!](https://badgen.net/badge/Open%20Source%20%3F/Yes%21/blue?icon=github)](https://github.com/Naereen/badges/)
-[![Downloads](https://static.pepy.tech/badge/openpile)](https://pepy.tech/project/openpile)
+[![Downloads](https://static.pepy.tech/badge/openpile/month)](https://pepy.tech/project/openpile)
 
 ![Tests](https://github.com/TchilDill/openpile/actions/workflows/Test.yml/badge.svg) 
 [![Documentation Status](https://readthedocs.org/projects/openpile/badge/?version=latest)](https://openpile.readthedocs.io/en/latest/?badge=latest)

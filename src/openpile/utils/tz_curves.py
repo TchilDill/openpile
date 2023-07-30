@@ -2,15 +2,79 @@
 `tz_curves` module
 ==================
 
+
 """
 
 # Import libraries
+import openpile.utils.misc as misc
+
 import math as m
 import numpy as np
 from numba import njit, prange
 from random import random
 
-# SPRING FUNCTIONS --------------------------------------------
+# Kraft et al (1989) formulation aid to ease up implementation
+@njit(cache=True)
+def kraft_modification(
+    fmax: float,
+    D: float,
+    G0: float,
+    residual: float = 1.0,
+    tensile_factor: float = 1.0,
+    RF: float = 0.9,
+    zif: float = 10.0,
+    output_length: int = 15,
+):
+    """
+    Creates the t-z curve from relevant input with the Kraft et al (1981) formulation.
+
+    Parameters
+    ----------
+    fmax: float
+        unit skin friction [unit: kPa]
+    D: float
+        Pile diameter [unit: m]
+    G0: float
+        small-strain stiffness [unit: kPa]
+    residual: float
+        residual strength after peak strength
+    tensile_factor: float
+        strength factor for negative values of the curve
+    RF: float
+        curve fitting factor as per Kraft et al. (1981), by default 0.9
+    zif: float
+        dimensionless zone of influence as per Kraft et al (1981) that corresponds to the radius of the zone of influence divided by the pile radius, by default 10.0
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
+
+    Returns
+    -------
+    numpy 1darray
+        t vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
+
+    """
+
+    if output_length < 15:
+        output_length = 15
+
+    # define t till tmax
+    tpos = np.linspace(0, fmax, output_length - 2)
+    # define z till zmax
+    zpos = tpos * 0.5 * D / G0 * np.log((zif - RF * tpos / fmax) / (1 - RF * tpos / fmax))
+    # define z where t = tmax, a.k.a zmax here
+    zmax = fmax * D / (2 * G0) * m.log((zif - RF) / (1 - RF))
+    # define z where z=tres, which is zmax + 5mm
+    zres = zmax + 0.005
+
+    z = np.append(zpos, [zres, zres + 0.005])
+    t = np.append(tpos, [residual * fmax, residual * fmax])
+
+    return np.append(-z[-1::-1], np.append([0.0], z[1:])), np.append(
+        -t[-1::-1] * tensile_factor, np.append([0.0], t[1:])
+    )
+
 
 # API clay function
 @njit(cache=True)
@@ -23,7 +87,7 @@ def api_clay(
     output_length: int = 15,
 ):
     """
-    Creates the API clay t-z curve from relevant input.
+    Creates the API clay t-z curve from relevant input as per [API2000]_.
 
     Parameters
     ----------
@@ -47,24 +111,18 @@ def api_clay(
         t vector [unit: kPa]
     numpy 1darray
         z vector [unit: m]
+
+    See also
+    --------
+    `API_clay`_
+
     """
     # cannot have less than 15
     if output_length < 15:
         output_length = 15
 
-    # important variables
-    if sig == 0.0:
-        psi = Su / 0.001
-    else:
-        psi = Su / sig
-
-    if psi > 1.0:
-        alpha = min(0.5 * psi ** (-0.25), 1.0)
-    else:
-        alpha = min(0.5 * psi ** (-0.5), 1.0)
-
-    # Unit skin friction [kPa]
-    f = alpha * Su
+    # unit skin friction
+    f = misc._fmax_api_clay(sig, Su)
 
     # piecewise function
     zlist = [0.0, 0.0016, 0.0031, 0.0057, 0.0080, 0.0100, 0.0200, 0.0300]
@@ -93,7 +151,60 @@ def api_clay(
 
     t = t[z_id_sorted]
 
-    return t, z
+    return z, t
+
+
+@njit(cache=True)
+def api_clay_kraft(
+    sig: float,
+    Su: float,
+    D: float,
+    G0: float,
+    residual: float = 1.0,
+    tensile_factor: float = 1.0,
+    RF: float = 0.9,
+    zif: float = 10.0,
+    output_length: int = 15,
+):
+    """
+    Creates the API clay t-z curve (see [API2000]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
+
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    D: float
+        Pile diameter [unit: m]
+    G0: float
+        small-strain stiffness [unit: kPa]
+    residual: float
+        residual strength after peak strength, by default 1.0
+    tensile_factor: float
+        strength factor for negative values of the curve, by default 1.0
+    RF: float
+        curve fitting factor as per Kraft et al. (1981), by default 0.9
+    zif: float
+        dimensionless zone of influence as per Kraft et al (1981) that corresponds to the radius of the zone of influence divided by the pile radius, by default 10.0
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
+
+    Returns
+    -------
+    numpy 1darray
+        t vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
+
+    See also
+    --------
+    `API_clay`_, :py:func:`openpile.utils.tz_curves.api_clay`
+
+    """
+    return kraft_modification(
+        misc._fmax_api_clay(sig, Su), D, G0, residual, tensile_factor, RF, zif, output_length
+    )
 
 
 # API sand function
@@ -106,7 +217,7 @@ def api_sand(
     output_length: int = 7,
 ):
     """
-    Creates the API sand t-z curve from relevant input.
+    Creates the API sand t-z curve (see [API2000]_).
 
     Parameters
     ----------
@@ -127,20 +238,18 @@ def api_sand(
         t vector [unit: kPa]
     numpy 1darray
         z vector [unit: m]
+
+    See also
+    --------
+    `API_sand`_
+
     """
     # cannot have less than 7
     if output_length < 7:
         output_length = 7
 
-    # important variables
-    delta_table = np.array([0, 15, 20, 25, 30, 35, 100], dtype=np.float32)
-    fs_max_table = np.array([47.8, 47.8, 67, 81.3, 95.7, 114.8, 114.8], dtype=np.float32)
-
-    # limit unit skin friction according to API ref page 59
-    fs_max = np.interp(delta, delta_table, fs_max_table)
-
-    # Unit skin friction [kPa]
-    f = min(fs_max, K * sig * m.tan(delta * m.pi / 180.0))
+    # unit skin friction
+    f = misc._fmax_api_sand(sig, delta, K)
 
     # piecewise function
     zlist = [0.0, 0.0254, 0.03, 0.04]
@@ -169,4 +278,60 @@ def api_sand(
 
     t = t[z_id_sorted]
 
-    return t, z
+    return z, t
+
+
+@njit(cache=True)
+def api_sand_kraft(
+    sig: float,
+    delta: float,
+    D: float,
+    G0: float,
+    K: float = 0.8,
+    residual: float = 1.0,
+    tensile_factor: float = 1.0,
+    RF: float = 0.9,
+    zif: float = 10.0,
+    output_length: int = 15,
+):
+    """
+    Creates the API sand t-z curve (see [API2000]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
+
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    delta: float
+        interface friction angle [unit: degrees]
+    D: float
+        Pile diameter [unit: m]
+    G0: float
+        small-strain stiffness [unit: kPa]
+    K: float
+        coefficient of lateral pressure (0.8 for open-ended piles and 1.0 for cloased-ended), by default 0.8
+    residual: float
+        residual strength after peak strength, by default 1.0
+    tensile_factor: float
+        strength factor for negative values of the curve, by default 1.0
+    RF: float
+        curve fitting factor as per Kraft et al. (1981), by default 0.9
+    zif: float
+        dimensionless zone of influence as per Kraft et al (1981) that corresponds to the radius of the zone of influence divided by the pile radius, by default 10.0
+    output_length : int, optional
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
+
+    Returns
+    -------
+    numpy 1darray
+        t vector [unit: kPa]
+    numpy 1darray
+        z vector [unit: m]
+
+    See also
+    --------
+    `API_sand`_, :py:func:`openpile.utils.tz_curves.api_sand`
+
+    """
+    return kraft_modification(
+        misc._fmax_api_sand(sig, delta, K), D, G0, residual, tensile_factor, RF, zif, output_length
+    )

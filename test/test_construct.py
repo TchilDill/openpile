@@ -263,4 +263,7 @@ class TestModel:
             assert False, f"Constructor does not work"
         
         # check that p_y springs are all zero
-        assert not np.all(model.py_springs[['VAL 0','VAL 1', 'VAL 2']].values)
+        assert not np.all( model.get_py_springs()[['VAL 0','VAL 1','VAL 2']].values )
+
+        # # check that m_t springs are all zero
+        # assert not np.all( model.get_mt_springs()[['VAL 0','VAL 1','VAL 2']].values )

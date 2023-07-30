@@ -39,9 +39,11 @@ characteristics of the soil [KrRK81]_ in the backbone curve.
 
 **API Sand**
 
+*pending..*
 
 **API Clay**
 
+*pending..*
 
 Base spring - Q-z curve
 ^^^^^^^^^^^^^^^^^^^^^^^

@@ -272,7 +272,37 @@ the p-y curve can be generated according to:
 Dunkirk-sand (PISA model)
 -------------------------
 
+This soil model was formulated as part of the Joint Industry Project PISA, that focused on formulating soil springs for large diameter monopiles as found in the offshore wind industry. 
+This resulted in soil springs formulated in a normalized space based on a conic function backbone curve and the few following soil parameters, 
+(i) undrained shear strength and (ii) small-strain shear stiffness. 
+This standard model only account for monotonic reaction curves and as usual, it reflects the site conditions of the site the curves were calibrated from, a site in Dunkirk, France where dense sand is found. 
+More details can be found in [BTZA20]_.
+
+The model is validated in the below figure by performing a benchmark of OpenPile
+against the source material, [BTZA20]_. OpenPile shows some differences in result for high lateral load. 
+This is due to the lack of clearer guidance in deriving `G0` in the source material.
+
+.. figure:: _static/validation/GDSM_D2t.png
+    :width: 80%
+
+    Validation against pile D2t documented in [BTZA20]_.
+
 .. _Cowden-clay:
 
 Cowden-clay (PISA model)
 ------------------------
+
+This soil model was formulated as part of the Joint Industry Project PISA, that focused on formulating soil springs for large diameter monopiles as found in the offshore wind industry. 
+This resulted in soil springs formulated in a normalized space based on a conic function backbone curve and the few following soil parameters, 
+(i) undrained shear strength and (ii) small-strain shear stiffness. 
+This standard model only account for monotonic reaction curves and as usual, it reflects the site conditions of the site the curves were calibrated from, a site in Cowden, England where overconsolidated glacial till is found. 
+More details can be found in [BHBG20]_.
+
+The model is validated in the below figure by performing a benchmark of OpenPile
+against the source material, [BHBG20]_.
+
+.. figure:: _static/validation/CowdenClay_D1_D2.png
+    :width: 80%
+
+    Validation against piles D1 and D2 documented in [BHBG20]_.
+

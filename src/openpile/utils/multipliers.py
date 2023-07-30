@@ -55,8 +55,8 @@ def durkhop(D: float, ra: float = 0.3) -> object:
     Reference
     ---------
 
-    .. [Duhr09] Dührkop, J. (2009). **Zum Einfluss von Aufweitungen und zyklischen Lasten auf
-        das Verformungsverhalten lateral 385 beanspruchter Pfähle in Sand**. Ph.D. Thesis,
+    .. [Duhr09] Dührkop, J. (2009). *Zum Einfluss von Aufweitungen und zyklischen Lasten auf
+        das Verformungsverhalten lateral 385 beanspruchter Pfähle in Sand*. Ph.D. Thesis,
         Institut für Geotechnik und Baubetrieb, Technische Universität Hamburg-Harburg, Vol. 20 (in German).
     
     """

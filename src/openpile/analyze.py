@@ -472,9 +472,12 @@ def winkler(model, max_iter: int = 100):
         # incremental calculations to convergence
         iter_no = 0
         while iter_no <= max_iter:
+
             # solve system
             try:
                 u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
+                # bump iteration number
+                iter_no += 1 
             except np.linalg.LinAlgError:
                 print(
                     """Cannot converge. Failure of the pile-soil system.\n
@@ -500,9 +503,8 @@ def winkler(model, max_iter: int = 100):
             # check if converged
             if np.linalg.norm(Rg[~supports]) < nr_tol:
                 # do not accept convergence without iteration (without a second call to solve equations)
-                if iter_no > 0:
-                    print(f"Converged at iteration no. {iter_no}")
-                    break
+                print(f"Converged at iteration no. {iter_no}")
+                break
 
             if iter_no == 100:
                 print("Not converged after 100 iterations.")
@@ -513,9 +515,6 @@ def winkler(model, max_iter: int = 100):
             # reset prescribed displacements to converge properly in case
             # of displacement-driven analysis
             U[:] = 0.0
-
-            # bump iteration number
-            iter_no += 1
 
         # Internal forces calculations with dim(nelem,6,6)
         q_int = kernel.pile_internal_forces(model, d)
@@ -536,7 +535,7 @@ def winkler(model, max_iter: int = 100):
                                                                            kind="secant"), 
                                 model._Mb_spring.flatten().max()),
             _details={
-                'converged @ iter no.' : 1,
+                'converged @ iter no.' : iter_no,
                 'error [kN]' : round(np.linalg.norm(Rg[~supports]),3),
                 'tolerance [kN]': round(nr_tol,3),
             }

@@ -1,7 +1,15 @@
 """
 `SoilModels` module
 ===================
+
 """
+
+# Guide to create soil models
+# ---------------------------
+#
+# 
+
+
 
 # Import libraries
 import math as m
@@ -791,3 +799,4 @@ class API_clay(LateralModel):
         m = 1/4*np.pi*D**2*tz_pos.reshape((1,-1)) * np.ones((output_length,1))
 
         return t, m
+    

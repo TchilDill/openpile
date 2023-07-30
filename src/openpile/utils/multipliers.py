@@ -10,7 +10,7 @@ import numpy as np
 
 
 def durkhop(D: float, ra: float = 0.3) -> object:
-    """This function generates p-multipliers as per Durkhop et al (2009) for application
+    """This function generates p-multipliers as per Durkhop et al (see [Duhr09]_) for application
     to cyclic curves of the `openpile.soilmodels.API_sand` model.
 
     The default behaviour, i.e. when the parameter `ra` = 0.3 is that the API sand cyclic curves are unchanged
@@ -61,6 +61,36 @@ def durkhop(D: float, ra: float = 0.3) -> object:
     
     """
 
-    func = lambda x: max(0.9, ra * (3 - 1.143 * x / D) + 0.343 * x / D)
+    func = lambda x: 1/0.9 * max(0.9, ra * (3 - 1.143 * x / D) + 0.343 * x / D)
+
+    return func
+
+
+def durkhop_normalized(D: float, ra: float = 0.3) -> object:
+    """This function generates multipliers that represent ratios the cyclic and monotonic curves of 
+    the traditional API sand model.
+
+
+    Parameters
+    ----------
+    D : float
+        Pile diameter [m]
+    ra : float, optional
+        empirical factor dependent on the number of load cycles, 1.0 for monotonic loading and
+        0.3 for cyclic loading at 100 cycles, by default 0.3
+
+    Returns
+    -------
+    object
+        callable for use as p_multipler in `openpile.soilmodels.LateralModel` or `openpile.soilmodels.AxialModel`
+        The function input is the depth and the function output is the multiplier applied
+        for the spring at the said depth.
+
+    See also
+    --------
+    `durkhop`
+    """
+
+    func = lambda x: 0.9 / max(0.9, ra * (3 - 1.143 * x / D) + 0.343 * x / D)
 
     return func

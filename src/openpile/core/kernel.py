@@ -545,12 +545,12 @@ def elem_p_delta_stiffness_matrix(model, u):
     k = (
         np.block(
             [
-                [ N, N, N1,  N,  N, N2],
-                [ N, A,  B,  N, -A,  B],
-                [N1, B,  C,-N1, -B,  D],
-                [ N, N,-N1,  N,  N,-N2],
-                [ N,-A, -B,  N,  A, -B],
-                [N2, B,  D,-N2, -B,  C],
+                [N, N, N1, N, N, N2],
+                [N, A, B, N, -A, B],
+                [N1, B, C, -N1, -B, D],
+                [N, N, -N1, N, N, -N2],
+                [N, -A, -B, N, A, -B],
+                [N2, B, D, -N2, -B, C],
             ]
         )
         * -P
@@ -679,8 +679,8 @@ def pile_internal_forces(model, u):
     u = global_dof_vector_to_consistent_stacked_array(u, ndof_per_node * node_per_element)
     # compute internal forces and reshape into global dof vector
     F_int = (-1) * np.matmul(k, u).reshape((-1))
-    
-    return F_int 
+
+    return F_int
 
 
 @njit(cache=True)

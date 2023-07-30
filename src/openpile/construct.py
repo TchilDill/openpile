@@ -35,7 +35,7 @@ from pydantic import (
     conlist,
     constr,
     Extra,
-    ValidationError
+    ValidationError,
 )
 from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
@@ -534,8 +534,6 @@ class Layer:
             return values
 
 
-
-
 @dataclass(config=PydanticConfig)
 class SoilProfile:
     """
@@ -651,47 +649,74 @@ class SoilProfile:
                 raise ValueError("Layers' elevations overlap.")
 
         return values
-    
 
     @root_validator
     def check_multipliers_in_lateral_model(cls, values):
-        
         def check_multipliers_callable(multiplier, ground_level, top, bottom, type):
             # if not a float, it must be a callable, then we check for Real Positive float
-            if not isinstance(multiplier,float):
-                #defines depth below ground to check
+            if not isinstance(multiplier, float):
+                # defines depth below ground to check
                 depths = ground_level - np.linspace(start=top, stop=bottom, num=100)
-                #check if positive real float is returned
+                # check if positive real float is returned
                 for depth in depths:
                     result = multiplier(depth)
-                    if not isinstance(result,float):
-                        TypeError(f"One or more results of the {type}-multiplier callable is not a float")
+                    if not isinstance(result, float):
+                        TypeError(
+                            f"One or more results of the {type}-multiplier callable is not a float"
+                        )
                         return None
                     else:
-                        if type in ['p', 'm']:
-                            if result < 0.0: 
-                                print(f"One or more results of the {type}-multiplier callable is negative")
+                        if type in ["p", "m"]:
+                            if result < 0.0:
+                                print(
+                                    f"One or more results of the {type}-multiplier callable is negative"
+                                )
                                 return None
-                        elif type in ['y', 't']:
+                        elif type in ["y", "t"]:
                             if not result > 0.0:
-                                ValueError(f"One or more results of the {type}-multiplier callable is not strictly positive")
+                                ValueError(
+                                    f"One or more results of the {type}-multiplier callable is not strictly positive"
+                                )
                                 return None
 
         layers = values["layers"]
 
         for layer in layers:
             if layer.lateral_model is not None:
-                #check p-multipliers
-                check_multipliers_callable(layer.lateral_model.p_multiplier, values['top_elevation'], layer.top, layer.bottom, "p")
-                #check y-multipliers
-                check_multipliers_callable(layer.lateral_model.y_multiplier, values['top_elevation'], layer.top, layer.bottom,  "y")
-                #check m-multipliers
-                check_multipliers_callable(layer.lateral_model.m_multiplier, values['top_elevation'], layer.top, layer.bottom, "m")
-                #check t-multipliers
-                check_multipliers_callable(layer.lateral_model.t_multiplier, values['top_elevation'], layer.top, layer.bottom, "t")
+                # check p-multipliers
+                check_multipliers_callable(
+                    layer.lateral_model.p_multiplier,
+                    values["top_elevation"],
+                    layer.top,
+                    layer.bottom,
+                    "p",
+                )
+                # check y-multipliers
+                check_multipliers_callable(
+                    layer.lateral_model.y_multiplier,
+                    values["top_elevation"],
+                    layer.top,
+                    layer.bottom,
+                    "y",
+                )
+                # check m-multipliers
+                check_multipliers_callable(
+                    layer.lateral_model.m_multiplier,
+                    values["top_elevation"],
+                    layer.top,
+                    layer.bottom,
+                    "m",
+                )
+                # check t-multipliers
+                check_multipliers_callable(
+                    layer.lateral_model.t_multiplier,
+                    values["top_elevation"],
+                    layer.top,
+                    layer.bottom,
+                    "t",
+                )
 
-        return values 
-
+        return values
 
     def __post_init__(self):
         pass
@@ -1035,9 +1060,7 @@ class Model:
                                 sig=sig_v_tip,
                                 X=-self.pile.bottom_elevation,
                                 layer_height=(layer.top - layer.bottom),
-                                depth_from_top_of_layer=(
-                                    layer.top - self.pile.bottom_elevation
-                                ),
+                                depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
                                 D=pile_width,
                                 L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                 below_water_table=self.pile.bottom_elevation
@@ -1052,9 +1075,7 @@ class Model:
                                 sig=sig_v_tip,
                                 X=-self.pile.bottom_elevation,
                                 layer_height=(layer.top - layer.bottom),
-                                depth_from_top_of_layer=(
-                                    layer.top - self.pile.bottom_elevation
-                                ),
+                                depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
                                 D=pile_width,
                                 L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                 below_water_table=self.pile.bottom_elevation
@@ -1173,8 +1194,6 @@ class Model:
         self.global_restrained["Tx"] = False
         self.global_restrained["Ty"] = False
         self.global_restrained["Rz"] = False
-
-
 
     @property
     def embedment(self) -> float:
@@ -1442,13 +1461,12 @@ class Model:
         except Exception:
             print("\n!User Input Error! Please create Model first with the Model.create().\n")
             raise
-        
-    def get_py_springs(self, 
-                   kind:str="node") -> pd.DataFrame:
-        """Table with p-y springs computed for the given Model. 
+
+    def get_py_springs(self, kind: str = "node") -> pd.DataFrame:
+        """Table with p-y springs computed for the given Model.
 
         Posible to extract the springs at the node level (i.e. spring at each node)
-        or element level (i.e. top and bottom springs at each element)    
+        or element level (i.e. top and bottom springs at each element)
 
         Parameters
         ----------
@@ -1478,12 +1496,11 @@ class Model:
             else:
                 return None
 
-    def get_mt_springs(self, 
-                   kind:str="node") -> pd.DataFrame:
-        """Table with m-t (rotational) springs computed for the given Model. 
+    def get_mt_springs(self, kind: str = "node") -> pd.DataFrame:
+        """Table with m-t (rotational) springs computed for the given Model.
 
         Posible to extract the springs at the node level (i.e. spring at each node)
-        or element level (i.e. top and bottom springs at each element)    
+        or element level (i.e. top and bottom springs at each element)
 
         Parameters
         ----------
@@ -1513,9 +1530,8 @@ class Model:
             else:
                 return None
 
-
     def get_Hb_spring(self) -> pd.DataFrame:
-        """Table with Hb (base shear) spring computed for the given Model. 
+        """Table with Hb (base shear) spring computed for the given Model.
 
 
         Returns
@@ -1527,22 +1543,22 @@ class Model:
             return None
         else:
             spring_dim = self._Hb_spring.shape[-1]
-            
+
             column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
-            
+
             df = pd.DataFrame(
                 data={
-                    "Node no.": [self.element_number+1]*2,
-                    "Elevation [m]": [self.pile.bottom_elevation]*2,
+                    "Node no.": [self.element_number + 1] * 2,
+                    "Elevation [m]": [self.pile.bottom_elevation] * 2,
                 }
             )
-            df["type"] = ["Hb","y"]
-            df[column_values_spring] = self._Hb_spring.reshape(2,spring_dim)
+            df["type"] = ["Hb", "y"]
+            df[column_values_spring] = self._Hb_spring.reshape(2, spring_dim)
 
             return df
 
     def get_Mb_spring(self) -> pd.DataFrame:
-        """Table with Mb (base moment) spring computed for the given Model. 
+        """Table with Mb (base moment) spring computed for the given Model.
 
 
         Returns
@@ -1554,21 +1570,19 @@ class Model:
             return None
         else:
             spring_dim = self._Hb_spring.shape[-1]
-            
+
             column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
-            
+
             df = pd.DataFrame(
                 data={
-                    "Node no.": [self.element_number+1]*2,
-                    "Elevation [m]": [self.pile.bottom_elevation]*2,
+                    "Node no.": [self.element_number + 1] * 2,
+                    "Elevation [m]": [self.pile.bottom_elevation] * 2,
                 }
             )
-            df["type"] = ["Mb","t"]
-            df[column_values_spring] = self._Hb_spring.reshape(2,spring_dim)
+            df["type"] = ["Mb", "t"]
+            df[column_values_spring] = self._Hb_spring.reshape(2, spring_dim)
 
             return df
-
-
 
     def plot(self, assign=False):
         """Create a plot of the model with the mesh and boundary conditions.

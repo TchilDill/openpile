@@ -34,7 +34,7 @@ def durkhop(D: float, ra: float = 0.3) -> object:
     Example
     -------
 
-    >>> from openpile.construct import Layer 
+    >>> from openpile.construct import Layer
     >>> from openpile.soilmodels import API_sand
     >>> from openpile.utils.multipliers import durkhop
 
@@ -45,8 +45,8 @@ def durkhop(D: float, ra: float = 0.3) -> object:
     >>>     bottom=-40,
     >>>     weight=18,
     >>>     lateral_model=API_sand(
-    >>>         phi=33, 
-    >>>         kind="cyclic", 
+    >>>         phi=33,
+    >>>         kind="cyclic",
     >>>         p_multiplier=durkhop(D=7.0, ra=1.0)
     >>>     ),
     >>> )
@@ -58,16 +58,16 @@ def durkhop(D: float, ra: float = 0.3) -> object:
     .. [Duhr09] Dührkop, J. (2009). *Zum Einfluss von Aufweitungen und zyklischen Lasten auf
         das Verformungsverhalten lateral 385 beanspruchter Pfähle in Sand*. Ph.D. Thesis,
         Institut für Geotechnik und Baubetrieb, Technische Universität Hamburg-Harburg, Vol. 20 (in German).
-    
+
     """
 
-    func = lambda x: 1/0.9 * max(0.9, ra * (3 - 1.143 * x / D) + 0.343 * x / D)
+    func = lambda x: 1 / 0.9 * max(0.9, ra * (3 - 1.143 * x / D) + 0.343 * x / D)
 
     return func
 
 
 def durkhop_normalized(D: float, ra: float = 0.3) -> object:
-    """This function generates multipliers that represent ratios the cyclic and monotonic curves of 
+    """This function generates multipliers that represent ratios the cyclic and monotonic curves of
     the traditional API sand model.
 
 

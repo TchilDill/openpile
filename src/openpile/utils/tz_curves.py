@@ -60,18 +60,21 @@ def kraft_modification(
         output_length = 15
 
     # define t till tmax
-    tpos = np.linspace(0,fmax,output_length-2)
+    tpos = np.linspace(0, fmax, output_length - 2)
     # define z till zmax
-    zpos = tpos * 0.5*D/G0 * np.log( (zif - RF*tpos/fmax)/(1 - RF*tpos/fmax) )
+    zpos = tpos * 0.5 * D / G0 * np.log((zif - RF * tpos / fmax) / (1 - RF * tpos / fmax))
     # define z where t = tmax, a.k.a zmax here
-    zmax = fmax * D/(2*G0) * m.log( (zif - RF)/(1-RF) ) 
+    zmax = fmax * D / (2 * G0) * m.log((zif - RF) / (1 - RF))
     # define z where z=tres, which is zmax + 5mm
     zres = zmax + 0.005
 
-    z = np.append(zpos,[zres,zres + 0.005])
-    t = np.append(tpos,[residual*fmax,residual*fmax])
+    z = np.append(zpos, [zres, zres + 0.005])
+    t = np.append(tpos, [residual * fmax, residual * fmax])
 
-    return np.append(-z[-1::-1], np.append([0.0], z[1:]) ), np.append(-t[-1::-1]*tensile_factor, np.append([0.0], t[1:]))
+    return np.append(-z[-1::-1], np.append([0.0], z[1:])), np.append(
+        -t[-1::-1] * tensile_factor, np.append([0.0], t[1:])
+    )
+
 
 # API clay function
 @njit(cache=True)
@@ -118,8 +121,7 @@ def api_clay(
     if output_length < 15:
         output_length = 15
 
-
-    # unit skin friction 
+    # unit skin friction
     f = misc._fmax_api_clay(sig, Su)
 
     # piecewise function
@@ -149,21 +151,20 @@ def api_clay(
 
     t = t[z_id_sorted]
 
-
     return z, t
 
 
 @njit(cache=True)
 def api_clay_kraft(
     sig: float,
-    Su:float,
+    Su: float,
     D: float,
     G0: float,
     residual: float = 1.0,
     tensile_factor: float = 1.0,
     RF: float = 0.9,
     zif: float = 10.0,
-    output_length: int = 15,          
+    output_length: int = 15,
 ):
     """
     Creates the API clay t-z curve (see [API2000]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
@@ -201,8 +202,9 @@ def api_clay_kraft(
     `API_clay`_, :py:func:`openpile.utils.tz_curves.api_clay`
 
     """
-    return kraft_modification(misc._fmax_api_clay(sig,Su), D, G0, residual, tensile_factor, RF, zif, output_length)
-
+    return kraft_modification(
+        misc._fmax_api_clay(sig, Su), D, G0, residual, tensile_factor, RF, zif, output_length
+    )
 
 
 # API sand function
@@ -240,7 +242,7 @@ def api_sand(
     See also
     --------
     `API_sand`_
-    
+
     """
     # cannot have less than 7
     if output_length < 7:
@@ -279,19 +281,18 @@ def api_sand(
     return z, t
 
 
-
 @njit(cache=True)
 def api_sand_kraft(
     sig: float,
     delta: float,
     D: float,
     G0: float,
-    K: float = 0.8,    
+    K: float = 0.8,
     residual: float = 1.0,
     tensile_factor: float = 1.0,
     RF: float = 0.9,
     zif: float = 10.0,
-    output_length: int = 15,          
+    output_length: int = 15,
 ):
     """
     Creates the API sand t-z curve (see [API2000]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
@@ -331,5 +332,6 @@ def api_sand_kraft(
     `API_sand`_, :py:func:`openpile.utils.tz_curves.api_sand`
 
     """
-    return kraft_modification(misc._fmax_api_sand(sig,delta,K), D, G0, residual, tensile_factor, RF, zif, output_length)
-
+    return kraft_modification(
+        misc._fmax_api_sand(sig, delta, K), D, G0, residual, tensile_factor, RF, zif, output_length
+    )

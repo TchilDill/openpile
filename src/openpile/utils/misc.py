@@ -8,10 +8,11 @@ from random import random
 # maximum resistance values
 @njit(cahce=True)
 def _Qmax_api_clay(
-    Su:float,
+    Su: float,
 ) -> float:
     # Unit end-bearing [kPa]
     return 9 * Su
+
 
 @njit(cache=True)
 def _Qmax_api_sand(
@@ -36,8 +37,8 @@ def _fmax_api_clay(
     Su: float,
 ) -> float:
     """Creates the maximum skin friction.
-     
-    The methdology follows the API clay method of axial capacity found in . 
+
+    The methdology follows the API clay method of axial capacity found in .
 
     Parameters
     ----------
@@ -76,8 +77,8 @@ def _fmax_api_sand(
     K: float = 0.8,
 ) -> float:
     """Creates the maximum skin friction.
-     
-    The methdology follows the API sand method of axial capacity found in . 
+
+    The methdology follows the API sand method of axial capacity found in .
 
     Parameters
     ----------
@@ -86,7 +87,7 @@ def _fmax_api_sand(
     delta: float
         interface friction angle in degrees
     K: float
-        coefficient of lateral pressure. 
+        coefficient of lateral pressure.
         (0.8 for open-ended piles and 1.0 for cloased-ended)
 
     Returns
@@ -94,7 +95,7 @@ def _fmax_api_sand(
     float
         unit skin friction in kPa.
     """
-    
+
     # important variables
     delta_table = np.array([0, 15, 20, 25, 30, 35, 100], dtype=np.float32)
     fs_max_table = np.array([47.8, 47.8, 67, 81.3, 95.7, 114.8, 114.8], dtype=np.float32)

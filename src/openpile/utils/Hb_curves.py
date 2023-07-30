@@ -75,7 +75,7 @@ def dunkirk_sand(
     y, p = conic(v_max, n, k, p_max, output_length)
 
     # return non-normalised curve
-    return  y * (sig * D / G0), p * (sig * D**2)
+    return y * (sig * D / G0), p * (sig * D**2)
 
 
 @njit(cache=True)
@@ -116,9 +116,9 @@ def cowden_clay(
 
     References
     ----------
-    .. [1] Byrne, B. W., Houlsby, G. T., Burd, H. J., Gavin, K. G., Igoe, D. J. P., Jardine, 
-           R. J., Martin, C. M., McAdam, R. A., Potts, D. M., Taborda, D. M. G. & Zdravkovic ́, 
-           L. (2020). PISA design model for monopiles for offshore wind turbines: application 
+    .. [1] Byrne, B. W., Houlsby, G. T., Burd, H. J., Gavin, K. G., Igoe, D. J. P., Jardine,
+           R. J., Martin, C. M., McAdam, R. A., Potts, D. M., Taborda, D. M. G. & Zdravkovic ́,
+           L. (2020). PISA design model for monopiles for offshore wind turbines: application
            to a stiff glacial clay till. Géotechnique, https://doi.org/10.1680/ jgeot.18.P.255.
 
     """

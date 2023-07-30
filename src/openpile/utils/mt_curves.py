@@ -45,7 +45,7 @@ def cowden_clay(
         m vector [unit: kN]
     1darray
         t vector of length [unit: rad]
-    
+
     """
 
     # Cowden clay parameters

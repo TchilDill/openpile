@@ -15,9 +15,10 @@ import numpy as np
 class CalculateResult:
     _values: tuple
 
+
 def bearingcapacity(
-        model,
-    ) -> CalculateResult:
+    model,
+) -> CalculateResult:
 
     pass
 
@@ -38,7 +39,7 @@ def bearingcapacity(
     #                 (model.soil_properties["x_top [m]"] <= layer.top)
     #                 & (model.soil_properties["x_bottom [m]"] >= layer.bottom)
     #             ].index
-        
+
     #     if layer.axial_model is None:
     #         pass
     #     else:

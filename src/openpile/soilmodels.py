@@ -7,8 +7,7 @@
 # Guide to create soil models
 # ---------------------------
 #
-# 
-
+#
 
 
 # Import libraries
@@ -56,7 +55,7 @@ class AxialModel(ConstitutiveModel):
 
 @dataclass(config=PydanticConfigFrozen)
 class API_clay_axial(AxialModel):
-    
+
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
     Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: t-multiplier
@@ -71,6 +70,7 @@ class API_clay_axial(AxialModel):
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
 
+
 @dataclass(config=PydanticConfigFrozen)
 class Cowden_clay(LateralModel):
     """A class to establish the PISA Cowden clay model as per Byrne et al 2020 (see [BHBG20]_).
@@ -81,7 +81,7 @@ class Cowden_clay(LateralModel):
         Undrained shear strength. Value to range from 0 to 100 [unit: kPa]
     G0: float or list[top_value, bottom_value]
         Small-strain shear modulus [unit: kPa]
-    p_multiplier: float or function taking the depth as argument and returns the multiplier 
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
@@ -92,7 +92,7 @@ class Cowden_clay(LateralModel):
 
     See also
     --------
-    :py:func:`openpile.utils.py_curves.cowden_clay`, :py:func:`openpile.utils.mt_curves.cowden_clay`, 
+    :py:func:`openpile.utils.py_curves.cowden_clay`, :py:func:`openpile.utils.mt_curves.cowden_clay`,
     :py:func:`openpile.utils.Hb_curves.cowden_clay`, :py:func:`openpile.utils.Mb_curves.cowden_clay`
 
 
@@ -103,13 +103,13 @@ class Cowden_clay(LateralModel):
     #: small-strain shear stiffness modulus [kPa]
     G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: p-multiplier
-    p_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: m-multiplier
-    m_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
+    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: t-multiplier
-    t_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
+    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -150,8 +150,8 @@ class Cowden_clay(LateralModel):
         )
 
         # parse multipliers and apply results
-        y_mult = self.y_multiplier if isinstance(self.y_multiplier,float) else self.y_multiplier(X)
-        p_mult = self.p_multiplier if isinstance(self.p_multiplier,float) else self.p_multiplier(X)
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
 
         return y * y_mult, p * p_mult
 
@@ -232,13 +232,11 @@ class Cowden_clay(LateralModel):
                 output_length=output_length,
             )
 
-
         # parse multipliers and apply results
-        t_mult = self.t_multiplier if isinstance(self.t_multiplier,float) else self.t_multiplier(X)
-        m_mult = self.m_multiplier if isinstance(self.m_multiplier,float) else self.m_multiplier(X)
+        t_mult = self.t_multiplier if isinstance(self.t_multiplier, float) else self.t_multiplier(X)
+        m_mult = self.m_multiplier if isinstance(self.m_multiplier, float) else self.m_multiplier(X)
 
         return t * t_mult, m * m_mult
-    
 
     def Mb_spring_fct(
         self,
@@ -285,7 +283,7 @@ class Dunkirk_sand(LateralModel):
         relative density of sand. Value to range from 0 to 100. [unit: -]
     G0: float or list[top_value, bottom_value]
         Small-strain shear modulus [unit: kPa]
-    p_multiplier: float or function taking the depth as argument and returns the multiplier 
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
@@ -296,7 +294,7 @@ class Dunkirk_sand(LateralModel):
 
     See also
     --------
-    :py:func:`openpile.utils.py_curves.dunkirk_sand`, :py:func:`openpile.utils.mt_curves.dunkirk_sand`, 
+    :py:func:`openpile.utils.py_curves.dunkirk_sand`, :py:func:`openpile.utils.mt_curves.dunkirk_sand`,
     :py:func:`openpile.utils.Hb_curves.dunkirk_sand`, :py:func:`openpile.utils.Mb_curves.dunkirk_sand`
 
     """
@@ -306,13 +304,13 @@ class Dunkirk_sand(LateralModel):
     #: small-strain shear stiffness modulus [kPa]
     G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: p-multiplier
-    p_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: m-multiplier
-    m_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
+    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: t-multiplier
-    t_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
+    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -355,8 +353,8 @@ class Dunkirk_sand(LateralModel):
         )
 
         # parse multipliers and apply results
-        y_mult = self.y_multiplier if isinstance(self.y_multiplier,float) else self.y_multiplier(X)
-        p_mult = self.p_multiplier if isinstance(self.p_multiplier,float) else self.p_multiplier(X)
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
 
         return y * y_mult, p * p_mult
 
@@ -444,11 +442,11 @@ class Dunkirk_sand(LateralModel):
             )
 
         # parse multipliers and apply results
-        t_mult = self.t_multiplier if isinstance(self.t_multiplier,float) else self.t_multiplier(X)
-        m_mult = self.m_multiplier if isinstance(self.m_multiplier,float) else self.m_multiplier(X)
+        t_mult = self.t_multiplier if isinstance(self.t_multiplier, float) else self.t_multiplier(X)
+        m_mult = self.m_multiplier if isinstance(self.m_multiplier, float) else self.m_multiplier(X)
 
         return t * t_mult, m * m_mult
-    
+
     def Mb_spring_fct(
         self,
         sig: float,
@@ -497,7 +495,7 @@ class API_sand(LateralModel):
         types of curves, can be of ("static","cyclic")
     G0: float or list[top_value, bottom_value] or None
         Small-strain shear modulus [unit: kPa], by default None
-    p_multiplier: float or function taking the depth as argument and returns the multiplier 
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
@@ -518,9 +516,9 @@ class API_sand(LateralModel):
     #: small-strain stiffness [kPa], if a variation in values, two values can be given.
     G0: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]] = None
     #: p-multiplier
-    p_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
 
@@ -535,7 +533,6 @@ class API_sand(LateralModel):
             self.spring_signature = np.array([True, False, True, False], dtype=bool)
         else:
             self.spring_signature = np.array([True, False, False, False], dtype=bool)
-
 
     def __str__(self):
         return f"\tAPI sand\n\tphi = {var_to_str(self.phi)}°\n\t{self.kind} curves"
@@ -572,11 +569,10 @@ class API_sand(LateralModel):
         )
 
         # parse multipliers and apply results
-        y_mult = self.y_multiplier if isinstance(self.y_multiplier,float) else self.y_multiplier(X)
-        p_mult = self.p_multiplier if isinstance(self.p_multiplier,float) else self.p_multiplier(X)
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
 
         return y * y_mult, p * p_mult
-    
 
     def mt_spring_fct(
         self,
@@ -611,7 +607,7 @@ class API_sand(LateralModel):
         )
 
         if p.max() > 0:
-            p_norm = p/p.max()
+            p_norm = p / p.max()
         else:
             p_norm = p
 
@@ -620,24 +616,24 @@ class API_sand(LateralModel):
 
         z, tz = tz_curves.api_sand(
             sig=sig,
-            delta=phi-5,
+            delta=phi - 5,
             K=0.8,
             tensile_factor=1.0,
             output_length=output_length,
         )
 
         # trasnform tz vector
-        tz_pos = tz[tz>=0]
-        z_pos = z[z>=0]
+        tz_pos = tz[tz >= 0]
+        z_pos = z[z >= 0]
         diff_length_t = output_length - len(tz_pos)
         diff_length_z = output_length - len(z_pos)
-        tz_pos = np.append(tz_pos, [tz_pos[-1]]*diff_length_t)
-        z_pos = np.append(z_pos, [z_pos[-1] + i*0.1 for i in range(diff_length_z)])
+        tz_pos = np.append(tz_pos, [tz_pos[-1]] * diff_length_t)
+        z_pos = np.append(z_pos, [z_pos[-1] + i * 0.1 for i in range(diff_length_z)])
 
-        t = np.arctan(z_pos.reshape((1,-1))/(0.5*D)) * np.ones((output_length,1))
-        m = 1/4*np.pi*D**2*tz_pos.reshape((1,-1)) * p_norm.reshape((-1,1))
+        t = np.arctan(z_pos.reshape((1, -1)) / (0.5 * D)) * np.ones((output_length, 1))
+        m = 1 / 4 * np.pi * D**2 * tz_pos.reshape((1, -1)) * p_norm.reshape((-1, 1))
 
-        return t , m
+        return t, m
 
 
 @dataclass(config=PydanticConfigFrozen)
@@ -658,7 +654,7 @@ class API_clay(LateralModel):
         Small-strain shear modulus [unit: kPa], by default None
     kind: str, by default "static"
         types of curves, can be of ("static","cyclic")
-    p_multiplier: float or function taking the depth as argument and returns the multiplier 
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
@@ -686,12 +682,11 @@ class API_clay(LateralModel):
     #: undrained shear strength [kPa] at which stiff clay curve is computed
     stiff_clay_threshold: PositiveFloat = 96
     #: p-multiplier
-    p_multiplier: Union[Callable[[float],float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float],float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
-
 
     # define class variables needed for all soil models
     m_multiplier = 1.0
@@ -704,7 +699,6 @@ class API_clay(LateralModel):
             self.spring_signature = np.array([True, False, True, False], dtype=bool)
         else:
             self.spring_signature = np.array([True, False, False, False], dtype=bool)
-
 
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{self.kind} curves"
@@ -747,11 +741,11 @@ class API_clay(LateralModel):
         )
 
         # parse multipliers and apply results
-        y_mult = self.y_multiplier if isinstance(self.y_multiplier,float) else self.y_multiplier(X)
-        p_mult = self.p_multiplier if isinstance(self.p_multiplier,float) else self.p_multiplier(X)
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
 
         return y * y_mult, p * p_mult
-    
+
     def mt_spring_fct(
         self,
         sig: float,
@@ -778,25 +772,24 @@ class API_clay(LateralModel):
         z, tz = tz_curves.api_clay(
             sig=sig,
             Su=Su,
-            D = D,
+            D=D,
             residual=1.0,
             tensile_factor=1.0,
             output_length=output_length,
         )
 
         # trasnform tz vector so that we only get the positive side of the vectors
-        tz_pos = tz[tz>=0]
-        z_pos = z[z>=0]
+        tz_pos = tz[tz >= 0]
+        z_pos = z[z >= 0]
         # check how many elements we got rid off
         diff_length_t = output_length - len(tz_pos)
         diff_length_z = output_length - len(z_pos)
-        # add new elements at the end of the positive only vectors 
-        tz_pos = np.append(tz_pos, [tz_pos[-1]]*diff_length_t)
-        z_pos = np.append(z_pos, [z_pos[-1] + i*0.1 for i in range(diff_length_z)])
+        # add new elements at the end of the positive only vectors
+        tz_pos = np.append(tz_pos, [tz_pos[-1]] * diff_length_t)
+        z_pos = np.append(z_pos, [z_pos[-1] + i * 0.1 for i in range(diff_length_z)])
 
         # calculate m and t vectors (they are all the same for clay)
-        t = np.arctan(z_pos.reshape((1,-1))/(0.5*D)) * np.ones((output_length,1))
-        m = 1/4*np.pi*D**2*tz_pos.reshape((1,-1)) * np.ones((output_length,1))
+        t = np.arctan(z_pos.reshape((1, -1)) / (0.5 * D)) * np.ones((output_length, 1))
+        m = 1 / 4 * np.pi * D**2 * tz_pos.reshape((1, -1)) * np.ones((output_length, 1))
 
         return t, m
-    

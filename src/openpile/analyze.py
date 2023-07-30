@@ -45,8 +45,7 @@ def springs_mob_to_df(model, d):
     # mt springs
     # mt secant stiffness
     mt_ks = kernel.calculate_mt_springs_stiffness(
-        d[2::3], model._mt_springs, model._py_springs, py_mob.reshape((-1,2,1,1)),
-        kind="secant"
+        d[2::3], model._mt_springs, model._py_springs, py_mob.reshape((-1, 2, 1, 1)), kind="secant"
     ).flatten()
     mt_mob = kernel.double_inner_njit(d[2::3]) * mt_ks
     # calculate max spring values
@@ -68,21 +67,23 @@ def springs_mob_to_df(model, d):
 
 def reaction_forces_to_df(model, Q):
     x = model.nodes_coordinates["x [m]"].values
-    Q = Q.reshape(-1,3)
+    Q = Q.reshape(-1, 3)
 
     df = pd.DataFrame(
         data={
             "Elevation [m]": x,
-            "Nr [kN]": Q[:,0],
-            "Vr [kN]": Q[:,1],
-            "Mr [kNm]": Q[:,2],
+            "Nr [kN]": Q[:, 0],
+            "Vr [kN]": Q[:, 1],
+            "Mr [kNm]": Q[:, 2],
         }
     )
-    df[["Nr [kN]"]] = df[["Nr [kN]"]].mask( df[["Nr [kN]"]].abs() < 1e-3, 0.0)
-    df[["Vr [kN]"]] = df[["Vr [kN]"]].mask( df[["Vr [kN]"]].abs() < 1e-3, 0.0)
-    df[["Mr [kNm]"]] = df[["Mr [kNm]"]].mask( df[["Mr [kNm]"]].abs() < 1e-3, 0.0)
+    df[["Nr [kN]"]] = df[["Nr [kN]"]].mask(df[["Nr [kN]"]].abs() < 1e-3, 0.0)
+    df[["Vr [kN]"]] = df[["Vr [kN]"]].mask(df[["Vr [kN]"]].abs() < 1e-3, 0.0)
+    df[["Mr [kNm]"]] = df[["Mr [kNm]"]].mask(df[["Mr [kNm]"]].abs() < 1e-3, 0.0)
 
-    return df[np.any(df[["Nr [kN]","Vr [kN]","Mr [kNm]"]].abs() > 1e-3, axis=1)].reset_index(drop=True)
+    return df[np.any(df[["Nr [kN]", "Vr [kN]", "Mr [kNm]"]].abs() > 1e-3, axis=1)].reset_index(
+        drop=True
+    )
 
 
 def structural_forces_to_df(model, q):
@@ -128,10 +129,11 @@ def disp_to_df(model, u):
 @dataclass
 class AnalyzeResult:
     """The `AnalyzeResult` class is created by any analyses from the :py:mod:`openpile.analyze` module.
-    
-    As such the user can use the following properties and/or methods for any return values of an analysis. 
+
+    As such the user can use the following properties and/or methods for any return values of an analysis.
 
     """
+
     _name: str
     _d: pd.DataFrame
     _f: pd.DataFrame
@@ -140,7 +142,6 @@ class AnalyzeResult:
     _hb_mob: tuple = None
     _mb_mob: tuple = None
     _details: dict = None
-
 
     @property
     def displacements(self):
@@ -163,7 +164,7 @@ class AnalyzeResult:
             Table with the nodes elevations along the pile and their forces
         """
         return self._f
-    
+
     @property
     def reactions(self):
         """Retrieves reaction forces (where supports are given)
@@ -237,7 +238,6 @@ class AnalyzeResult:
         else:
             return self._dist_mob[["Elevation [m]", "m_mobilized [kNm/m]", "m_max [kNm/m]"]]
 
-
     @property
     def Hb_mobilization(self):
         """Retrieves mobilized resistance of base shear.
@@ -259,7 +259,6 @@ class AnalyzeResult:
             the mobilised value and the maximum resistance in kNm
         """
         return self._mb_mob if self._mb_mob is not None else None
-
 
     def plot_deflection(self, assign=False):
         """
@@ -328,7 +327,6 @@ class AnalyzeResult:
         fig = graphics.plot_results(self)
         return fig if assign else None
 
-
     def plot(self, assign=False):
         """Same behaviour as :py:meth:`openpile.analyze.plot_lateral_results`.
 
@@ -344,7 +342,7 @@ class AnalyzeResult:
 
         """
         return self.plot_lateral_results(assign)
-    
+
     def details(self) -> dict:
         """Provide a summary of the results.
 
@@ -357,18 +355,18 @@ class AnalyzeResult:
 
         return {
             **self._details,
-            "Max. normal force [kN]": round(self._f["N [kN]"].max(),2),
-            "Min. normal force [kN]": round(self._f["N [kN]"].min(),2),
-            "Max. shear force [kN]": round(self._f["V [kN]"].max(),2),
-            "Min. shear force [kN]": round(self._f["V [kN]"].min(),2),
-            "Max. moment [kNm]": round(self._f["M [kNm]"].max(),2),
-            "Min. moment [kNm]": round(self._f["M [kNm]"].min(),2),
-            "Max. settlement [m]": round(self._d["Settlement [m]"].max(),3),
-            "Min. settlement [m]": round(self._d["Settlement [m]"].min(),3),
-            "Max. deflection [m]": round(self._d["Deflection [m]"].max(),3),
-            "Min. deflection [m]": round(self._d["Deflection [m]"].min(),3),
-            "Max. rotation [rad]": round(self._d["Rotation [rad]"].max(),3),
-            "Min. rotation [rad]": round(self._d["Rotation [rad]"].min(),3),
+            "Max. normal force [kN]": round(self._f["N [kN]"].max(), 2),
+            "Min. normal force [kN]": round(self._f["N [kN]"].min(), 2),
+            "Max. shear force [kN]": round(self._f["V [kN]"].max(), 2),
+            "Min. shear force [kN]": round(self._f["V [kN]"].min(), 2),
+            "Max. moment [kNm]": round(self._f["M [kNm]"].max(), 2),
+            "Min. moment [kNm]": round(self._f["M [kNm]"].min(), 2),
+            "Max. settlement [m]": round(self._d["Settlement [m]"].max(), 3),
+            "Min. settlement [m]": round(self._d["Settlement [m]"].min(), 3),
+            "Max. deflection [m]": round(self._d["Deflection [m]"].max(), 3),
+            "Min. deflection [m]": round(self._d["Deflection [m]"].min(), 3),
+            "Max. rotation [rad]": round(self._d["Rotation [rad]"].max(), 3),
+            "Min. rotation [rad]": round(self._d["Rotation [rad]"].min(), 3),
         }
 
 
@@ -387,7 +385,7 @@ def beam(model):
     results : `openpile.compute.Result` object
         Results of the analysis
     """
-    
+
     # validate boundary conditions
     validation.check_boundary_conditions(model)
 
@@ -397,7 +395,7 @@ def beam(model):
     U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
     # initialise global supports vector
     supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
-    
+
     # initialise displacement vectors
     d = np.zeros(U.shape)
 
@@ -420,14 +418,13 @@ def beam(model):
         _f=structural_forces_to_df(model, q_int),
         _Q=reaction_forces_to_df(model, Q),
         _details={
-                'converged @ iter no.' : 1,
-                'error' : 0.0,
-                'tolerance': None,
-        }
+            "converged @ iter no.": 1,
+            "error": 0.0,
+            "tolerance": None,
+        },
     )
 
     return results
-
 
 
 def winkler(model, max_iter: int = 100):
@@ -477,7 +474,7 @@ def winkler(model, max_iter: int = 100):
             try:
                 u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
                 # bump iteration number
-                iter_no += 1 
+                iter_no += 1
             except np.linalg.LinAlgError:
                 print(
                     """Cannot converge. Failure of the pile-soil system.\n
@@ -526,23 +523,24 @@ def winkler(model, max_iter: int = 100):
             _f=structural_forces_to_df(model, q_int),
             _Q=reaction_forces_to_df(model, Q),
             _dist_mob=springs_mob_to_df(model, d),
-            _hb_mob = (abs(d[-2])*kernel.calculate_base_spring_stiffness(d[-2], 
-                                                                           model._Hb_spring, 
-                                                                           kind="secant"), 
-                                model._Hb_spring.flatten().max()),
-            _mb_mob = (abs(d[-1])*kernel.calculate_base_spring_stiffness(d[-1], 
-                                                                           model._Mb_spring, 
-                                                                           kind="secant"), 
-                                model._Mb_spring.flatten().max()),
+            _hb_mob=(
+                abs(d[-2])
+                * kernel.calculate_base_spring_stiffness(d[-2], model._Hb_spring, kind="secant"),
+                model._Hb_spring.flatten().max(),
+            ),
+            _mb_mob=(
+                abs(d[-1])
+                * kernel.calculate_base_spring_stiffness(d[-1], model._Mb_spring, kind="secant"),
+                model._Mb_spring.flatten().max(),
+            ),
             _details={
-                'converged @ iter no.' : iter_no,
-                'error [kN]' : round(np.linalg.norm(Rg[~supports]),3),
-                'tolerance [kN]': round(nr_tol,3),
-            }
+                "converged @ iter no.": iter_no,
+                "error [kN]": round(np.linalg.norm(Rg[~supports]), 3),
+                "tolerance [kN]": round(nr_tol, 3),
+            },
         )
 
         return results
-
 
 
 def simple_winkler_analysis(model, max_iter: int = 100):
@@ -559,7 +557,7 @@ def simple_winkler_analysis(model, max_iter: int = 100):
 
 
 def simple_beam_analysis(model):
-    
+
     # deprecation warning
     warnings.warn(
         "\nThe method Analyze.simple_beam_analysis() will be removed in version 1.0.0."
@@ -567,5 +565,5 @@ def simple_beam_analysis(model):
         DeprecationWarning,
         stacklevel=2,
     )
-    
-    return beam(model)  
+
+    return beam(model)

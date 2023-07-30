@@ -97,30 +97,34 @@ def get_reduced_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) 
 
     column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
 
-    id = np.repeat(np.arange(nelem+1), 2)
+    id = np.repeat(np.arange(nelem + 1), 2)
     x = np.repeat(elevations, 2)
 
     influence = np.abs(np.gradient(elevations))
-    influence[0] = influence[0]/2
-    influence[-1] = influence[-1]/2
+    influence[0] = influence[0] / 2
+    influence[-1] = influence[-1] / 2
 
-    springs[:,0,0,:] = springs[:,0,0,:] * influence[:-1].reshape(-1,1)
-    springs[:,1,0,:] = springs[:,1,0,:] * influence[1:].reshape(-1,1)
+    springs[:, 0, 0, :] = springs[:, 0, 0, :] * influence[:-1].reshape(-1, 1)
+    springs[:, 1, 0, :] = springs[:, 1, 0, :] * influence[1:].reshape(-1, 1)
 
-    reduced_springs = np.zeros((nnode*2,spring_dim))
-    
+    reduced_springs = np.zeros((nnode * 2, spring_dim))
+
     # first spring resistance and disp values
-    reduced_springs[0,:] = springs[0,0,0,:]
-    reduced_springs[1,:] = springs[0,0,1,:]
+    reduced_springs[0, :] = springs[0, 0, 0, :]
+    reduced_springs[1, :] = springs[0, 0, 1, :]
     # last spring resistance and disp values
-    reduced_springs[-2,:] = springs[-1,1,0,:]
-    reduced_springs[-1,:] = springs[-1,1,1,:]
+    reduced_springs[-2, :] = springs[-1, 1, 0, :]
+    reduced_springs[-1, :] = springs[-1, 1, 1, :]
     # calculation of weighted springs when node based
     j = 0
-    for i in range(2, nelem*2-1, 2):
+    for i in range(2, nelem * 2 - 1, 2):
         j += 1
-        reduced_springs[i,:] = (springs[j-1,1,0,:]*influence[j-1] + springs[j,0,0,:]*influence[j])/(influence[j-1]+influence[j])
-        reduced_springs[i+1,:] = (springs[j-1,1,1,:]*influence[j-1] + springs[j,0,1,:]*influence[j])/(influence[j-1]+influence[j])
+        reduced_springs[i, :] = (
+            springs[j - 1, 1, 0, :] * influence[j - 1] + springs[j, 0, 0, :] * influence[j]
+        ) / (influence[j - 1] + influence[j])
+        reduced_springs[i + 1, :] = (
+            springs[j - 1, 1, 1, :] * influence[j - 1] + springs[j, 0, 1, :] * influence[j]
+        ) / (influence[j - 1] + influence[j])
 
     df = pd.DataFrame(
         data={
@@ -134,9 +138,10 @@ def get_reduced_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) 
 
     return df
 
+
 def get_full_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.DataFrame:
     """
-    Returns soil springs in created for the given model in one DataFrame. 
+    Returns soil springs in created for the given model in one DataFrame.
 
     Parameters
     ----------

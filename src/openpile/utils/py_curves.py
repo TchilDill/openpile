@@ -356,3 +356,48 @@ def api_clay(
             p[i] = 0.23 * Pmax
 
     return y, p
+
+
+@njit(parallel=True, cache=True)
+def reese_weakrock(
+    E : float,
+    qu : float,
+    RQD : float,
+    xr : float,
+    D : float,
+    k : float = 0.0005,
+    output_length = 20,
+):
+    #determine alpha
+    alpha = 1.0 - 0.7 * RQD/100
+
+    #determine ultimate resistance of rock
+    Pmax = min(5.2*alpha*qu*D, 
+               alpha * qu * D * (1 + 1.4*xr/D))
+    
+    # initial portion of p-y curve
+    Epy_i = E * min(500, 100+400*xr/(3*D))
+
+    # yA & yrm
+    yrm = k*D
+    yA = ( Pmax / (2* (yrm)**0.25 * Epy_i) )**1.333
+
+    # define y
+    ymax = ( 2 * yrm**(0.25) )**4
+    y = np.linspace(yA,ymax,output_length-1)
+    y = np.concatenate([0],y)
+
+    # define p
+    p = np.zeros(y.size)
+    for i in range(len(p)):
+        if y[i] <= yA:
+            p[i] = Epy_i  * y[i]
+        elif y[i] > yA:
+            p[i] = Pmax/2 * (y[i]/yrm)**0.25
+        else:
+            p[i] = Pmax 
+
+    return y, p
+
+
+

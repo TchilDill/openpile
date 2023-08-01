@@ -793,3 +793,88 @@ class API_clay(LateralModel):
         m = 1 / 4 * np.pi * D**2 * tz_pos.reshape((1, -1)) * np.ones((output_length, 1))
 
         return t, m
+
+
+@dataclass(config=PydanticConfigFrozen)
+class Reese_weakrock(LateralModel):
+    """A class to establish the Reese weakrock model.
+
+    Parameters
+    ----------
+    Ei: float or list[top_value, bottom_value]
+        Initial modulus of rock [unit: kPa]
+    qu: float or list[top_value, bottom_value]
+        compressive strength of rock [unit: kPa]
+    RQD: float or list[top_value, bottom_value]
+        Rock Quality Designation [unit: %]
+    k: float
+        dimensional constant randing from 0.0005 to 0.00005, by default 0.0005
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for p-values
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for y-values
+
+    """
+
+    #: initial modulus of rock [kPa], if a variation in values, two values can be given.
+    Ei: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: scompressive strength of rock [kPa], if a variation in values, two values can be given.
+    qu: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]]
+    #: Rock Quality Designation
+    RQD: confloat(ge=0.0, le=100.0)
+    #: dimnesional constant
+    k: confloat(ge=0.00005, le=0.0005)
+    #: p-multiplier
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    #: y-multiplier
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+
+    # define class variables needed for all soil models
+    m_multiplier = 1.0
+    t_multiplier = 1.0
+
+    spring_signature = np.array([True, False, False, False], dtype=bool)
+
+    def __str__(self):
+        return f"\tReese wkrock\n\tEi = {var_to_str(self.Ei)}kPa\n\tqu = {var_to_str(self.qu)}kPa\n\tRQD = {var_to_str(self.RQD)}%"
+
+    def py_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Ei
+        Ei_t, Ei_b = from_list2x_parse_top_bottom(self.Ei)
+        Ei = Ei_t + (Ei_b - Ei_t) * depth_from_top_of_layer / layer_height
+
+        # define qu
+        qu_t, qu_b = from_list2x_parse_top_bottom(self.qu)
+        qu = qu_t + (qu_b - qu_t) * depth_from_top_of_layer / layer_height
+
+
+        y, p = py_curves.reese_weakrock(
+            Ei=Ei,
+            xr=X,
+            RQD=self.RQD,
+            qu=qu,
+            D=D,
+            k=self.k,
+            output_length=output_length,
+        )
+
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
+
+        return y * y_mult, p * p_mult

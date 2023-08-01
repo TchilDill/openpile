@@ -42,9 +42,9 @@ def cowden_clay(
     Returns
     -------
     1darray
-        p vector [unit: kN/m]
-    1darray
         y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
 
     """
 
@@ -105,9 +105,9 @@ def dunkirk_sand(
     Returns
     -------
     1darray
-        p vector [unit: kN/m]
-    1darray
         y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
     """
     # correct relative density for decimal value
     Dr = Dr / 100
@@ -170,9 +170,9 @@ def api_sand(
     Returns
     -------
     1darray
-        p vector [unit: kN/m]
-    1darray
         y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
     """
     # A value - only thing that changes between cyclic or static
     if kind == "static":
@@ -274,10 +274,9 @@ def api_clay(
     Returns
     -------
     1darray
-        p vector [unit: kN/m]
-    1darray
         y vector [unit: m]
-    ---------
+    1darray
+        p vector [unit: kN/m]
     """
     # important variables
     y50 = 2.5 * eps50 * D
@@ -360,7 +359,7 @@ def api_clay(
 
 @njit(parallel=True, cache=True)
 def reese_weakrock(
-    E : float,
+    Ei : float,
     qu : float,
     RQD : float,
     xr : float,
@@ -368,15 +367,47 @@ def reese_weakrock(
     k : float = 0.0005,
     output_length = 20,
 ):
+    """creates the Reese weakrock p-y curve based on the work of Reese (1997) #TODO(ref).
+
+
+    Parameters
+    ----------
+    Ei : float
+        initial modulus of rock [kPa]
+    qu : float
+        compressive strength of rock [kPa]
+    RQD : float
+        Rock Quality Designation [%]
+    xr : float
+        depth from rock surface [m]
+    D : float
+        pile width [m]
+    k : float, optional
+        dimensional constant, randing from 0.0005 to 0.00005, by default 0.0005
+    output_length : int, optional
+        length of output arrays, by default 20
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
+
+    """
+
+    #Rqd forced to be within 0 and 100
+    rqd = max( min(100,RQD), 0)
+
     #determine alpha
-    alpha = 1.0 - 0.7 * RQD/100
+    alpha = 1.0 - 0.7 * rqd/100
 
     #determine ultimate resistance of rock
     Pmax = min(5.2*alpha*qu*D, 
                alpha * qu * D * (1 + 1.4*xr/D))
     
     # initial portion of p-y curve
-    Epy_i = E * min(500, 100+400*xr/(3*D))
+    Epy_i = Ei * min(500, 100+400*xr/(3*D))
 
     # yA & yrm
     yrm = k*D
@@ -384,18 +415,16 @@ def reese_weakrock(
 
     # define y
     ymax = ( 2 * yrm**(0.25) )**4
-    y = np.linspace(yA,ymax,output_length-1)
-    y = np.concatenate([0],y)
+    y = np.linspace(yA,ymax,output_length-2)
+    y = np.concatenate((np.array([0.0]),y, np.array([1.2*ymax])))
 
     # define p
     p = np.zeros(y.size)
     for i in range(len(p)):
         if y[i] <= yA:
             p[i] = Epy_i  * y[i]
-        elif y[i] > yA:
-            p[i] = Pmax/2 * (y[i]/yrm)**0.25
         else:
-            p[i] = Pmax 
+            p[i] = min(Pmax, Pmax/2 * (y[i]/yrm)**0.25)
 
     return y, p
 

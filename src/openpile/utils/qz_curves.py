@@ -39,9 +39,9 @@ def api_sand(
     Returns
     -------
     numpy 1darray
-        Q vector [unit: kPa]
-    numpy 1darray
         z vector [unit: m]
+    numpy 1darray
+        Q vector [unit: kPa]
     """
     # cannot have less than 8
     if output_length < 8:
@@ -101,9 +101,9 @@ def api_clay(
     Returns
     -------
     numpy 1darray
-        Q vector [unit: kPa]
-    numpy 1darray
         z vector [unit: m]
+    numpy 1darray
+        Q vector [unit: kPa]
     """
     # cannot have less than 8
     if output_length < 8:

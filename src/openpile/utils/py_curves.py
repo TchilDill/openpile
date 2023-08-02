@@ -359,13 +359,13 @@ def api_clay(
 
 @njit(parallel=True, cache=True)
 def reese_weakrock(
-    Ei : float,
-    qu : float,
-    RQD : float,
-    xr : float,
-    D : float,
-    k : float = 0.0005,
-    output_length = 20,
+    Ei: float,
+    qu: float,
+    RQD: float,
+    xr: float,
+    D: float,
+    k: float = 0.0005,
+    output_length=20,
 ):
     """creates the Reese weakrock p-y curve based on the work of Reese (1997) #TODO(ref).
 
@@ -396,37 +396,33 @@ def reese_weakrock(
 
     """
 
-    #Rqd forced to be within 0 and 100
-    rqd = max( min(100,RQD), 0)
+    # Rqd forced to be within 0 and 100
+    rqd = max(min(100, RQD), 0)
 
-    #determine alpha
-    alpha = 1.0 - 2/3 * rqd/100
+    # determine alpha
+    alpha = 1.0 - 2 / 3 * rqd / 100
 
-    #determine ultimate resistance of rock
-    Pmax = min(5.2*alpha*qu*D, 
-               alpha * qu * D * (1 + 1.4*xr/D))
-    
+    # determine ultimate resistance of rock
+    Pmax = min(5.2 * alpha * qu * D, alpha * qu * D * (1 + 1.4 * xr / D))
+
     # initial portion of p-y curve
-    Epy_i = Ei * min(500, 100+400*xr/(3*D))
+    Epy_i = Ei * min(500, 100 + 400 * xr / (3 * D))
 
     # yA & yrm
-    yrm = k*D
-    yA = ( Pmax / (2* (yrm)**0.25 * Epy_i) )**1.333
+    yrm = k * D
+    yA = (Pmax / (2 * (yrm) ** 0.25 * Epy_i)) ** 1.333
 
     # define y
-    ymax = max(1.05*yA,( 2 * yrm**(0.25) )**4)
-    y = np.linspace(yA,ymax,output_length-2)
-    y = np.concatenate((np.array([0.0]),y, np.array([1.2*ymax])))
+    ymax = max(1.05 * yA, (2 * yrm ** (0.25)) ** 4)
+    y = np.linspace(yA, ymax, output_length - 2)
+    y = np.concatenate((np.array([0.0]), y, np.array([1.2 * ymax])))
 
     # define p
     p = np.zeros(y.size)
     for i in range(len(p)):
         if y[i] <= yA:
-            p[i] = min(Pmax, Epy_i  * y[i])
+            p[i] = min(Pmax, Epy_i * y[i])
         else:
-            p[i] = min(Pmax, Pmax/2 * (y[i]/yrm)**0.25)
+            p[i] = min(Pmax, Pmax / 2 * (y[i] / yrm) ** 0.25)
 
     return y, p
-
-
-

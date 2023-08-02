@@ -810,7 +810,7 @@ class Reese_weakrock(LateralModel):
     k: float
         dimensional constant randing from 0.0005 to 0.00005, by default 0.0005
     ztop: float
-        absolute depth of top layer elevation with respect to rock surface [m] 
+        absolute depth of top layer elevation with respect to rock surface [m]
     p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
@@ -866,10 +866,9 @@ class Reese_weakrock(LateralModel):
         qu_t, qu_b = from_list2x_parse_top_bottom(self.qu)
         qu = qu_t + (qu_b - qu_t) * depth_from_top_of_layer / layer_height
 
-
         y, p = py_curves.reese_weakrock(
             Ei=Ei,
-            xr=(X+self.ztop),
+            xr=(X + self.ztop),
             RQD=self.RQD,
             qu=qu,
             D=D,

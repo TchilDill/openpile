@@ -17,7 +17,7 @@ API
 
 .. automodule:: openpile.analyze
     :members: 
-    :exclude-members: simple_winkler_analysis, simple_beam_analysis, PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, AnalyzeResult
+    :exclude-members: winkler, beam, PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, AnalyzeResult
 
 
 `utils` module
@@ -42,6 +42,10 @@ API
     :members:
     :exclude-members: random
 
+
+.. automodule:: openpile.utils.multipliers
+    :members:
+    :exclude-members: 
 
 The `Result` class
 ==================

@@ -809,6 +809,8 @@ class Reese_weakrock(LateralModel):
         Rock Quality Designation [unit: %]
     k: float
         dimensional constant randing from 0.0005 to 0.00005, by default 0.0005
+    ztop: float
+        absolute depth of top layer elevation with respect to rock surface [m] 
     p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
@@ -824,6 +826,8 @@ class Reese_weakrock(LateralModel):
     RQD: confloat(ge=0.0, le=100.0)
     #: dimnesional constant
     k: confloat(ge=0.00005, le=0.0005)
+    #: absolute depth of top layer elevation with respect to rock surface [m]
+    ztop: confloat(ge=0.0)
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
@@ -836,7 +840,7 @@ class Reese_weakrock(LateralModel):
     spring_signature = np.array([True, False, False, False], dtype=bool)
 
     def __str__(self):
-        return f"\tReese wkrock\n\tEi = {var_to_str(self.Ei)}kPa\n\tqu = {var_to_str(self.qu)}kPa\n\tRQD = {var_to_str(self.RQD)}%"
+        return f"\tReese weakrock\n\tEi = {var_to_str(self.Ei)}kPa\n\tqu = {var_to_str(self.qu)}kPa\n\tRQD = {var_to_str(self.RQD)}%"
 
     def py_spring_fct(
         self,
@@ -865,7 +869,7 @@ class Reese_weakrock(LateralModel):
 
         y, p = py_curves.reese_weakrock(
             Ei=Ei,
-            xr=X,
+            xr=(X+self.ztop),
             RQD=self.RQD,
             qu=qu,
             D=D,

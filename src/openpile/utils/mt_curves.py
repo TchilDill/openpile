@@ -42,9 +42,9 @@ def cowden_clay(
     Returns
     -------
     1darray
-        m vector [unit: kN]
-    1darray
         t vector of length [unit: rad]
+    1darray
+        m vector [unit: kN]
 
     """
 
@@ -107,9 +107,9 @@ def dunkirk_sand(
     Returns
     -------
     1darray
-        m vector [unit: kN]
-    1darray
         t vector of length [unit: rad]
+    1darray
+        m vector [unit: kN]
     """
     # correct relative density for decimal value
     Dr = Dr / 100

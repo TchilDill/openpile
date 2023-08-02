@@ -48,9 +48,9 @@ def dunkirk_sand(
     Returns
     -------
     1darray
-        Hb vector [unit: kN]
-    1darray
         y vector [unit: m]
+    1darray
+        Hb vector [unit: kN]
     """
     # correct relative density for decimal value
     Dr = Dr / 100
@@ -110,16 +110,9 @@ def cowden_clay(
     Returns
     -------
     1darray
-        Hb vector [unit: kN]
-    1darray
         y vector [unit: m]
-
-    References
-    ----------
-    .. [1] Byrne, B. W., Houlsby, G. T., Burd, H. J., Gavin, K. G., Igoe, D. J. P., Jardine,
-           R. J., Martin, C. M., McAdam, R. A., Potts, D. M., Taborda, D. M. G. & Zdravkovic ́,
-           L. (2020). PISA design model for monopiles for offshore wind turbines: application
-           to a stiff glacial clay till. Géotechnique, https://doi.org/10.1680/ jgeot.18.P.255.
+    1darray
+        Hb vector [unit: kN]
 
     """
 

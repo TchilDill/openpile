@@ -400,7 +400,7 @@ def reese_weakrock(
     rqd = max( min(100,RQD), 0)
 
     #determine alpha
-    alpha = 1.0 - 0.7 * rqd/100
+    alpha = 1.0 - 2/3 * rqd/100
 
     #determine ultimate resistance of rock
     Pmax = min(5.2*alpha*qu*D, 
@@ -414,7 +414,7 @@ def reese_weakrock(
     yA = ( Pmax / (2* (yrm)**0.25 * Epy_i) )**1.333
 
     # define y
-    ymax = ( 2 * yrm**(0.25) )**4
+    ymax = max(1.05*yA,( 2 * yrm**(0.25) )**4)
     y = np.linspace(yA,ymax,output_length-2)
     y = np.concatenate((np.array([0.0]),y, np.array([1.2*ymax])))
 
@@ -422,7 +422,7 @@ def reese_weakrock(
     p = np.zeros(y.size)
     for i in range(len(p)):
         if y[i] <= yA:
-            p[i] = Epy_i  * y[i]
+            p[i] = min(Pmax, Epy_i  * y[i])
         else:
             p[i] = min(Pmax, Pmax/2 * (y[i]/yrm)**0.25)
 

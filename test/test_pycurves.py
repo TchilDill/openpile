@@ -114,3 +114,26 @@ def test_api_clay(make_pmax_api_clay,xsigma, xX, xSu, xe50, xD, xJ, xkind):
     assert m.isclose(p[-1],pres, rel_tol=0.01, abs_tol=0.1)
     assert m.isclose(np.max(p), pu, rel_tol=0.01, abs_tol=0.1)
 
+@pytest.mark.parametrize("xEi",[1,75,200])
+@pytest.mark.parametrize("xqu",[1,75,200])
+@pytest.mark.parametrize("xRQD",[0,25,50,75,100])
+@pytest.mark.parametrize("xxr",[0,5,20])
+@pytest.mark.parametrize("xD",[1,3,6])
+def test_reese_weakrock(xEi, xqu, xRQD, xxr, xD):
+    #create curve
+    y, p = py.reese_weakrock(Ei=xEi, qu=xqu, RQD=xRQD, xr=xxr, D=xD)
+    #helper fct
+    is_sorted = lambda a: np.all(a[:-1] <= a[1:])
+    #check if sorted
+    assert is_sorted(y)
+    #check if origin is (0,0)
+    assert p[0] == 0.0
+    assert y[0] == 0.0
+
+    alpha = 1 - 2/3 * xRQD/100
+    pu = min(alpha * xqu * xD * (1+1.4*xxr/xD), 5.2*alpha*xqu*xD)
+    assert m.isclose(np.max(p), pu, rel_tol=0.01, abs_tol=0.1)
+
+
+
+

@@ -505,7 +505,7 @@ class API_sand(LateralModel):
 
     See also
     --------
-    :py:func:`openpile.utils.py_curves.api_sand`
+    :py:func:`openpile.utils.py_curves.api_sand`, :py:func:`openpile.utils.multipliers.durkhop`
 
     """
 

@@ -367,7 +367,7 @@ def reese_weakrock(
     k: float = 0.0005,
     output_length=20,
 ):
-    """creates the Reese weakrock p-y curve based on the work of Reese (1997) #TODO(ref).
+    """creates the Reese weakrock p-y curve based on the work of Reese (1997), see reference [Rees97]_.
 
 
     Parameters

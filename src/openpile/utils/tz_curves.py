@@ -112,9 +112,6 @@ def api_clay(
     numpy 1darray
         z vector [unit: m]
 
-    See also
-    --------
-    `API_clay`_
 
     """
     # cannot have less than 15
@@ -199,7 +196,7 @@ def api_clay_kraft(
 
     See also
     --------
-    `API_clay`_, :py:func:`openpile.utils.tz_curves.api_clay`
+    :py:func:`openpile.utils.tz_curves.api_clay`
 
     """
     return kraft_modification(
@@ -239,9 +236,6 @@ def api_sand(
     numpy 1darray
         z vector [unit: m]
 
-    See also
-    --------
-    `API_sand`_
 
     """
     # cannot have less than 7
@@ -329,7 +323,7 @@ def api_sand_kraft(
 
     See also
     --------
-    `API_sand`_, :py:func:`openpile.utils.tz_curves.api_sand`
+    :py:func:`openpile.utils.tz_curves.api_sand`
 
     """
     return kraft_modification(

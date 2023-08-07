@@ -396,6 +396,8 @@ def reese_weakrock(
 
     """
 
+    output_length = max(10,output_length)
+
     # Rqd forced to be within 0 and 100
     rqd = max(min(100, RQD), 0)
 
@@ -414,8 +416,9 @@ def reese_weakrock(
 
     # define y
     ymax = max(1.05 * yA, (2 * yrm ** (0.25)) ** 4)
-    y = np.linspace(yA, ymax, output_length - 2)
-    y = np.concatenate((np.array([0.0]), y, np.array([1.2 * ymax])))
+    y1 = np.linspace(yA, 0.15*ymax, int(output_length/2))
+    y2 = np.linspace(0.25*ymax, ymax, output_length-len(y1)-2)
+    y = np.concatenate((np.array([0.0]), y1, y2, np.array([1.2 * ymax])))
 
     # define p
     p = np.zeros(y.size)

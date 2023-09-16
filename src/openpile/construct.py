@@ -294,6 +294,17 @@ class Pile:
         except Exception as e:
             print(e)
 
+    @property
+    def tip_area(self) -> float:
+        "Sectional area at the bottom of the pile [m2]"
+        try:
+            return self.data["Area [m2]"].iloc[-1]
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
+
     @classmethod
     def create(
         cls,

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 ## [0.5.1] - 2023-XX-XX (Note released yet)  
-- *blank*
+- added property to `Pile` object: `openpile.construct.Pile.tip_area`
 
 ## [0.5.0] - 2023-08-02  
 - added soil spring `openpile.utils.py_curves.reese_weakrock`

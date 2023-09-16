@@ -556,7 +556,7 @@ def elem_p_delta_stiffness_matrix(model, u):
         * -P
     )
 
-    return k
+    return np.maximum(0,k)
 
 
 @njit(parallel=True, cache=True)

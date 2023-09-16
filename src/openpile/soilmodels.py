@@ -31,7 +31,7 @@ from pydantic.dataclasses import dataclass
 
 from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str
 from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves
-
+from openpile.utils.misc import _fmax_api_sand, _fmax_api_clay, _Qmax_api_clay, _Qmax_api_sand
 
 # CONSTITUTIVE MODELS CLASSES ---------------------------------
 
@@ -69,6 +69,26 @@ class API_clay_axial(AxialModel):
 
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
+
+    def unit_shaft_friction(self,sig, depth_from_top_of_layer, layer_height):
+
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+
+        return _fmax_api_clay(sig,Su=Su)
+    
+    def unit_tip_resistance(self,sig, depth_from_top_of_layer, layer_height):
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+
+        return _Qmax_api_clay(Su=Su)
+    
+    def unit_shaft_signature(out_perimeter, in_perimeter):
+        "This function determines how the unit shaft friction should be applied on outer an inner side of the pile"
+        return {'out':1.0, 'in':1.0}
+        # return {'out': out_perimeter/(out_perimeter+in_perimeter), 'in':in_perimeter/(out_perimeter+in_perimeter)}
 
 
 @dataclass(config=PydanticConfigFrozen)
@@ -134,7 +154,7 @@ class Cowden_clay(LateralModel):
         if depth_from_top_of_layer > layer_height:
             raise ValueError("Spring elevation outside layer")
 
-        # define Dr
+        # define Su
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
         # define G0

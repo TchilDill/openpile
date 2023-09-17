@@ -88,8 +88,13 @@ class API_clay_axial(AxialModel):
     def unit_shaft_signature(out_perimeter, in_perimeter):
         "This function determines how the unit shaft friction should be applied on outer an inner side of the pile"
         return {'out':1.0, 'in':1.0}
-        # return {'out': out_perimeter/(out_perimeter+in_perimeter), 'in':in_perimeter/(out_perimeter+in_perimeter)}
+        # for CPT based methods, it should be: return {'out': out_perimeter/(out_perimeter+in_perimeter), 'in':in_perimeter/(out_perimeter+in_perimeter)}
 
+    def tz_springs_fct():
+        pass
+
+    def Qz_spring_fct():
+        pass
 
 @dataclass(config=PydanticConfigFrozen)
 class Cowden_clay(LateralModel):

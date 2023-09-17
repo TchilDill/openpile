@@ -66,6 +66,13 @@ class API_clay_axial(AxialModel):
     Q_multiplier: confloat(ge=0.0) = 1.0
     #: w-multiplier
     w_multiplier: confloat(gt=0.0) = 1.0
+    #: inner_shaft_friction
+    shaft_friction_inside_pile: bool = True
+    #: tension factor
+    shaft_friction_tension_multiplier: confloat(ge=0.0, le=1.0) = 1.0
+
+    # global variable for convenience
+    bearingcapacity_signature = "API"
 
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
@@ -85,10 +92,11 @@ class API_clay_axial(AxialModel):
 
         return _Qmax_api_clay(Su=Su)
     
-    def unit_shaft_signature(out_perimeter, in_perimeter):
+    def unit_shaft_signature(self,out_perimeter, in_perimeter):
         "This function determines how the unit shaft friction should be applied on outer an inner side of the pile"
-        return {'out':1.0, 'in':1.0}
+        return {'out':1.0, 'in':1.0} if self.shaft_friction_inside_pile is True else  {'out':1.0, 'in':0.0}
         # for CPT based methods, it should be: return {'out': out_perimeter/(out_perimeter+in_perimeter), 'in':in_perimeter/(out_perimeter+in_perimeter)}
+
 
     def tz_springs_fct():
         pass

@@ -304,6 +304,16 @@ class Pile:
         except Exception as e:
             print(e)
 
+    @property
+    def tip_footprint(self) -> float:
+        "footprint area at the bottom of the pile [m2]"
+        try:
+            return (self.data["Diameter [m]"].iloc[-1])**2 * m.pi/4
+        except AttributeError:
+            print("Please first create the pile with the Pile.create() method")
+        except Exception as e:
+            print(e)
+
 
     @classmethod
     def create(
@@ -1069,7 +1079,7 @@ class Model:
                             # calculate Hb spring
                             (Hb[0, 0, 1], Hb[0, 0, 0]) = layer.lateral_model.Hb_spring_fct(
                                 sig=sig_v_tip,
-                                X=-self.pile.bottom_elevation,
+                                X=(self.soil.top_elevation-self.soil.bottom_elevation),
                                 layer_height=(layer.top - layer.bottom),
                                 depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
                                 D=pile_width,
@@ -1084,7 +1094,7 @@ class Model:
 
                             (Mb[0, 0, 1], Mb[0, 0, 0]) = layer.lateral_model.Mb_spring_fct(
                                 sig=sig_v_tip,
-                                X=-self.pile.bottom_elevation,
+                                X=(self.soil.top_elevation-self.soil.bottom_elevation),
                                 layer_height=(layer.top - layer.bottom),
                                 depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
                                 D=pile_width,

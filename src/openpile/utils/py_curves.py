@@ -22,7 +22,7 @@ def cowden_clay(
     output_length: int = 20,
 ):
     """
-    Creates the lateral springs from the PISA clay formulation
+    Creates a spring from the PISA clay formulation
     published by Byrne et al 2020 (see [BHBG20]_) and calibrated based pile
     load tests at Cowden (north east coast of England).
 
@@ -81,7 +81,7 @@ def dunkirk_sand(
     output_length: int = 20,
 ):
     """
-    Creates the lateral spring from the PISA sand formulation
+    Creates a lateral spring from the PISA sand formulation
     published  by Burd et al (2020) (see [BTZA20]_).
     Also called the General Dunkirk Sand Model (GDSM).
 
@@ -429,3 +429,102 @@ def reese_weakrock(
             p[i] = min(Pmax, Pmax / 2 * (y[i] / yrm) ** 0.25)
 
     return y, p
+
+
+@njit(cache=True)
+def custom_pisa_sand(
+    sig: float,
+    X: float,
+    G0: float,
+    D: float,
+    y_ult:float,
+    n:float,
+    k:float,
+    p_ult:float,
+    output_length: int = 20,
+):
+    """Creates a lateral spring with the PISA sand formulation and custom user inputs.
+
+    Parameters
+    ----------
+    sig : float
+        vertical/overburden effective stress [unit: kPa]
+    X : float
+        Depth below ground level [unit: m]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    y_ult : float
+        Normalized displacement at maximum strength
+    k : float
+        Normalized stiffness parameter
+    n : float
+        Normalized curvature parameter, must be between 0 and 1
+    p_ult : float
+        Normalized maximum strength parameter
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
+    """
+    # calculate normsalised conic function
+    y, p = conic(y_ult, n, k, p_ult, output_length)
+
+    # return non-normalised curve
+    return y * (sig * D / G0), p * (sig * D)
+
+@njit(cache=True)
+def cowden_clay(
+    X: float,
+    Su: float,
+    G0: float,
+    D: float,
+    y_ult:float,
+    n:float,
+    k:float,
+    p_ult:float,
+    output_length: int = 20,
+):
+    """
+    Creates a spring from the PISA clay formulation
+    published by Byrne et al 2020 (see [BHBG20]_) and calibrated based pile
+    load tests at Cowden (north east coast of England).
+
+    Parameters
+    ----------
+    X : float
+        Depth below ground level [unit: m]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    y_ult : float
+        Normalized displacement at maximum strength
+    k : float
+        Normalized stiffness parameter
+    n : float
+        Normalized curvature parameter, must be between 0 and 1
+    p_ult : float
+        Normalized maximum strength parameter
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
+
+    """
+    # calculate normsalised conic function
+    y, p = conic(y_ult, n, k, p_ult, output_length)
+
+    # return non-normalised curve
+    return y * (Su * D / G0), p * (Su * D)

@@ -9,6 +9,11 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 ## [0.5.1] - 2023-XX-XX (Note released yet)  
 - added property to `Pile` object: `openpile.construct.Pile.tip_area`
+- added soil springs: 
+  - `openpile.utils.py_curves.custom_pisa_sand` and `openpile.utils.py_curves.custom_pisa_clay`
+  - `openpile.utils.mt_curves.custom_pisa_sand` and `openpile.utils.mt_curves.custom_pisa_clay`
+  - `openpile.utils.Hb_curves.custom_pisa_sand` and `openpile.utils.Hb_curves.custom_pisa_clay`
+  - `openpile.utils.Mb_curves.custom_pisa_sand` and `openpile.utils.Mb_curves.custom_pisa_clay`
 
 ## [0.5.0] - 2023-08-02  
 - added soil spring `openpile.utils.py_curves.reese_weakrock`

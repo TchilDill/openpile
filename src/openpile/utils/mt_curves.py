@@ -135,3 +135,103 @@ def dunkirk_sand(
 
     # return non-normalised curve
     return t * (sig / G0), m * (p * D)
+
+@njit(cache=True)
+def custom_pisa_sand(
+    sig: float,
+    G0: float,
+    p: float,
+    D: float,
+    X_ult:float,
+    n:float,
+    k:float,
+    Y_ult:float,
+    output_length: int = 20,
+):
+    """Creates a rotational spring with the PISA sand formulation and custom user inputs.
+
+    Parameters
+    ----------
+    sig : float
+        vertical/overburden effective stress [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    p : float
+        Radial stress computed via p-y curves [unit: kN/m] 
+    D : float
+        Pile diameter [m]
+    X_ult : float
+        Normalized displacement at maximum strength
+    k : float
+        Normalized stiffness parameter
+    n : float
+        Normalized curvature parameter, must be between 0 and 1
+    Y_ult : float
+        Normalized maximum strength parameter
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
+    """
+
+    
+    # calculate normsalised conic function
+    x, y = conic(X_ult, n, k, Y_ult, output_length)
+
+    # return non-normalised curve
+    return x * (sig / G0), y * (p * D)
+
+
+@njit(cache=True)
+def custom_pisa_clay(
+    Su: float,
+    G0: float,
+    D: float,
+    X_ult:float,
+    n:float,
+    k:float,
+    Y_ult:float,
+    output_length: int = 20,
+):
+    """
+    Creates a rotational spring with the PISA clay formulation and custom user inputs.
+
+
+    Parameters
+    ----------
+    Su : float
+        Undrained shear strength [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    X_ult : float
+        Normalized displacement at maximum strength
+    k : float
+        Normalized stiffness parameter
+    n : float
+        Normalized curvature parameter, must be between 0 and 1
+    Y_ult : float
+        Normalized maximum strength parameter
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
+
+    """
+    # calculate normsalised conic function
+    x, y = conic(X_ult, n, k, Y_ult, output_length)
+
+    # return non-normalised curve
+    return x * (Su / G0), y * (Su * D**2)
+

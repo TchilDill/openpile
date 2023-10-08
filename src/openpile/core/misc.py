@@ -28,9 +28,12 @@ def from_list2x_parse_top_bottom(var):
     return top, bottom
 
 
-def get_value_at_current_depth(X, depth_from_top_of_layer, layer_height):
-    xtop, xbot = from_list2x_parse_top_bottom(X)
-    return xtop + (xbot - xtop) * depth_from_top_of_layer / layer_height
+def get_value_at_current_depth(X, depth_from_top_of_layer, layer_height, depth_from_ground):
+    if isinstance(X,callable):
+        return X(depth_from_ground)
+    else:
+        xtop, xbot = from_list2x_parse_top_bottom(X)
+        return xtop + (xbot - xtop) * depth_from_top_of_layer / layer_height
 
 def var_to_str(var):
     if isinstance(var, float) or isinstance(var, int):

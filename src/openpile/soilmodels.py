@@ -1042,12 +1042,12 @@ class Custom_pisa_sand(LateralModel):
 
         y, p = py_curves.custom_pisa_sand(
             sig=sig,
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
             D=D,
-            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height),
-            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height),
-            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height),
-            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height),
+            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height,X),
+            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height,X),
+            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height,X),
+            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height,X),
             output_length=output_length,
         )
 
@@ -1075,12 +1075,12 @@ class Custom_pisa_sand(LateralModel):
 
         y, Hb = Hb_curves.custom_pisa_sand(
             sig=sig,
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
             D=D,
-            X_ult=get_value_at_current_depth(self.Hb_X, depth_from_top_of_layer, layer_height),
-            n=get_value_at_current_depth(self.Hb_n, depth_from_top_of_layer, layer_height),
-            k=get_value_at_current_depth(self.Hb_k, depth_from_top_of_layer, layer_height),
-            Y_ult=get_value_at_current_depth(self.Hb_Y, depth_from_top_of_layer, layer_height),
+            X_ult=get_value_at_current_depth(self.Hb_X, depth_from_top_of_layer, layer_height,X),
+            n=get_value_at_current_depth(self.Hb_n, depth_from_top_of_layer, layer_height,X),
+            k=get_value_at_current_depth(self.Hb_k, depth_from_top_of_layer, layer_height,X),
+            Y_ult=get_value_at_current_depth(self.Hb_Y, depth_from_top_of_layer, layer_height,X),
             output_length=output_length,
         )
 
@@ -1104,12 +1104,12 @@ class Custom_pisa_sand(LateralModel):
 
         _, p_array = py_curves.custom_pisa_sand(
             sig=sig,
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
             D=D,
-            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height),
-            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height),
-            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height),
-            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height),
+            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height,X),
+            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height,X),
+            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height,X),
+            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height,X),
             output_length=output_length,
         )
 
@@ -1119,12 +1119,12 @@ class Custom_pisa_sand(LateralModel):
         for count, p_iter in enumerate(p_array):
             t[count, :], m[count] = mt_curves.custom_pisa_sand(
                 sig=sig,
-                G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height),
+                G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
                 D=D,
-                X_ult=get_value_at_current_depth(self.mt_X, depth_from_top_of_layer, layer_height),
-                n=get_value_at_current_depth(self.mt_n, depth_from_top_of_layer, layer_height),
-                k=get_value_at_current_depth(self.mt_k, depth_from_top_of_layer, layer_height),
-                Y_ult=get_value_at_current_depth(self.mt_Y, depth_from_top_of_layer, layer_height),
+                X_ult=get_value_at_current_depth(self.mt_X, depth_from_top_of_layer, layer_height,X),
+                n=get_value_at_current_depth(self.mt_n, depth_from_top_of_layer, layer_height,X),
+                k=get_value_at_current_depth(self.mt_k, depth_from_top_of_layer, layer_height,X),
+                Y_ult=get_value_at_current_depth(self.mt_Y, depth_from_top_of_layer, layer_height,X),
                 output_length=output_length,
             )
 
@@ -1152,12 +1152,268 @@ class Custom_pisa_sand(LateralModel):
 
         y, Mb = Mb_curves.custom_pisa_sand(
             sig=sig,
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
             D=D,
-            X_ult=get_value_at_current_depth(self.Mb_X, depth_from_top_of_layer, layer_height),
-            n=get_value_at_current_depth(self.Mb_n, depth_from_top_of_layer, layer_height),
-            k=get_value_at_current_depth(self.Mb_k, depth_from_top_of_layer, layer_height),
-            Y_ult=get_value_at_current_depth(self.Mb_Y, depth_from_top_of_layer, layer_height),
+            X_ult=get_value_at_current_depth(self.Mb_X, depth_from_top_of_layer, layer_height,X),
+            n=get_value_at_current_depth(self.Mb_n, depth_from_top_of_layer, layer_height,X),
+            k=get_value_at_current_depth(self.Mb_k, depth_from_top_of_layer, layer_height,X),
+            Y_ult=get_value_at_current_depth(self.Mb_Y, depth_from_top_of_layer, layer_height,X),
+            output_length=output_length,
+        )
+
+        return y, Mb
+
+
+@dataclass(config=PydanticConfigFrozen)
+class Custom_pisa_clay(LateralModel):
+    """A class to establish a clay model as per PISA framework with custom normalized parameters.
+
+    Parameters
+    ----------
+    Su: float or list[top_value, bottom_value]
+        Undrained shear strength [unit: kPa]
+    G0: float or list[top_value, bottom_value]
+        Small-strain shear modulus [unit: kPa]
+    py_X: float, or list with top and bottom values, or function taking the depth as argument
+        normalized displacement at ultimate resistance of the distributed lateral springs
+    py_n: float, or list with top and bottom values, or function taking the depth as argument
+        normalized curvature of the conic function of the distributed lateral springs, must be greater than or equal to 0 and less than or equal to 1.
+    py_k: float, or list with top and bottom values, or function taking the depth as argument
+        normalized initial stiffness of the curve of the distributed lateral springs
+    py_Y: float, or list with top and bottom values, or function taking the depth as argument
+        normalized maximum resistance of the curve of the distributed lateral springs
+    mt_X: float, or list with top and bottom values, or function taking the depth as argument
+        normalized displacement at ultimate resistance of the distributed rotational springs
+    mt_n: float, or list with top and bottom values, or function taking the depth as argument
+        normalized curvature of the conic function of the distributed rotational springs, must be greater than or equal to 0 and less than or equal to 1.
+    mt_k: float, or list with top and bottom values, or function taking the depth as argument
+        normalized initial stiffness of the curve of the distributed rotational springs
+    mt_Y: float, or list with top and bottom values, or function taking the depth as argument
+        normalized maximum resistance of the curve of the distributed rotational springs
+    Hb_X: float, or list with top and bottom values, or function taking the depth as argument
+        normalized displacement at ultimate resistance of the base shear spring
+    Hb_n: float, or list with top and bottom values, or function taking the depth as argument
+        normalized curvature of the conic function of the base shear spring, must be greater than or equal to 0 and less than or equal to 1.
+    Hb_k: float, or list with top and bottom values, or function taking the depth as argument
+        normalized initial stiffness of the base shear spring
+    Hb_Y: float, or list with top and bottom values, or function taking the depth as argument
+        normalized maximum resistance of the curve of the base shear spring
+    Mb_X: float, or list with top and bottom values, or function taking the depth as argument
+        normalized displacement at ultimate resistance of the base rotational spring
+    Mb_n: float, or list with top and bottom values, or function taking the depth as argument
+        normalized curvature of the conic function of the base rotational spring, must be greater than or equal to 0 and less than or equal to 1.
+    Mb_k: float, or list with top and bottom values, or function taking the depth as argument
+        normalized initial stiffness of the base rotational spring
+    Mb_Y: float, or list with top and bottom values, or function taking the depth as argument
+        normalized maximum resistance of the base rotational spring      
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for p-values
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for y-values
+    m_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for m-values
+    t_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for t-values
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.custom_pisa_sand`, :py:func:`openpile.utils.mt_curves.custom_pisa_sand`,
+    :py:func:`openpile.utils.Hb_curves.custom_pisa_sand`, :py:func:`openpile.utils.Mb_curves.custom_pisa_sand`
+
+    """
+
+    #: undrained shear strength [kPa]
+    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: small-strain shear stiffness modulus [kPa]
+    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized displacement at ultimate resistance of p-y curve
+    py_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized curvature of the conic function of p-y curve, must be greater than or equal to 0 and less than or equal to 1.
+    py_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    #: normalized initial stiffness of the curve  of p-y curve
+    py_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized maximum resistance of the curve of p-y curve
+    py_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized displacement at ultimate resistance of m-t curve
+    mt_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized curvature of the conic function of m-t curve, must be greater than or equal to 0 and less than 1.
+    mt_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    #: normalized initial stiffness of the curve  of m-t curve
+    mt_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized maximum resistance of the curve of m-t curve
+    mt_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized displacement at ultimate resistance of Hb-y curve
+    Hb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized curvature of the conic function of Hb-y curve, must be greater than or equal to 0 and less than 1.
+    Hb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    #: normalized initial stiffness of the curve  of Hb-y curve
+    Hb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized maximum resistance of the curve of Hb-y curve
+    Hb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized displacement at ultimate resistance of Mb-y curve
+    Mb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized curvature of the conic function of Mb-y curve, must be greater than or equal to 0 and less than 1.
+    Mb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    #: normalized initial stiffness of the curve  of Mb-y curve
+    Mb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: normalized maximum resistance of the curve of Mb-y curve
+    Mb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: p-multiplier
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    #: y-multiplier
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    #: m-multiplier
+    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    #: t-multiplier
+    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+
+    # spring signature which tells that API sand only has p-y curves
+    # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
+    spring_signature = np.array([True, True, True, True], dtype=bool)
+
+    def __str__(self):
+        return f"\tCustom PISA sand\n\tG0 = {round(self.G0/1000,1)} MPa"
+
+    def py_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+
+        y, p = py_curves.custom_pisa_clay(
+            sig=sig,
+            Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            D=D,
+            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height,X),
+            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height,X),
+            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height,X),
+            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height,X),
+            output_length=output_length,
+        )
+
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
+
+        return y * y_mult, p * p_mult
+
+    def Hb_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        y, Hb = Hb_curves.custom_pisa_clay(
+            sig=sig,
+            Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            D=D,
+            X_ult=get_value_at_current_depth(self.Hb_X, depth_from_top_of_layer, layer_height,X),
+            n=get_value_at_current_depth(self.Hb_n, depth_from_top_of_layer, layer_height,X),
+            k=get_value_at_current_depth(self.Hb_k, depth_from_top_of_layer, layer_height,X),
+            Y_ult=get_value_at_current_depth(self.Hb_Y, depth_from_top_of_layer, layer_height,X),
+            output_length=output_length,
+        )
+
+        return y, Hb
+
+    def mt_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        _, p_array = py_curves.custom_pisa_clay(
+            sig=sig,
+            Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            D=D,
+            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height,X),
+            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height,X),
+            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height,X),
+            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height,X),
+            output_length=output_length,
+        )
+
+        m = np.zeros((output_length, output_length), dtype=np.float32)
+        t = np.zeros((output_length, output_length), dtype=np.float32)
+
+        for count, _ in enumerate(p_array):
+            t[count, :], m[count] = mt_curves.custom_pisa_clay(
+                sig=sig,
+                Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
+                G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+                D=D,
+                X_ult=get_value_at_current_depth(self.mt_X, depth_from_top_of_layer, layer_height,X),
+                n=get_value_at_current_depth(self.mt_n, depth_from_top_of_layer, layer_height,X),
+                k=get_value_at_current_depth(self.mt_k, depth_from_top_of_layer, layer_height,X),
+                Y_ult=get_value_at_current_depth(self.mt_Y, depth_from_top_of_layer, layer_height,X),
+                output_length=output_length,
+            )
+
+        # parse multipliers and apply results
+        t_mult = self.t_multiplier if isinstance(self.t_multiplier, float) else self.t_multiplier(X)
+        m_mult = self.m_multiplier if isinstance(self.m_multiplier, float) else self.m_multiplier(X)
+
+        return t * t_mult, m * m_mult
+
+    def Mb_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        y, Mb = Mb_curves.custom_pisa_clay(
+            sig=sig,
+            Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            D=D,
+            X_ult=get_value_at_current_depth(self.Mb_X, depth_from_top_of_layer, layer_height,X),
+            n=get_value_at_current_depth(self.Mb_n, depth_from_top_of_layer, layer_height,X),
+            k=get_value_at_current_depth(self.Mb_k, depth_from_top_of_layer, layer_height,X),
+            Y_ult=get_value_at_current_depth(self.Mb_Y, depth_from_top_of_layer, layer_height,X),
             output_length=output_length,
         )
 

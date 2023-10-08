@@ -69,7 +69,6 @@ def cowden_clay(
     # return non-normalised curve
     return y * (Su * D / G0), p * (Su * D)
 
-
 @njit(cache=True)
 def dunkirk_sand(
     sig: float,

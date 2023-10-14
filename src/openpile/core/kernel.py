@@ -134,15 +134,6 @@ def solve_equations(K, F, U, restraints):
     Q : float numpy array of dim (ndof, 1)
         Global reaction force vector in unit:kN
     
-    Example
-    -------
-    
-    >>> from openpile.utils.kernel import solve_equations
-    >>> import numpy as np
-    
-    >>> K = np.random.rand(3,3) + np.identity(3) # ensure the matrix can be inverted
-    >>> F = np.random.rand(3,1)
-    >>> U, _ = solve_equations(K,F)
     """
 
     if restraints.any():

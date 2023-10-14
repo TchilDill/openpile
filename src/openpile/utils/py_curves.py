@@ -415,8 +415,8 @@ def reese_weakrock(
 
     # define y
     ymax = max(1.05 * yA, (2 * yrm ** (0.25)) ** 4)
-    y1 = np.linspace(yA, 0.15*ymax, int(output_length/2))
-    y2 = np.linspace(0.25*ymax, ymax, output_length-len(y1)-2)
+    y1 = np.linspace(yA, max(0.15*ymax,1.01*yA), int(output_length/2))
+    y2 = np.linspace(max(yA*1.02,0.25*ymax), ymax, output_length-len(y1)-2)
     y = np.concatenate((np.array([0.0]), y1, y2, np.array([1.2 * ymax])))
 
     # define p

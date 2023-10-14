@@ -83,18 +83,17 @@ class Pile:
     -------
 
     >>> from openpile.construct import Pile
-
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
     >>> pile = Pile(name = "",
-    >>>         kind='Circular',
-    >>>         material='Steel',
-    >>>         top_elevation = 0,
-    >>>         pile_sections={
-    >>>             'length':[10,30],
-    >>>             'diameter':[7.5,7.5],
-    >>>             'wall thickness':[0.07, 0.08],
-    >>>         }
-    >>>     )
+    ...         kind='Circular',
+    ...         material='Steel',
+    ...         top_elevation = 0,
+    ...         pile_sections={
+    ...             'length':[10,30],
+    ...             'diameter':[7.5,7.5],
+    ...             'wall thickness':[0.07, 0.08],
+    ...         }
+    ...     )
     """
 
     #: name of the pile
@@ -502,25 +501,23 @@ class Layer:
     -------
 
     >>> from openpile.construct import Layer
-    >>> from openpile.core.soilmodels import API_clay
-
+    >>> from openpile.soilmodels import API_clay
     >>> # Create a layer with increasing values of Su and eps50
     >>> layer1 = Layer(name='Soft Clay',
-                   top=0,
-                   bottom=-10,
-                   weight=19,
-                   lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], Neq=100),
-                   )
-
+    ...            top=0,
+    ...            bottom=-10,
+    ...            weight=19,
+    ...            lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], kind='static'),
+    ...            )
     >>> # show layer
-    >>> print(layer1)
+    >>> print(layer1) # doctest: +NORMALIZE_WHITESPACE
     Name: Soft Clay
     Elevation: (0.0) - (-10.0) m
     Weight: 19.0 kN/m3
-    Lateral model: 	API clay
+    Lateral model:      API clay
         Su = 30.0-35.0 kPa
         eps50 = 0.01-0.02
-        Cyclic, N = 100 cycles
+        static curves
     Axial model: None
     """
 
@@ -583,33 +580,31 @@ class SoilProfile:
 
     Example
     -------
-
+    >>> # import objects
     >>> from openpile.construct import SoilProfile, Layer
-    >>> from openpile.core.soilmodels import API_sand, API_clay
-
+    >>> from openpile.soilmodels import API_sand, API_clay
     >>> # Create a two-layer soil profile
     >>> sp = SoilProfile(
-    >>>     name="BH01",
-    >>>     top_elevation=0,
-    >>>     water_line=0,
-    >>>     layers=[
-    >>>         Layer(
-    >>>             name='Layer0',
-    >>>             top=0,
-    >>>             bottom=-20,
-    >>>             weight=18,
-    >>>             lateral_model= API_sand(phi=30, Neq=100)
-    >>>         ),
-    >>>         Layer( name='Layer1',
-    >>>                 top=-20,
-    >>>                 bottom=-40,
-    >>>                 weight=19,
-    >>>                 lateral_model= API_clay(Su=50, eps50=0.01, Neq=100),)
-    >>>     ]
-    >>> )
-
+    ...     name="BH01",
+    ...     top_elevation=0,
+    ...     water_line=0,
+    ...     layers=[
+    ...         Layer(
+    ...             name='Layer0',
+    ...             top=0,
+    ...             bottom=-20,
+    ...             weight=18,
+    ...             lateral_model= API_sand(phi=30, kind='cyclic')
+    ...         ),
+    ...         Layer( name='Layer1',
+    ...                 top=-20,
+    ...                 bottom=-40,
+    ...                 weight=19,
+    ...                 lateral_model= API_clay(Su=50, eps50=0.01, kind='static'),)
+    ...     ]
+    ... )
     >>> # Check soil profile content
-    >>> print(sp)
+    >>> print(sp) # doctest: +NORMALIZE_WHITESPACE
     Layer 1
     ------------------------------
     Name: Layer0
@@ -617,7 +612,7 @@ class SoilProfile:
     Weight: 18.0 kN/m3
     Lateral model: 	API sand
         phi = 30.0°
-        Cyclic, N = 100 cycles
+        cyclic curves
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Layer 2
@@ -628,10 +623,9 @@ class SoilProfile:
     Lateral model: 	API clay
         Su = 50.0 kPa
         eps50 = 0.01
-        Cyclic, N = 100 cycles
+        static curves
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
     """
 
     #: name of soil profile / borehole / location
@@ -818,44 +812,39 @@ class Model:
     -------
 
     >>> from openpile.construct import Pile, Model, Layer
-    >>> from openpile.core.soilmodels import API_sand
-
+    >>> from openpile.soilmodels import API_sand
     >>> # create pile
-    >>> p = Pile(name = "WTG01",
-    >>> 		kind='Circular',
-    >>> 		material='Steel',
-    >>> 		top_elevation = 0,
-    >>> 		pile_sections={
-    >>> 			'length':[10,30],
-    >>> 			'diameter':[7.5,7.5],
-    >>> 			'wall thickness':[0.07, 0.08],
-    >>> 		}
-    >>> 	)
-
+    ... p = Pile(name = "WTG01",
+    ... 		kind='Circular',
+    ... 		material='Steel',
+    ... 		top_elevation = 0,
+    ... 		pile_sections={
+    ... 			'length':[10,30],
+    ... 			'diameter':[7.5,7.5],
+    ... 			'wall thickness':[0.07, 0.08],
+    ... 		}
+    ... 	)
     >>> # Create Soil Profile
     >>> sp = SoilProfile(
-    >>> 	name="BH01",
-    >>> 	top_elevation=0,
-    >>> 	water_line=0,
-    >>> 	layers=[
-    >>> 		Layer(
-    >>> 			name='Layer0',
-    >>> 			top=0,
-    >>> 			bottom=-40,
-    >>> 			weight=18,
-    >>> 			lateral_model= API_sand(phi=30, Neq=100)
-    >>> 		),
-    >>> 	]
-    >>> )
-
+    ... 	name="BH01",
+    ... 	top_elevation=0,
+    ... 	water_line=0,
+    ... 	layers=[
+    ... 		Layer(
+    ... 			name='Layer0',
+    ... 			top=0,
+    ... 			bottom=-40,
+    ... 			weight=18,
+    ... 			lateral_model= API_sand(phi=30, kind='cyclic')
+    ... 		),
+    ... 	]
+    ... )
     >>> # Create Model
     >>> M = Model(name="Example", pile=p, soil=sp)
-
     >>> # create Model without soil maximum 5 metres apart.
     >>> Model_without_soil = Model(name = "Example without soil", pile=p, coarseness=5)
     >>> # create Model with nodes maximum 1 metre apart with soil profile
     >>> Model_with_soil = Model(name = "Example with soil", pile=p, soil=sp, coarseness=1)
-
     """
 
     #: model name

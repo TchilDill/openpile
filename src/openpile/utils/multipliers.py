@@ -93,9 +93,9 @@ def durkhop_normalized(D: float, ra: float = 0.3) -> object:
 
     return func
 
-def cowden_clay_py_k(D:float):
-    """function that returns the depth variation function 
-    of the normalized initial stiffness of the cowden_clay p-y curve as per [BHBG20]_.
+def get_cowden_clay_py_norm_param(D:float):
+    """function that returns the depth variation functions for the 4 normalized parameters 
+    of the cowden_clay p-y conic formulation as per [BHBG20]_.
 
     Parameters
     ----------
@@ -104,115 +104,183 @@ def cowden_clay_py_k(D:float):
 
     Returns
     -------
-    callable
-        depth variation function accepting one input argument, the depth from ground (strictly positive) [m]
+    dict
+        dictionary of depth variation functions with keys['py_k','py_n','py_X', 'py_Y'] 
+        accepting one input argument, the depth from ground (strictly positive) [m]
     """
+    # normalized initial stiffness
     k_p1 = 10.6
     k_p2 = -1.650
-    return lambda x: max(0.001,k_p1 + k_p2 * x / D)
+    k_func = lambda x: max(0.001,k_p1 + k_p2 * x / D)
 
-def cowden_clay_py_n(D:float):
-    """function that returns the depth variation function 
-    of the normalized curvature of the cowden_clay p-y curve as per [BHBG20]_.
-
-    Parameters
-    ----------
-    D : float
-        pile diameter [m]
-
-    Returns
-    -------
-    callable
-        depth variation function accepting one input argument, the depth from ground (strictly positive) [m]
-    """
+    # normalized curvature 
     n_p1 = 0.9390
     n_p2 = -0.03345
-    return lambda x : min(0.999,max(0,n_p1 + n_p2 * x / D))
+    n_func = lambda x : min(0.999,max(0,n_p1 + n_p2 * x / D))
+    
+    # normalized displacement at peak resistance
+    X_func = lambda x : 241.4
 
-def cowden_clay_py_X_ult():
-    """function that returns the depth variation function 
-    of the normalized maximum displacement of the cowden_clay p-y curve as per [BHBG20]_.
-
-    Returns
-    -------
-    callable
-        depth variation function accepting one input argument, the depth from ground (strictly positive) [m]
-    """
-    return lambda x : 241.4
-
-def cowden_clay_py_Y_ult(D:float):
-    """function that returns the depth variation function 
-    of the normalized curvature of the cowden_clay p-y curve as per [BHBG20]_.
-
-    Parameters
-    ----------
-    D : float
-        pile diameter [m]
-
-    Returns
-    -------
-    callable
-        depth variation function accepting one input argument, the depth from ground (strictly positive) [m]
-    """
+    # normalized peak resistance
     p_u1 = 10.7
     p_u2 = -7.101
-    return lambda x : max(0.001,p_u1 + p_u2 * m.exp(-0.3085 * x / D))
+    Y_func = lambda x : max(0.001,p_u1 + p_u2 * m.exp(-0.3085 * x / D))
+    
+    return {'py_k': k_func, 'py_n': n_func, 'py_X': X_func, 'py_Y': Y_func}
 
-def dunkirk_sand_py_k(D:float, Dr: float):
-    """function that returns the depth variation function 
-    of the normalized initial stiffness of the dunkirk_sand p-y curve as per [BTZA20]_.
+def get_cowden_clay_mt_norm_param(D:float):
+    """function that returns the depth variation functions for the 4 normalized parameters 
+    of the cowden_clay rotational spring conic formulation as per [BHBG20]_.
 
     Parameters
     ----------
     D : float
         pile diameter [m]
+
+    Returns
+    -------
+    dict
+        dictionary of depth variation functions with keys['mt_k','mt_n','mt_X', 'mt_Y'] 
+        accepting one input argument, the depth from ground (strictly positive) [m]
+    """
+    # normalized initial stiffness
+    k_m1 = 1.420
+    k_m2 = -0.09643
+    k_func = lambda x: max(0.001,k_m1 + k_m2 * x / D)
+
+    # normalized curvature 
+    n_func = lambda x : 0.0
+
+    # normalized peak resistance
+    m_m1 = 0.2899
+    m_m2 = -0.04775
+    Y_func = lambda x : max(0.001,m_m1 + m_m2 * x / D)
+    
+    # normalized displacement at peak resistance
+    X_func = lambda x : max(0.001,m_m1 + m_m2 * x / D) / max(0.001,k_m1 + k_m2 * x / D)
+
+    return {'mt_k': k_func, 'mt_n': n_func, 'mt_X': X_func, 'mt_Y': Y_func}
+
+def get_cowden_clay_Hb_norm_param(D:float, L:float):
+    """function that returns the depth variation functions for the 4 normalized parameters 
+    of the cowden_clay base shear spring conic formulation as per [BHBG20]_.
+
+    Parameters
+    ----------
+    D : float
+        pile diameter [m]
+    L : float
+        pile embedment length [m]
+
+    Returns
+    -------
+    dict
+        dictionary of depth variation functions with keys['Hb_k','Hb_n','Hb_X', 'Hb_Y'] 
+        accepting one input argument, the depth from ground (strictly positive) [m]
+    """
+    # normalized initial stiffness
+    k_h1 = 2.717
+    k_h2 = -0.3575
+    k_func = lambda x: max(0.001,k_h1 + k_h2 * L / D)
+
+    # normalized curvature 
+    n_h1 = 0.8793
+    n_h2 = -0.03150
+    n_func = lambda x : min(0.999,max(0,n_h1 + n_h2 * L / D))
+
+    # normalized peak resistance
+    p_u1 = 0.4038
+    p_u2 = 0.04812
+    Y_func = lambda x : max(0.001,p_u1 + p_u2 * L / D)
+    
+    # normalized displacement at peak resistance
+    X_func = lambda x : 235.7
+
+    return {'Hb_k': k_func, 'Hb_n': n_func, 'Hb_X': X_func, 'Hb_Y': Y_func}
+
+
+def get_cowden_clay_Mb_norm_param(D:float, L:float):
+    """function that returns the depth variation functions for the 4 normalized parameters 
+    of the cowden_clay base moment spring conic formulation as per [BHBG20]_.
+
+    Parameters
+    ----------
+    D : float
+        pile diameter [m]
+    L : float
+        pile embedment length [m]
+
+    Returns
+    -------
+    dict
+        dictionary of depth variation functions with keys['Mb_k','Mb_n','Mb_X', 'Mb_Y'] 
+        accepting one input argument, the depth from ground (strictly positive) [m]
+    """
+    # normalized initial stiffness
+    k_m1 = 0.2146
+    k_m2 = -0.002132
+    k_func = lambda x: max(0.001,k_m1 + k_m2 * L / D)
+
+    # normalized curvature 
+    n_m1 = 1.079
+    n_m2 = -0.1087
+    n_func = lambda x : min(0.999,max(0,n_m1 + n_m2 * L / D))
+
+    # normalized peak resistance
+    m_m1 = 0.8192
+    m_m2 = -0.08588
+    Y_func = lambda x : max(0.001, m_m1 + m_m2 * L / D)
+    
+    # normalized displacement at peak resistance
+    X_func = lambda x : 173.1
+
+    return {'Mb_k': k_func, 'Mb_n': n_func, 'Mb_X': X_func, 'Mb_Y': Y_func}
+
+
+
+
+def get_dunkirk_sand_py_norm_param(D:float, L:float, Dr:float):
+    """function that returns the depth variation functions for the 4 normalized parameters 
+    of the dunkirk_sand p-y conic formulation as per [BTZA20]_.
+
+    Parameters
+    ----------
+    D : float
+        pile diameter [m]
+    L : float
+        pile embedment length [m]
     Dr : float
         sand relative density [%]
 
     Returns
     -------
-    callable
-        depth variation function accepting one input argument, the depth from ground (strictly positive) [m]
+    dict
+        dictionary of depth variation functions with keys['py_k','py_n','py_X', 'py_Y'] 
+        accepting one input argument, the depth from ground (strictly positive) [m]
     """
+    Dr = Dr/100
+
+    # normalized initial stiffness
     k_p1 = 8.731 - 0.6982 * Dr
     k_p2 = -0.9178
-    return lambda x : max(0.001,k_p1 + k_p2 * x / D)
+    k_func = lambda x : max(0.001,k_p1 + k_p2 * x / D)
 
-def dunkirk_sand_py_n(Dr: float):
-    """function that returns the depth variation function 
-    of the normalized curvature of the dunkirk_sand p-y curve as per [BTZA20]_.
+    # normalized curvature 
+    n_func = lambda x : min(0.999,max(0,0.917 + 0.06193 * Dr))
+    
+    # normalized displacement at peak resistance
+    X_func = lambda x : 146.1 - 92.11 * Dr
 
-    Parameters
-    ----------
-    Dr : float
-        sand relative density [%]
+    # normalized peak resistance
+    p_u1 = 0.3667 + 25.89 * Dr
+    p_u2 = 0.3375 - 8.9 * Dr
+    Y_func = lambda x : max(0.001,p_u1 + p_u2 * x / L)
+    
+    return {'py_k': k_func, 'py_n': n_func, 'py_X': X_func, 'py_Y': Y_func}
 
-    Returns
-    -------
-    callable
-        depth variation function accepting one input argument, the depth from ground (strictly positive) [m]
-    """
-    return lambda x : min(0.999,max(0,0.917 + 0.06193 * Dr))
-
-def dunkirk_sand_py_X_ult(Dr:float):
-    """function that returns the depth variation function 
-    of the normalized ultimate displacement of the dunkirk_sand p-y curve as per [BTZA20]_.
-
-    Parameters
-    ----------
-    Dr : float
-        sand relative density [%]
-
-    Returns
-    -------
-    callable
-        depth variation function accepting one input argument, the depth from ground (strictly positive) [m]
-    """
-    return lambda x : 146.1 - 92.11 * Dr
-
-def dunkirk_sand_py_Y_ult(L:float, Dr: float):
-    """function that returns the depth variation function 
-    of the normalized ultimate resistance of the dunkirk_sand p-y curve as per [BTZA20]_.
+def get_dunkirk_sand_mt_norm_param(L:float, Dr:float):
+    """function that returns the depth variation functions for the 4 normalized parameters 
+    of the dunkirk_sand rotational spring conic formulation as per [BTZA20]_.
 
     Parameters
     ----------
@@ -223,9 +291,105 @@ def dunkirk_sand_py_Y_ult(L:float, Dr: float):
 
     Returns
     -------
-    callable
-        depth variation function accepting one input argument, the depth from ground (strictly positive) [m]
+    dict
+        dictionary of depth variation functions with keys['mt_k','mt_n','mt_X', 'mt_Y'] 
+        accepting one input argument, the depth from ground (strictly positive) [m]
     """
-    p_u1 = 0.3667 + 25.89 * Dr
-    p_u2 = 0.3375 - 8.9 * Dr
-    return lambda x : max(0.001,p_u1 + p_u2 * x / L)
+    Dr = Dr/100
+
+    # normalized initial stiffness
+    k_func = lambda x : 17.0
+
+    # normalized curvature 
+    n_func = lambda x : 0.0
+    
+    # normalized peak resistance
+    m_u1 = 0.2605
+    m_u2 = -0.1989 + 0.2019 * Dr
+    Y_func = lambda x : max(0.001,m_u1 + m_u2 * x / L)
+    
+    # normalized displacement at peak resistance
+    X_func = lambda x : max(0.001,m_u1 + m_u2 * x / L) / 17.0
+
+    return {'mt_k': k_func, 'mt_n': n_func, 'mt_X': X_func, 'mt_Y': Y_func}
+
+def get_dunkirk_sand_Hb_norm_param(D:float, L:float, Dr:float):
+    """function that returns the depth variation functions for the 4 normalized parameters 
+    of the dunkirk_sand base shear spring conic formulation as per [BTZA20]_.
+
+    Parameters
+    ----------
+    D : float
+        pile diameter [m]
+    L : float
+        pile embedment length [m]
+    Dr : float
+        sand relative density [%]
+
+    Returns
+    -------
+    dict
+        dictionary of depth variation functions with keys['Hb_k','Hb_n','Hb_X', 'Hb_Y'] 
+        accepting one input argument, the depth from ground (strictly positive) [m]
+    """
+    Dr = Dr/100
+
+    # normalized initial stiffness
+    k_h1 = 6.505 - 2.985 * Dr
+    k_h2 = -0.007969 - 0.4299 * Dr
+    k_func = lambda x : max(0.001,k_h1 + k_h2 * L / D)
+
+    # normalized curvature 
+    n_h1 = 0.8793
+    n_h2 = -0.03150
+    n_func = lambda x : min(0.999,max(0.0, n_h1 + n_h2 * L / D))
+    
+    # normalized peak resistance
+    p_u1 = 0.4038
+    p_u2 = 0.04812
+    Y_func = lambda x : max(0.001,p_u1 + p_u2 * L / D)
+    
+    # normalized displacement at peak resistance
+    X_func = lambda x : 235.7
+
+    return {'Hb_k': k_func, 'Hb_n': n_func, 'Hb_X': X_func, 'Hb_Y': Y_func}
+
+def get_dunkirk_sand_Mb_norm_param(D:float, L:float, Dr:float):
+    """function that returns the depth variation functions for the 4 normalized parameters 
+    of the dunkirk_sand base moment spring conic formulation as per [BTZA20]_.
+
+    Parameters
+    ----------
+    D : float
+        pile diameter [m]
+    L : float
+        pile embedment length [m]
+    Dr : float
+        sand relative density [%]
+
+    Returns
+    -------
+    dict
+        dictionary of depth variation functions with keys['Mb_k','Mb_n','Mb_X', 'Mb_Y'] 
+        accepting one input argument, the depth from ground (strictly positive) [m]
+    """
+    Dr = Dr/100
+
+    # normalized initial stiffness
+    k_func = lambda x : 0.3515
+
+    # normalized curvature 
+    n_h1 = 0.8793
+    n_h2 = -0.03150
+    n_func = lambda x : min(0.999,max(0.0, 0.3 + 0.4986 * Dr))
+    
+    # normalized peak resistance
+    m_u1 = 0.09981 + 0.3710 * Dr
+    m_u2 = 0.01998 - 0.09041 * Dr
+    Y_func = lambda x : max(0.001,m_u1 + m_u2 * L / D)
+    
+    # normalized displacement at peak resistance
+    X_func = lambda x : 44.89
+
+    return {'Mb_k': k_func, 'Mb_n': n_func, 'Mb_X': X_func, 'Mb_Y': Y_func}
+

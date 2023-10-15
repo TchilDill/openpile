@@ -974,39 +974,39 @@ class Custom_pisa_sand(LateralModel):
     """
 
     #: small-strain shear stiffness modulus [kPa]
-    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized displacement at ultimate resistance of p-y curve
-    py_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    py_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized curvature of the conic function of p-y curve, must be greater than or equal to 0 and less than or equal to 1.
-    py_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    py_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
     #: normalized initial stiffness of the curve  of p-y curve
-    py_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    py_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized maximum resistance of the curve of p-y curve
-    py_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    py_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized displacement at ultimate resistance of m-t curve
-    mt_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    mt_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized curvature of the conic function of m-t curve, must be greater than or equal to 0 and less than 1.
-    mt_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    mt_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
     #: normalized initial stiffness of the curve  of m-t curve
-    mt_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    mt_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized maximum resistance of the curve of m-t curve
-    mt_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    mt_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized displacement at ultimate resistance of Hb-y curve
-    Hb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Hb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized curvature of the conic function of Hb-y curve, must be greater than or equal to 0 and less than 1.
-    Hb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    Hb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
     #: normalized initial stiffness of the curve  of Hb-y curve
-    Hb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Hb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized maximum resistance of the curve of Hb-y curve
-    Hb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Hb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized displacement at ultimate resistance of Mb-y curve
-    Mb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Mb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized curvature of the conic function of Mb-y curve, must be greater than or equal to 0 and less than 1.
-    Mb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    Mb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
     #: normalized initial stiffness of the curve  of Mb-y curve
-    Mb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Mb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized maximum resistance of the curve of Mb-y curve
-    Mb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Mb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
@@ -1227,37 +1227,37 @@ class Custom_pisa_clay(LateralModel):
     #: small-strain shear stiffness modulus [kPa]
     G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: normalized displacement at ultimate resistance of p-y curve
-    py_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    py_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized curvature of the conic function of p-y curve, must be greater than or equal to 0 and less than or equal to 1.
-    py_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    py_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
     #: normalized initial stiffness of the curve  of p-y curve
-    py_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    py_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized maximum resistance of the curve of p-y curve
-    py_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    py_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized displacement at ultimate resistance of m-t curve
-    mt_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    mt_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized curvature of the conic function of m-t curve, must be greater than or equal to 0 and less than 1.
-    mt_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    mt_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
     #: normalized initial stiffness of the curve  of m-t curve
-    mt_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    mt_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized maximum resistance of the curve of m-t curve
-    mt_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    mt_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized displacement at ultimate resistance of Hb-y curve
-    Hb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Hb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized curvature of the conic function of Hb-y curve, must be greater than or equal to 0 and less than 1.
-    Hb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    Hb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
     #: normalized initial stiffness of the curve  of Hb-y curve
-    Hb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Hb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized maximum resistance of the curve of Hb-y curve
-    Hb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Hb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized displacement at ultimate resistance of Mb-y curve
-    Mb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Mb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized curvature of the conic function of Mb-y curve, must be greater than or equal to 0 and less than 1.
-    Mb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2)]
+    Mb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
     #: normalized initial stiffness of the curve  of Mb-y curve
-    Mb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Mb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: normalized maximum resistance of the curve of Mb-y curve
-    Mb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Mb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier

@@ -1,6 +1,6 @@
 # OpenPile
 
-Geotechnical super-toolbox for pile-related calculations.
+Open-source PILE software.
 
 <!-- [![Python Support](https://img.shields.io/pypi/pyversions/openpile.svg)](https://pypi.org/project/openpile/) -->
 [![License: LGPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -29,11 +29,16 @@ This package allows the user to:
   support conditions.
 * Use Winkler's approach of a beam (or a pile) supported by linear or non-linear lateral and/or 
   rotational springs to compute forces and deflection of the pile based on recognised 
-  soil models such as the widely used traditional API models for sand and clay or more recent models that stem from 
-  the PISA joint-industry project.
+  soil models such as the widely used traditional API models for sand and clay or more recent models that stem from the PISA joint-industry project.
 
 This library supports the following versions of python: 3.7-3.10.
 Python 3.11 is not supported!
+
+## Support
+
+This package takes time and effort. You can support by buying me a coffee.
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/TchillDill)
 
 ## Installation Instructions
 

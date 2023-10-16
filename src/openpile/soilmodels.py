@@ -1039,7 +1039,6 @@ class Custom_pisa_sand(LateralModel):
         if depth_from_top_of_layer > layer_height:
             raise ValueError("Spring elevation outside layer")
 
-
         y, p = py_curves.custom_pisa_sand(
             sig=sig,
             G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),

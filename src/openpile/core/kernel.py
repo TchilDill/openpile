@@ -530,7 +530,7 @@ def elem_p_delta_stiffness_matrix(model, u):
 
     else:
         raise ValueError(
-            "Model.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)"
+            "Model.element.type only accepts 'EulerBernoulli' or 'Timoshenko'"
         )
 
     k = (
@@ -547,7 +547,7 @@ def elem_p_delta_stiffness_matrix(model, u):
         * -P
     )
 
-    return np.maximum(0,k)
+    return k
 
 
 @njit(parallel=True, cache=True)
@@ -607,6 +607,8 @@ def build_stiffness_matrix(model, u=None, kind=None):
     k = elem_mechanical_stiffness_matrix(model)
     k += elem_p_delta_stiffness_matrix(model, u)
 
+    #k = np.maximum(0,k)
+
     # add soil contribution
     if model.soil is not None:
         # gives warning if soil is given without displacements or type of stiffness
@@ -623,7 +625,7 @@ def build_stiffness_matrix(model, u=None, kind=None):
                     )
                 k += elem_mt_stiffness_matrix(model, u, kind)
 
-    K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
+    K = jit_build( k , ndim_global, n_elem, node_per_element, ndof_per_node)
 
     # add base springs contribution
     if model.soil is not None:

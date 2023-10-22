@@ -498,7 +498,7 @@ def winkler(model, max_iter: int = 100):
             Rg = F_ext + F_int
 
             # check if converged
-            if np.linalg.norm(Rg[~supports]) < nr_tol:
+            if np.linalg.norm(Rg[~supports]) < nr_tol and iter_no > 1:
                 # do not accept convergence without iteration (without a second call to solve equations)
                 print(f"Converged at iteration no. {iter_no}")
                 break

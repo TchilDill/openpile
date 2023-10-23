@@ -154,7 +154,7 @@ class Cowden_clay(LateralModel):
     spring_signature = np.array([True, True, True, True], dtype=bool)
 
     def __str__(self):
-        return f"\Cowden clay (PISA)\n\tSu = {var_to_str(self.Su)} kPa.\n\tG0 = {round(self.G0/1000,1)} MPa"
+        return f"\tCowden clay (PISA)\n\tSu = {var_to_str(self.Su)} kPa.\n\tG0 = {round(self.G0/1000,1)} MPa"
 
     def py_spring_fct(
         self,

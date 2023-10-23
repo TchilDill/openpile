@@ -529,9 +529,7 @@ def elem_p_delta_stiffness_matrix(model, u):
         ) / (A * L * phi)
 
     else:
-        raise ValueError(
-            "Model.element.type only accepts 'EulerBernoulli' or 'Timoshenko'"
-        )
+        raise ValueError("Model.element.type only accepts 'EulerBernoulli' or 'Timoshenko'")
 
     k = (
         np.block(
@@ -607,7 +605,7 @@ def build_stiffness_matrix(model, u=None, kind=None):
     k = elem_mechanical_stiffness_matrix(model)
     k += elem_p_delta_stiffness_matrix(model, u)
 
-    #k = np.maximum(0,k)
+    # k = np.maximum(0,k)
 
     # add soil contribution
     if model.soil is not None:
@@ -625,7 +623,7 @@ def build_stiffness_matrix(model, u=None, kind=None):
                     )
                 k += elem_mt_stiffness_matrix(model, u, kind)
 
-    K = jit_build( k , ndim_global, n_elem, node_per_element, ndof_per_node)
+    K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
 
     # add base springs contribution
     if model.soil is not None:

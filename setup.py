@@ -18,5 +18,3 @@ if __name__ == "__main__":
             "Issue tracker": "https://github.com/TchilDill/openpile/issues",
         },
     )
-
-    

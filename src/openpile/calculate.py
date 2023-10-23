@@ -27,62 +27,82 @@ def _pile_element_surface(model):
     Returns
     -------
     np.ndarray
-        outside surface 
+        outside surface
     np.ndarray
-        inside surface 
+        inside surface
     """
-    perimeter_outside = model.element_properties['Diameter [m]'].values * m.pi
-    perimeter_inside = (model.element_properties['Diameter [m]'].values -2*model.element_properties['Wall thickness [m]']) * m.pi
-    L = (model.element_properties['x_top [m]'].values - model.element_properties['x_bottom [m]'].values)
+    perimeter_outside = model.element_properties["Diameter [m]"].values * m.pi
+    perimeter_inside = (
+        model.element_properties["Diameter [m]"].values
+        - 2 * model.element_properties["Wall thickness [m]"]
+    ) * m.pi
+    L = (
+        model.element_properties["x_top [m]"].values
+        - model.element_properties["x_bottom [m]"].values
+    )
 
-    return perimeter_outside*L, perimeter_inside*L
+    return perimeter_outside * L, perimeter_inside * L
+
 
 def _pile_inside_volume(model):
-    area_inside = (model.element_properties['Diameter [m]'].values -2*model.element_properties['Wall thickness [m]'])**2 * m.pi/4
-    L = (model.element_properties['x_top [m]'].values - model.element_properties['x_bottom [m]'].values)
-    
-    return area_inside*L
+    area_inside = (
+        (
+            model.element_properties["Diameter [m]"].values
+            - 2 * model.element_properties["Wall thickness [m]"]
+        )
+        ** 2
+        * m.pi
+        / 4
+    )
+    L = (
+        model.element_properties["x_top [m]"].values
+        - model.element_properties["x_bottom [m]"].values
+    )
+
+    return area_inside * L
+
 
 def _embedded_pile_effective_weight(model):
-    
-    embedded_element = model.element_properties['x_bottom [m]'].values < model.soil.top_elevation
-    submerged_element = model.element_properties['x_bottom [m]'].values < model.soil.water_line
-    
-    L = (model.element_properties['x_top [m]'].values - model.element_properties['x_bottom [m]'].values)
-    V = L * model.element_properties['Area [m2]'].values
+
+    embedded_element = model.element_properties["x_bottom [m]"].values < model.soil.top_elevation
+    submerged_element = model.element_properties["x_bottom [m]"].values < model.soil.water_line
+
+    L = (
+        model.element_properties["x_top [m]"].values
+        - model.element_properties["x_bottom [m]"].values
+    )
+    V = L * model.element_properties["Area [m2]"].values
     W = np.zeros(shape=V.shape)
-    W[submerged_element] = V[submerged_element]*(model.pile._uw-10)
-    W[~submerged_element] = V[~submerged_element]*(model.pile._uw)
+    W[submerged_element] = V[submerged_element] * (model.pile._uw - 10)
+    W[~submerged_element] = V[~submerged_element] * (model.pile._uw)
     W[~embedded_element] = 0
 
     return W.sum()
 
-def bearingcapacity(
-        model, 
-        kind
-):
+
+def bearingcapacity(model, kind):
     if kind == "API":
         if not all([x.bearingcapacity_signature == "API" for x in model.soil.layer.axial_model]):
-            ValueError("All axial models must be API compliant.") 
+            ValueError("All axial models must be API compliant.")
 
-    plugged = shaft_resistance(model,outer_shaft=True, inner_shaft=False) 
-    + unit_end_bearing(model)*model.pile.tip_area 
-    - entrapped_soil_weight(model)
+    plugged = shaft_resistance(model, outer_shaft=True, inner_shaft=False)
+    +unit_end_bearing(model) * model.pile.tip_area
+    -entrapped_soil_weight(model)
     # - model.
 
-    # unplugged = 
+    # unplugged =
 
-    # isplugged = 
+    # isplugged =
 
     return {
-        'Compression':
-        {
-            'shaft_resistance' : 0,
+        "Compression": {
+            "shaft_resistance": 0,
         }
     }
 
+
 def unit_end_bearing(
-    model,  
+    model,
 ) -> float:
 
     for layer in model.soil.layers:
@@ -94,21 +114,23 @@ def unit_end_bearing(
                 layer.top >= model.pile.bottom_elevation
                 and layer.bottom <= model.pile.bottom_elevation
             ):
-                #vertical effective stress at pile tip
-                sig_v_tip = model.soil_properties["sigma_v bottom [kPa]"].iloc[-1],
+                # vertical effective stress at pile tip
+                sig_v_tip = (model.soil_properties["sigma_v bottom [kPa]"].iloc[-1],)
 
                 # Calculate unit tip resistance with effective area
-                return layer.axial_model.unit_tip_resistance(
-                    sig=sig_v_tip,
-                    depth_from_top_of_layer=(model.soil.top_elevation-model.soil.bottom_elevation),
-                    layer_height=(layer.top - layer.bottom)
-                ) * layer.axial_model.Q_multiplier
-    
+                return (
+                    layer.axial_model.unit_tip_resistance(
+                        sig=sig_v_tip,
+                        depth_from_top_of_layer=(
+                            model.soil.top_elevation - model.soil.bottom_elevation
+                        ),
+                        layer_height=(layer.top - layer.bottom),
+                    )
+                    * layer.axial_model.Q_multiplier
+                )
 
 
-def entrapped_soil_weight(
-        model
-) -> float:
+def entrapped_soil_weight(model) -> float:
     """calculates total weight of soil inside the pile. (Unit: kN)
 
     Parameters
@@ -121,18 +143,18 @@ def entrapped_soil_weight(
     float
         value of entrapped total  weight of soil inside the pile in unit:kN
     """
-    # soil volume 
+    # soil volume
     Vi = _pile_inside_volume(model)
-    #element mid-point elevation
-    elevation = 0.5*(model.soil_properties["x_top [m]"]+model.soil_properties[ "x_bottom [m]"])
+    # element mid-point elevation
+    elevation = 0.5 * (model.soil_properties["x_top [m]"] + model.soil_properties["x_bottom [m]"])
     # soil weight for each element where we have soil and pile
     element_sw = np.zeros(model.element_number)
 
     for layer in model.soil.layers:
         elements_for_layer = model.soil_properties.loc[
-                    (model.soil_properties["x_top [m]"] <= layer.top)
-                    & (model.soil_properties["x_bottom [m]"] >= layer.bottom)
-                ].index
+            (model.soil_properties["x_top [m]"] <= layer.top)
+            & (model.soil_properties["x_bottom [m]"] >= layer.bottom)
+        ].index
 
         if layer.axial_model is None:
             pass
@@ -140,16 +162,20 @@ def entrapped_soil_weight(
             # Set local layer parameters for each element of the layer
             for i in elements_for_layer:
                 # Calculate inner soil weight
-                element_sw[i] = layer.weight * Vi[i] if elevation[i] <= model.soil.water_line else (layer.weight-10) * Vi[i]
+                element_sw[i] = (
+                    layer.weight * Vi[i]
+                    if elevation[i] <= model.soil.water_line
+                    else (layer.weight - 10) * Vi[i]
+                )
 
     return element_sw.sum()
 
 
 def shaft_resistance(
-        model,              
-        outer_shaft:bool = True, 
-        inner_shaft:bool = True,
-        ) -> float:
+    model,
+    outer_shaft: bool = True,
+    inner_shaft: bool = True,
+) -> float:
     """Calculates shaft resistance of the pile based on the axial models assigned to the SoilProfile layers. (Unit: kN)
 
     Parameters
@@ -170,19 +196,23 @@ def shaft_resistance(
     So, Si = _pile_element_surface(model)
 
     # get vertical effective stress
-    sigveff = 0.5*(model.soil_properties["sigma_v top [kPa]"]+ model.soil_properties["sigma_v bottom [kPa]"])
+    sigveff = 0.5 * (
+        model.soil_properties["sigma_v top [kPa]"] + model.soil_properties["sigma_v bottom [kPa]"]
+    )
 
     # depth from ground
-    depth_from_ground = (0.5*(model.soil_properties["xg_top [m]"]+model.soil_properties["xg_bottom [m]"])).abs()
+    depth_from_ground = (
+        0.5 * (model.soil_properties["xg_top [m]"] + model.soil_properties["xg_bottom [m]"])
+    ).abs()
 
     # shaft resistance for each element where we have soil and pile
-    element_fs = np.zeros((2,model.element_number))
+    element_fs = np.zeros((2, model.element_number))
 
     for layer in model.soil.layers:
         elements_for_layer = model.soil_properties.loc[
-                    (model.soil_properties["x_top [m]"] <= layer.top)
-                    & (model.soil_properties["x_bottom [m]"] >= layer.bottom)
-                ].index
+            (model.soil_properties["x_top [m]"] <= layer.top)
+            & (model.soil_properties["x_bottom [m]"] >= layer.bottom)
+        ].index
 
         if layer.axial_model is None:
             pass
@@ -190,24 +220,36 @@ def shaft_resistance(
             # Set local layer parameters for each element of the layer
             for i in elements_for_layer:
                 # depth from ground
-                depth_from_ground = (model.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]).abs().mean()
+                depth_from_ground = (
+                    (model.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]).abs().mean()
+                )
 
                 # Calculate outer shaft resistance
-                element_fs[0,i] = layer.axial_model.unit_shaft_friction(
-                    sig=sigveff[i], 
-                    depth_from_top_of_layer=depth_from_ground, 
-                    layer_height=(layer.top - layer.bottom),
-                ) * layer.axial_model.unit_shaft_signature(So[i],Si[i])['out'] * So[i] * layer.axial_model.t_multiplier
+                element_fs[0, i] = (
+                    layer.axial_model.unit_shaft_friction(
+                        sig=sigveff[i],
+                        depth_from_top_of_layer=depth_from_ground,
+                        layer_height=(layer.top - layer.bottom),
+                    )
+                    * layer.axial_model.unit_shaft_signature(So[i], Si[i])["out"]
+                    * So[i]
+                    * layer.axial_model.t_multiplier
+                )
                 # Calculate inner shaft resistance
-                element_fs[1,i] = layer.axial_model.unit_shaft_friction(
-                    sig=sigveff[i], 
-                    depth_from_top_of_layer=depth_from_ground, 
-                    layer_height=(layer.top - layer.bottom),
-                ) * layer.axial_model.unit_shaft_signature(So[i],Si[i])['in'] * Si[i] * layer.axial_model.t_multiplier
+                element_fs[1, i] = (
+                    layer.axial_model.unit_shaft_friction(
+                        sig=sigveff[i],
+                        depth_from_top_of_layer=depth_from_ground,
+                        layer_height=(layer.top - layer.bottom),
+                    )
+                    * layer.axial_model.unit_shaft_signature(So[i], Si[i])["in"]
+                    * Si[i]
+                    * layer.axial_model.t_multiplier
+                )
 
     if outer_shaft is False:
-        element_fs[0,:] = 0.0
+        element_fs[0, :] = 0.0
     if inner_shaft is False:
-        element_fs[1,:] = 0.0
+        element_fs[1, :] = 0.0
 
-    return element_fs.sum() 
+    return element_fs.sum()

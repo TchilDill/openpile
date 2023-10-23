@@ -139,16 +139,15 @@ def cowden_clay(
     return y * (Su * D / G0), p * (Su * D**2)
 
 
-
 @njit(cache=True)
 def custom_pisa_sand(
     sig: float,
     G0: float,
     D: float,
-    X_ult:float,
-    n:float,
-    k:float,
-    Y_ult:float,
+    X_ult: float,
+    n: float,
+    k: float,
+    Y_ult: float,
     output_length: int = 20,
 ):
     """
@@ -195,10 +194,10 @@ def custom_pisa_clay(
     Su: float,
     G0: float,
     D: float,
-    X_ult:float,
-    n:float,
-    k:float,
-    Y_ult:float,
+    X_ult: float,
+    n: float,
+    k: float,
+    Y_ult: float,
     output_length: int = 20,
 ):
     """

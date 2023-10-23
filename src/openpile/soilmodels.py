@@ -78,32 +78,36 @@ class API_clay_axial(AxialModel):
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
 
-    def unit_shaft_friction(self,sig, depth_from_top_of_layer, layer_height):
+    def unit_shaft_friction(self, sig, depth_from_top_of_layer, layer_height):
 
         # define Su
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
-        return _fmax_api_clay(sig,Su=Su)
-    
-    def unit_tip_resistance(self,sig, depth_from_top_of_layer, layer_height):
+        return _fmax_api_clay(sig, Su=Su)
+
+    def unit_tip_resistance(self, sig, depth_from_top_of_layer, layer_height):
         # define Su
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
         return _Qmax_api_clay(Su=Su)
-    
-    def unit_shaft_signature(self,out_perimeter, in_perimeter):
-        "This function determines how the unit shaft friction should be applied on outer an inner side of the pile"
-        return {'out':1.0, 'in':1.0} if self.shaft_friction_inside_pile is True else  {'out':1.0, 'in':0.0}
-        # for CPT based methods, it should be: return {'out': out_perimeter/(out_perimeter+in_perimeter), 'in':in_perimeter/(out_perimeter+in_perimeter)}
 
+    def unit_shaft_signature(self, out_perimeter, in_perimeter):
+        "This function determines how the unit shaft friction should be applied on outer an inner side of the pile"
+        return (
+            {"out": 1.0, "in": 1.0}
+            if self.shaft_friction_inside_pile is True
+            else {"out": 1.0, "in": 0.0}
+        )
+        # for CPT based methods, it should be: return {'out': out_perimeter/(out_perimeter+in_perimeter), 'in':in_perimeter/(out_perimeter+in_perimeter)}
 
     def tz_springs_fct():
         pass
 
     def Qz_spring_fct():
         pass
+
 
 @dataclass(config=PydanticConfigFrozen)
 class Cowden_clay(LateralModel):
@@ -956,7 +960,7 @@ class Custom_pisa_sand(LateralModel):
     Mb_k: float, or list with top and bottom values, or function taking the depth as argument
         normalized initial stiffness of the base rotational spring
     Mb_Y: float, or list with top and bottom values, or function taking the depth as argument
-        normalized maximum resistance of the base rotational spring      
+        normalized maximum resistance of the base rotational spring
     p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
@@ -974,39 +978,81 @@ class Custom_pisa_sand(LateralModel):
     """
 
     #: small-strain shear stiffness modulus [kPa]
-    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    G0: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized displacement at ultimate resistance of p-y curve
-    py_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    py_X: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized curvature of the conic function of p-y curve, must be greater than or equal to 0 and less than or equal to 1.
-    py_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
+    py_n: Union[
+        confloat(ge=0.0, lt=1.0),
+        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
+        Callable[[float], float],
+    ]
     #: normalized initial stiffness of the curve  of p-y curve
-    py_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    py_k: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized maximum resistance of the curve of p-y curve
-    py_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    py_Y: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized displacement at ultimate resistance of m-t curve
-    mt_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    mt_X: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized curvature of the conic function of m-t curve, must be greater than or equal to 0 and less than 1.
-    mt_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
+    mt_n: Union[
+        confloat(ge=0.0, lt=1.0),
+        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
+        Callable[[float], float],
+    ]
     #: normalized initial stiffness of the curve  of m-t curve
-    mt_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    mt_k: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized maximum resistance of the curve of m-t curve
-    mt_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    mt_Y: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized displacement at ultimate resistance of Hb-y curve
-    Hb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Hb_X: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized curvature of the conic function of Hb-y curve, must be greater than or equal to 0 and less than 1.
-    Hb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
+    Hb_n: Union[
+        confloat(ge=0.0, lt=1.0),
+        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
+        Callable[[float], float],
+    ]
     #: normalized initial stiffness of the curve  of Hb-y curve
-    Hb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Hb_k: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized maximum resistance of the curve of Hb-y curve
-    Hb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Hb_Y: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized displacement at ultimate resistance of Mb-y curve
-    Mb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Mb_X: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized curvature of the conic function of Mb-y curve, must be greater than or equal to 0 and less than 1.
-    Mb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
+    Mb_n: Union[
+        confloat(ge=0.0, lt=1.0),
+        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
+        Callable[[float], float],
+    ]
     #: normalized initial stiffness of the curve  of Mb-y curve
-    Mb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Mb_k: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized maximum resistance of the curve of Mb-y curve
-    Mb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Mb_Y: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
@@ -1041,12 +1087,12 @@ class Custom_pisa_sand(LateralModel):
 
         y, p = py_curves.custom_pisa_sand(
             sig=sig,
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
-            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height,X),
-            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height,X),
-            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height,X),
-            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height,X),
+            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height, X),
+            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height, X),
+            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height, X),
+            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height, X),
             output_length=output_length,
         )
 
@@ -1074,12 +1120,12 @@ class Custom_pisa_sand(LateralModel):
 
         y, Hb = Hb_curves.custom_pisa_sand(
             sig=sig,
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
-            X_ult=get_value_at_current_depth(self.Hb_X, depth_from_top_of_layer, layer_height,X),
-            n=get_value_at_current_depth(self.Hb_n, depth_from_top_of_layer, layer_height,X),
-            k=get_value_at_current_depth(self.Hb_k, depth_from_top_of_layer, layer_height,X),
-            Y_ult=get_value_at_current_depth(self.Hb_Y, depth_from_top_of_layer, layer_height,X),
+            X_ult=get_value_at_current_depth(self.Hb_X, depth_from_top_of_layer, layer_height, X),
+            n=get_value_at_current_depth(self.Hb_n, depth_from_top_of_layer, layer_height, X),
+            k=get_value_at_current_depth(self.Hb_k, depth_from_top_of_layer, layer_height, X),
+            Y_ult=get_value_at_current_depth(self.Hb_Y, depth_from_top_of_layer, layer_height, X),
             output_length=output_length,
         )
 
@@ -1103,12 +1149,12 @@ class Custom_pisa_sand(LateralModel):
 
         _, p_array = py_curves.custom_pisa_sand(
             sig=sig,
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
-            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height,X),
-            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height,X),
-            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height,X),
-            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height,X),
+            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height, X),
+            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height, X),
+            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height, X),
+            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height, X),
             output_length=output_length,
         )
 
@@ -1118,12 +1164,16 @@ class Custom_pisa_sand(LateralModel):
         for count, p_iter in enumerate(p_array):
             t[count, :], m[count] = mt_curves.custom_pisa_sand(
                 sig=sig,
-                G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+                G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
                 D=D,
-                X_ult=get_value_at_current_depth(self.mt_X, depth_from_top_of_layer, layer_height,X),
-                n=get_value_at_current_depth(self.mt_n, depth_from_top_of_layer, layer_height,X),
-                k=get_value_at_current_depth(self.mt_k, depth_from_top_of_layer, layer_height,X),
-                Y_ult=get_value_at_current_depth(self.mt_Y, depth_from_top_of_layer, layer_height,X),
+                X_ult=get_value_at_current_depth(
+                    self.mt_X, depth_from_top_of_layer, layer_height, X
+                ),
+                n=get_value_at_current_depth(self.mt_n, depth_from_top_of_layer, layer_height, X),
+                k=get_value_at_current_depth(self.mt_k, depth_from_top_of_layer, layer_height, X),
+                Y_ult=get_value_at_current_depth(
+                    self.mt_Y, depth_from_top_of_layer, layer_height, X
+                ),
                 output_length=output_length,
             )
 
@@ -1151,12 +1201,12 @@ class Custom_pisa_sand(LateralModel):
 
         y, Mb = Mb_curves.custom_pisa_sand(
             sig=sig,
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
-            X_ult=get_value_at_current_depth(self.Mb_X, depth_from_top_of_layer, layer_height,X),
-            n=get_value_at_current_depth(self.Mb_n, depth_from_top_of_layer, layer_height,X),
-            k=get_value_at_current_depth(self.Mb_k, depth_from_top_of_layer, layer_height,X),
-            Y_ult=get_value_at_current_depth(self.Mb_Y, depth_from_top_of_layer, layer_height,X),
+            X_ult=get_value_at_current_depth(self.Mb_X, depth_from_top_of_layer, layer_height, X),
+            n=get_value_at_current_depth(self.Mb_n, depth_from_top_of_layer, layer_height, X),
+            k=get_value_at_current_depth(self.Mb_k, depth_from_top_of_layer, layer_height, X),
+            Y_ult=get_value_at_current_depth(self.Mb_Y, depth_from_top_of_layer, layer_height, X),
             output_length=output_length,
         )
 
@@ -1204,7 +1254,7 @@ class Custom_pisa_clay(LateralModel):
     Mb_k: float, or list with top and bottom values, or function taking the depth as argument
         normalized initial stiffness of the base rotational spring
     Mb_Y: float, or list with top and bottom values, or function taking the depth as argument
-        normalized maximum resistance of the base rotational spring      
+        normalized maximum resistance of the base rotational spring
     p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
@@ -1226,37 +1276,77 @@ class Custom_pisa_clay(LateralModel):
     #: small-strain shear stiffness modulus [kPa]
     G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
     #: normalized displacement at ultimate resistance of p-y curve
-    py_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    py_X: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized curvature of the conic function of p-y curve, must be greater than or equal to 0 and less than or equal to 1.
-    py_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
+    py_n: Union[
+        confloat(ge=0.0, lt=1.0),
+        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
+        Callable[[float], float],
+    ]
     #: normalized initial stiffness of the curve  of p-y curve
-    py_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    py_k: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized maximum resistance of the curve of p-y curve
-    py_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    py_Y: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized displacement at ultimate resistance of m-t curve
-    mt_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    mt_X: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized curvature of the conic function of m-t curve, must be greater than or equal to 0 and less than 1.
-    mt_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
+    mt_n: Union[
+        confloat(ge=0.0, lt=1.0),
+        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
+        Callable[[float], float],
+    ]
     #: normalized initial stiffness of the curve  of m-t curve
-    mt_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    mt_k: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized maximum resistance of the curve of m-t curve
-    mt_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    mt_Y: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized displacement at ultimate resistance of Hb-y curve
-    Hb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Hb_X: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized curvature of the conic function of Hb-y curve, must be greater than or equal to 0 and less than 1.
-    Hb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
+    Hb_n: Union[
+        confloat(ge=0.0, lt=1.0),
+        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
+        Callable[[float], float],
+    ]
     #: normalized initial stiffness of the curve  of Hb-y curve
-    Hb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Hb_k: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized maximum resistance of the curve of Hb-y curve
-    Hb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Hb_Y: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized displacement at ultimate resistance of Mb-y curve
-    Mb_X: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Mb_X: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized curvature of the conic function of Mb-y curve, must be greater than or equal to 0 and less than 1.
-    Mb_n: Union[confloat(ge=0.0,lt=1.0), conlist(confloat(ge=0.0,lt=1.0), min_items=1, max_items=2), Callable[[float], float]]
+    Mb_n: Union[
+        confloat(ge=0.0, lt=1.0),
+        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
+        Callable[[float], float],
+    ]
     #: normalized initial stiffness of the curve  of Mb-y curve
-    Mb_k: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Mb_k: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: normalized maximum resistance of the curve of Mb-y curve
-    Mb_Y: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]]
+    Mb_Y: Union[
+        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
+    ]
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
@@ -1289,16 +1379,15 @@ class Custom_pisa_clay(LateralModel):
         if depth_from_top_of_layer > layer_height:
             raise ValueError("Spring elevation outside layer")
 
-
         y, p = py_curves.custom_pisa_clay(
             sig=sig,
-            Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
-            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height,X),
-            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height,X),
-            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height,X),
-            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height,X),
+            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height, X),
+            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height, X),
+            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height, X),
+            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height, X),
             output_length=output_length,
         )
 
@@ -1326,13 +1415,13 @@ class Custom_pisa_clay(LateralModel):
 
         y, Hb = Hb_curves.custom_pisa_clay(
             sig=sig,
-            Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
-            X_ult=get_value_at_current_depth(self.Hb_X, depth_from_top_of_layer, layer_height,X),
-            n=get_value_at_current_depth(self.Hb_n, depth_from_top_of_layer, layer_height,X),
-            k=get_value_at_current_depth(self.Hb_k, depth_from_top_of_layer, layer_height,X),
-            Y_ult=get_value_at_current_depth(self.Hb_Y, depth_from_top_of_layer, layer_height,X),
+            X_ult=get_value_at_current_depth(self.Hb_X, depth_from_top_of_layer, layer_height, X),
+            n=get_value_at_current_depth(self.Hb_n, depth_from_top_of_layer, layer_height, X),
+            k=get_value_at_current_depth(self.Hb_k, depth_from_top_of_layer, layer_height, X),
+            Y_ult=get_value_at_current_depth(self.Hb_Y, depth_from_top_of_layer, layer_height, X),
             output_length=output_length,
         )
 
@@ -1356,13 +1445,13 @@ class Custom_pisa_clay(LateralModel):
 
         _, p_array = py_curves.custom_pisa_clay(
             sig=sig,
-            Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
-            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height,X),
-            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height,X),
-            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height,X),
-            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height,X),
+            X_ult=get_value_at_current_depth(self.py_X, depth_from_top_of_layer, layer_height, X),
+            n=get_value_at_current_depth(self.py_n, depth_from_top_of_layer, layer_height, X),
+            k=get_value_at_current_depth(self.py_k, depth_from_top_of_layer, layer_height, X),
+            Y_ult=get_value_at_current_depth(self.py_Y, depth_from_top_of_layer, layer_height, X),
             output_length=output_length,
         )
 
@@ -1372,13 +1461,17 @@ class Custom_pisa_clay(LateralModel):
         for count, _ in enumerate(p_array):
             t[count, :], m[count] = mt_curves.custom_pisa_clay(
                 sig=sig,
-                Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
-                G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+                Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
+                G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
                 D=D,
-                X_ult=get_value_at_current_depth(self.mt_X, depth_from_top_of_layer, layer_height,X),
-                n=get_value_at_current_depth(self.mt_n, depth_from_top_of_layer, layer_height,X),
-                k=get_value_at_current_depth(self.mt_k, depth_from_top_of_layer, layer_height,X),
-                Y_ult=get_value_at_current_depth(self.mt_Y, depth_from_top_of_layer, layer_height,X),
+                X_ult=get_value_at_current_depth(
+                    self.mt_X, depth_from_top_of_layer, layer_height, X
+                ),
+                n=get_value_at_current_depth(self.mt_n, depth_from_top_of_layer, layer_height, X),
+                k=get_value_at_current_depth(self.mt_k, depth_from_top_of_layer, layer_height, X),
+                Y_ult=get_value_at_current_depth(
+                    self.mt_Y, depth_from_top_of_layer, layer_height, X
+                ),
                 output_length=output_length,
             )
 
@@ -1406,16 +1499,14 @@ class Custom_pisa_clay(LateralModel):
 
         y, Mb = Mb_curves.custom_pisa_clay(
             sig=sig,
-            Su = get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height,X),
-            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height,X),
+            Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
+            G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
-            X_ult=get_value_at_current_depth(self.Mb_X, depth_from_top_of_layer, layer_height,X),
-            n=get_value_at_current_depth(self.Mb_n, depth_from_top_of_layer, layer_height,X),
-            k=get_value_at_current_depth(self.Mb_k, depth_from_top_of_layer, layer_height,X),
-            Y_ult=get_value_at_current_depth(self.Mb_Y, depth_from_top_of_layer, layer_height,X),
+            X_ult=get_value_at_current_depth(self.Mb_X, depth_from_top_of_layer, layer_height, X),
+            n=get_value_at_current_depth(self.Mb_n, depth_from_top_of_layer, layer_height, X),
+            k=get_value_at_current_depth(self.Mb_k, depth_from_top_of_layer, layer_height, X),
+            Y_ult=get_value_at_current_depth(self.Mb_Y, depth_from_top_of_layer, layer_height, X),
             output_length=output_length,
         )
 
         return y, Mb
-
-

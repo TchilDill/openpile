@@ -136,16 +136,17 @@ def dunkirk_sand(
     # return non-normalised curve
     return t * (sig / G0), m * (p * D)
 
+
 @njit(cache=True)
 def custom_pisa_sand(
     sig: float,
     G0: float,
     p: float,
     D: float,
-    X_ult:float,
-    n:float,
-    k:float,
-    Y_ult:float,
+    X_ult: float,
+    n: float,
+    k: float,
+    Y_ult: float,
     output_length: int = 20,
 ):
     """Creates a rotational spring with the PISA sand formulation and custom user inputs.
@@ -157,7 +158,7 @@ def custom_pisa_sand(
     G0 : float
         Small-strain shear modulus [unit: kPa]
     p : float
-        Radial stress computed via p-y curves [unit: kN/m] 
+        Radial stress computed via p-y curves [unit: kN/m]
     D : float
         Pile diameter [m]
     X_ult : float
@@ -179,7 +180,6 @@ def custom_pisa_sand(
         p vector [unit: kN/m]
     """
 
-    
     # calculate normsalised conic function
     x, y = conic(X_ult, n, k, Y_ult, output_length)
 
@@ -192,10 +192,10 @@ def custom_pisa_clay(
     Su: float,
     G0: float,
     D: float,
-    X_ult:float,
-    n:float,
-    k:float,
-    Y_ult:float,
+    X_ult: float,
+    n: float,
+    k: float,
+    Y_ult: float,
     output_length: int = 20,
 ):
     """
@@ -234,4 +234,3 @@ def custom_pisa_clay(
 
     # return non-normalised curve
     return x * (Su / G0), y * (Su * D**2)
-

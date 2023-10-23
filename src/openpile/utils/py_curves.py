@@ -69,6 +69,7 @@ def cowden_clay(
     # return non-normalised curve
     return y * (Su * D / G0), p * (Su * D)
 
+
 @njit(cache=True)
 def dunkirk_sand(
     sig: float,
@@ -395,7 +396,7 @@ def reese_weakrock(
 
     """
 
-    output_length = max(10,output_length)
+    output_length = max(10, output_length)
 
     # Rqd forced to be within 0 and 100
     rqd = max(min(100, RQD), 0)
@@ -415,8 +416,8 @@ def reese_weakrock(
 
     # define y
     ymax = max(1.05 * yA, (2 * yrm ** (0.25)) ** 4)
-    y1 = np.linspace(yA, max(0.15*ymax,1.01*yA), int(output_length/2))
-    y2 = np.linspace(max(yA*1.02,0.25*ymax), ymax, output_length-len(y1)-2)
+    y1 = np.linspace(yA, max(0.15 * ymax, 1.01 * yA), int(output_length / 2))
+    y2 = np.linspace(max(yA * 1.02, 0.25 * ymax), ymax, output_length - len(y1) - 2)
     y = np.concatenate((np.array([0.0]), y1, y2, np.array([1.2 * ymax])))
 
     # define p
@@ -435,10 +436,10 @@ def custom_pisa_sand(
     sig: float,
     G0: float,
     D: float,
-    X_ult:float,
-    n:float,
-    k:float,
-    Y_ult:float,
+    X_ult: float,
+    n: float,
+    k: float,
+    Y_ult: float,
     output_length: int = 20,
 ):
     """Creates a lateral spring with the PISA sand formulation and custom user inputs.
@@ -473,15 +474,16 @@ def custom_pisa_sand(
     # return non-normalised curve
     return y * (sig * D / G0), p * (sig * D)
 
+
 @njit(cache=True)
 def custom_pisa_clay(
     Su: float,
     G0: float,
     D: float,
-    X_ult:float,
-    n:float,
-    k:float,
-    Y_ult:float,
+    X_ult: float,
+    n: float,
+    k: float,
+    Y_ult: float,
     output_length: int = 20,
 ):
     """

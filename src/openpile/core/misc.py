@@ -29,11 +29,12 @@ def from_list2x_parse_top_bottom(var):
 
 
 def get_value_at_current_depth(X, depth_from_top_of_layer, layer_height, depth_from_ground):
-    if isinstance(X,callable):
+    if isinstance(X, callable):
         return X(depth_from_ground)
     else:
         xtop, xbot = from_list2x_parse_top_bottom(X)
         return xtop + (xbot - xtop) * depth_from_top_of_layer / layer_height
+
 
 def var_to_str(var):
     if isinstance(var, float) or isinstance(var, int):
@@ -210,7 +211,7 @@ def conic(
     output_length: int,
 ):
     # if k is less than y_u/x_u, k overwritten to equate y_u/x_u
-    k = max(y_u/x_u,k)
+    k = max(y_u / x_u, k)
 
     # Create x vector with 10% extension
     x = np.array([0, 0.02, 0.05, 0.1]).astype(np.float32) * x_u

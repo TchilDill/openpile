@@ -1,4 +1,3 @@
-
 import pytest
 from openpile.construct import Pile, SoilProfile, Layer, Model
 from openpile.soilmodels import API_sand
@@ -7,22 +6,23 @@ from openpile.utils.multipliers import durkhop
 
 import math as m
 
-class TestUsage:
 
+class TestUsage:
     def test_ex1_create_a_pile(self):
 
         # Create a pile instance with two sections of respectively 10m and 30m length.
-        pile = Pile(name = "",
-                kind='Circular',
-                material='Steel',
-                top_elevation = 0,
-                pile_sections={
-                    'length':[10,30],
-                    'diameter':[7.5,7.5],
-                    'wall thickness':[0.07, 0.08],
-                }
-            )
-        
+        pile = Pile(
+            name="",
+            kind="Circular",
+            material="Steel",
+            top_elevation=0,
+            pile_sections={
+                "length": [10, 30],
+                "diameter": [7.5, 7.5],
+                "wall thickness": [0.07, 0.08],
+            },
+        )
+
         # Override young's modulus
         pile.E = 250e6
         # Check young's modulus (value in kPa)
@@ -39,7 +39,7 @@ class TestUsage:
         pile.area = 1.0
 
     def test_ex2_create_a_spring(self):
-        
+
         # import p-y curve for api_sand from openpile.utils
         from openpile.utils.py_curves import api_sand
 
@@ -58,11 +58,13 @@ class TestUsage:
         from openpile.soilmodels import API_clay
 
         # Create a layer
-        layer1 = Layer(name='Soft Clay',
-                    top=0,
-                    bottom=-10,
-                    weight=18,
-                    lateral_model=API_clay(Su=[30,35], eps50=[0.01, 0.02], kind="static"), )
+        layer1 = Layer(
+            name="Soft Clay",
+            top=0,
+            bottom=-10,
+            weight=18,
+            lateral_model=API_clay(Su=[30, 35], eps50=[0.01, 0.02], kind="static"),
+        )
 
         print(layer1)
 
@@ -78,20 +80,20 @@ class TestUsage:
             water_line=15,
             layers=[
                 Layer(
-                    name='medium dense sand',
+                    name="medium dense sand",
                     top=0,
                     bottom=-20,
                     weight=18,
-                    lateral_model= API_sand(phi=33, kind="cyclic")
+                    lateral_model=API_sand(phi=33, kind="cyclic"),
                 ),
                 Layer(
-                    name='firm clay',
+                    name="firm clay",
                     top=-20,
                     bottom=-40,
                     weight=18,
-                    lateral_model= API_clay(Su=[50, 70], eps50=0.015, kind="cyclic")
+                    lateral_model=API_clay(Su=[50, 70], eps50=0.015, kind="cyclic"),
                 ),
-            ]
+            ],
         )
 
         print(sp)
@@ -100,7 +102,6 @@ class TestUsage:
 
         from openpile.construct import Pile, SoilProfile, Layer, Model
         from openpile.soilmodels import API_clay, API_sand
-
 
         p = Pile.create_tubular(
             name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=7.5, wt=0.075
@@ -139,9 +140,8 @@ class TestUsage:
 
         # Run analysis
         from openpile.analyze import winkler
+
         Result = winkler(M)
 
         # plot the results
         Result.plot()
-
-                

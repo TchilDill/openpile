@@ -22,7 +22,7 @@ def cowden_clay(
     output_length: int = 20,
 ):
     """
-    Creates the lateral springs from the PISA clay formulation
+    Creates a spring from the PISA clay formulation
     published by Byrne et al 2020 (see [BHBG20]_) and calibrated based pile
     load tests at Cowden (north east coast of England).
 
@@ -81,7 +81,7 @@ def dunkirk_sand(
     output_length: int = 20,
 ):
     """
-    Creates the lateral spring from the PISA sand formulation
+    Creates a lateral spring from the PISA sand formulation
     published  by Burd et al (2020) (see [BTZA20]_).
     Also called the General Dunkirk Sand Model (GDSM).
 
@@ -367,7 +367,7 @@ def reese_weakrock(
     k: float = 0.0005,
     output_length=20,
 ):
-    """creates the Reese weakrock p-y curve based on the work of Reese (1997) #TODO(ref).
+    """creates the Reese weakrock p-y curve based on the work of Reese (1997), see reference [Rees97]_.
 
 
     Parameters
@@ -396,6 +396,8 @@ def reese_weakrock(
 
     """
 
+    output_length = max(10, output_length)
+
     # Rqd forced to be within 0 and 100
     rqd = max(min(100, RQD), 0)
 
@@ -414,8 +416,9 @@ def reese_weakrock(
 
     # define y
     ymax = max(1.05 * yA, (2 * yrm ** (0.25)) ** 4)
-    y = np.linspace(yA, ymax, output_length - 2)
-    y = np.concatenate((np.array([0.0]), y, np.array([1.2 * ymax])))
+    y1 = np.linspace(yA, max(0.15 * ymax, 1.01 * yA), int(output_length / 2))
+    y2 = np.linspace(max(yA * 1.02, 0.25 * ymax), ymax, output_length - len(y1) - 2)
+    y = np.concatenate((np.array([0.0]), y1, y2, np.array([1.2 * ymax])))
 
     # define p
     p = np.zeros(y.size)
@@ -426,3 +429,97 @@ def reese_weakrock(
             p[i] = min(Pmax, Pmax / 2 * (y[i] / yrm) ** 0.25)
 
     return y, p
+
+
+@njit(cache=True)
+def custom_pisa_sand(
+    sig: float,
+    G0: float,
+    D: float,
+    X_ult: float,
+    n: float,
+    k: float,
+    Y_ult: float,
+    output_length: int = 20,
+):
+    """Creates a lateral spring with the PISA sand formulation and custom user inputs.
+
+    Parameters
+    ----------
+    sig : float
+        vertical/overburden effective stress [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    X_ult : float
+        Normalized displacement at maximum strength
+    k : float
+        Normalized stiffness parameter
+    n : float
+        Normalized curvature parameter, must be between 0 and 1
+    Y_ult : float
+        Normalized maximum strength parameter
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
+    """
+    # calculate normsalised conic function
+    y, p = conic(X_ult, n, k, Y_ult, output_length)
+
+    # return non-normalised curve
+    return y * (sig * D / G0), p * (sig * D)
+
+
+@njit(cache=True)
+def custom_pisa_clay(
+    Su: float,
+    G0: float,
+    D: float,
+    X_ult: float,
+    n: float,
+    k: float,
+    Y_ult: float,
+    output_length: int = 20,
+):
+    """
+    Creates a spring from the PISA clay formulation
+    published by Byrne et al 2020 (see [BHBG20]_) and calibrated based pile
+    load tests at Cowden (north east coast of England).
+
+    Parameters
+    ----------
+    Su : float
+        Undrained shear strength [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    X_ult : float
+        Normalized displacement at maximum strength
+    k : float
+        Normalized stiffness parameter
+    n : float
+        Normalized curvature parameter, must be between 0 and 1
+    Y_ult : float
+        Normalized maximum strength parameter
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
+
+    """
+    # calculate normsalised conic function
+    y, p = conic(X_ult, n, k, Y_ult, output_length)
+
+    # return non-normalised curve
+    return y * (Su * D / G0), p * (Su * D)

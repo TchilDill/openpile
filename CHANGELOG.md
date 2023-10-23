@@ -7,8 +7,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
-## [0.5.1] - 2023-XX-XX (Note released yet)  
-- *blank*
+## [0.6.0] - 2023-10-23
+
+### Added 
+- added properties to `Pile` object: 
+  - `openpile.construct.Pile.tip_area` and
+  - `openpile.construct.Pile.tip_footprint`
+- added soil springs: 
+  - `openpile.utils.py_curves.custom_pisa_sand` and `openpile.utils.py_curves.custom_pisa_clay`
+  - `openpile.utils.mt_curves.custom_pisa_sand` and `openpile.utils.mt_curves.custom_pisa_clay`
+  - `openpile.utils.Hb_curves.custom_pisa_sand` and `openpile.utils.Hb_curves.custom_pisa_clay`
+  - `openpile.utils.Mb_curves.custom_pisa_sand` and `openpile.utils.Mb_curves.custom_pisa_clay`
+- added soil models:
+  - `openpile.soilmodels.Custom_pisa_sand` and `openpile.soilmodels.Custom_pisa_clay`, these models can be used to customise PISA formulations based on external sources, such as an FE model. 
+- new functions to calculate Dunkirk Sand and Cowden Clay normalized parameters, these functions are in the module: `openpile.utils.multipliers` and are the following: `get_cowden_clay_(..)_norm_param()` and `get_dunkirk_sand_(..)_norm_param()`.
+
+### Fixed 
+- Stress stiffness matrix modified for not yielding negative values due to axial force component. 
+
 
 ## [0.5.0] - 2023-08-02  
 - added soil spring `openpile.utils.py_curves.reese_weakrock`

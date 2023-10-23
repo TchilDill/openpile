@@ -47,3 +47,5 @@ Please refer to the :ref:`ApplicationProgrammingInterface` for more details and 
     Houlsby, G. T., Gavin, K. G., Igoe, D. J. P., Jardine, R. J., Martin, C. M., McAdam, R. A., 
     Pedro, A. M. G. & Potts, D. M. (2020). PISA design model for monopiles for offshore wind 
     turbines: application to a marine sand. Géotechnique, https://doi.org/10.1680/jgeot.18.P.277.
+.. [Rees97] Reese, L.C. (1997), Analysis of Laterally Loaded Piles in Weak Rock, Journal of Geotechnical
+    and Geoenvironmental Engineering, ASCE, vol. 123 (11) Nov., ASCE, pp. 1010-1017.

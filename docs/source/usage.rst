@@ -66,33 +66,33 @@ axial or lateral loading.
     # Check young's modulus (value in kPa)
     print(pile.E)
     250000000.0
-    # Override second moment of area across whole pile [in meters^4]
-    pile.I = 1.11
+    # Override second moment of area across first section [in meters^4]
+    pile.set_I(value=1.11, section=1)
     # Check updated second moment of area
     print(pile)
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0           7.5               0.07  1.633942    1.11
-    1          -10.0           7.5               0.07  1.633942    1.11
-    2          -10.0           7.5               0.08  1.864849    1.11
-    3          -40.0           7.5               0.08  1.864849    1.11
+    Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
+    0            0.0           7.5                0.07   1.633942   1.110000
+    1          -10.0           7.5                0.07   1.633942   1.110000
+    2          -10.0           7.5                0.08   1.864849  12.835479
+    3          -40.0           7.5                0.08   1.864849  12.835479
     # Override pile's width or pile's diameter [in meters]
     pile.width = 2.22
     # Check updated width or diameter
     print(pile)
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          2.22               0.07  1.633942    1.11
-    1          -10.0          2.22               0.07  1.633942    1.11
-    2          -10.0          2.22               0.08  1.864849    1.11
-    3          -40.0          2.22               0.08  1.864849    1.11
+    Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
+    0            0.0          2.22                0.07   1.633942   1.110000
+    1          -10.0          2.22                0.07   1.633942   1.110000
+    2          -10.0          2.22                0.08   1.864849  12.835479
+    3          -40.0          2.22                0.08   1.864849  12.835479
     # Override pile's area  [in meters^2]
     pile.area = 1.0
     # Check updated width or diameter
     print(pile)
-        Elevation [m]  Diameter [m] Wall thickness [m] Area [m2]  I [m4]
-    0            0.0          2.22               0.07       1.0    1.11
-    1          -10.0          2.22               0.07       1.0    1.11
-    2          -10.0          2.22               0.08       1.0    1.11
-    3          -40.0          2.22               0.08       1.0    1.11
+    Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
+    0            0.0          2.22                0.07        1.0   1.110000
+    1          -10.0          2.22                0.07        1.0   1.110000
+    2          -10.0          2.22                0.08        1.0  12.835479
+    3          -40.0          2.22                0.08        1.0  12.835479
 
 
 

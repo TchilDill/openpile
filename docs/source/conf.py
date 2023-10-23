@@ -31,7 +31,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
-    # "sphinx_copybutton",
     "sphinx.ext.doctest",
     "matplotlib.sphinxext.plot_directive",
 ]

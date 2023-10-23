@@ -1,6 +1,6 @@
 # .readthedocs.yaml
 # Read the Docs configuration file
-# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+# See https://docs.readthedocs.ioo/en/stable/config-file/v2.html for details
 
 # Required
 version: 2
@@ -19,7 +19,7 @@ build:
 sphinx:
   configuration: docs/source/conf.py
   builder: html
-  fail_on_warning: false
+  fail_on_warning: true
 
 
 # Optionally declare the Python requirements required to build your docs

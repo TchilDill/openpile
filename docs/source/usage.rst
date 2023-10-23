@@ -17,39 +17,57 @@ Example 1 - Create a pile
 
 A pile can be created in the simple following way in openpile. 
 
-.. code-block:: python
+.. doctest::
 
-    from openpile.construct import Pile
-
-    # Create a pile instance with two sections of respectively 10m and 30m length.
-    pile = Pile(name = "",
-            kind='Circular',
-            material='Steel',
-            top_elevation = 0,
-            pile_sections={
-                'length':[10,30],
-                'diameter':[7.5,7.5],
-                'wall thickness':[0.07, 0.08],
-            }
-        )
-
-Additional methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
-For instance:
-
-* :py:meth:`openpile.construct.Pile.create_tubular` which creates a circular pile of constant diameter.
-
-Once the pile (object) is created, the user can use its properties and methods to interact with it. 
-A simple view of the pile can be extracted by printing the object as below: 
-
-.. code-block:: python
+    >>> # import the Pile object from the construct module
+    >>> from openpile.construct import Pile
     
-    # Print the pile data
-    print(pile)
+    >>> # Create a Pile
+    >>> pile = Pile(name = "",
+    ...         kind='Circular',
+    ...         material='Steel',
+    ...         top_elevation = 0,
+    ...         pile_sections={
+    ...             'length':[10,30],
+    ...             'diameter':[7.5,7.5],
+    ...             'wall thickness':[0.07, 0.08],
+    ...         }
+    ...     )
+
+    >>> # Print the pile data
+    >>> print(pile) # doctest: +NORMALIZE_WHITESPACE
         Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
     0            0.0           7.5                0.07   1.633942  11.276204
     1          -10.0           7.5                0.07   1.633942  11.276204
     2          -10.0           7.5                0.08   1.864849  12.835479
     3          -40.0           7.5                0.08   1.864849  12.835479
+    >>>
+
+Additional methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
+For instance:
+
+
+.. doctest::
+
+    >>> # Import Pile object from constuct module
+    >>> from openpile.construct import Pile
+
+    >>> # create pile
+    >>> p = Pile.create_tubular(
+    ...     name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=10, wt=0.050
+    ... )
+
+    >>> print(p)
+       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
+    0            0.0          10.0                0.05   1.562942  19.342388
+    1          -40.0          10.0                0.05   1.562942  19.342388
+    >>> 
+
+
+
+Once the pile (object) is created, the user can use its properties and methods to interact with it. 
+A simple view of the pile can be extracted by printing the object as below: 
+
 
 The user can also extract easily the pile length, elevations and other properties.
 Please see the :py:class:`openpile.construct.Pile`

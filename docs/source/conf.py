@@ -31,7 +31,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
-    # "sphinx_copybutton",
+    "sphinx_copybutton",
     "sphinx.ext.doctest",
     "matplotlib.sphinxext.plot_directive",
 ]
@@ -54,6 +54,10 @@ autodoc_class_signature = "separated"
 
 templates_path = ["_templates"]
 exclude_patterns = []
+
+#option for the copy button extension
+copybutton_prompt_text = r">>> |\.\.\. "
+copybutton_prompt_is_regexp = True
 
 # -- Options for LaTeX output ------------------------------------------------
 latex_engine = "pdflatex"

@@ -59,6 +59,9 @@ exclude_patterns = []
 copybutton_prompt_text = r">>> |\.\.\. "
 copybutton_prompt_is_regexp = True
 
+#option for matplotlib extension
+plot_include_source = True
+
 # -- Options for LaTeX output ------------------------------------------------
 latex_engine = "pdflatex"
 numfig = True

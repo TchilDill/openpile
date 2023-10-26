@@ -252,6 +252,7 @@ Example 5 - Run a winkler analysis
 ==================================
 
 .. plot::
+    :context:
 
     >>> from openpile.construct import Pile, SoilProfile, Layer, Model
     >>> from openpile.soilmodels import API_clay, API_sand
@@ -308,37 +309,8 @@ If one would like to check the input of the model, a quick visual on this
 can be provided by plotting the model with the method: :meth:`openpile.construct.Model.plot`.
 
 .. plot::
+    :context: close-figs
 
-    >>> from openpile.construct import Pile, SoilProfile, Layer, Model
-    >>> from openpile.soilmodels import API_clay, API_sand
-    >>> 
-    >>> p = Pile.create_tubular(
-    ...     name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=7.5, wt=0.075
-    ... )
-    >>> 
-    >>> # Create a 40m deep offshore Soil Profile with a 15m water column
-    >>> sp = SoilProfile(
-    ...     name="Offshore Soil Profile",
-    ...     top_elevation=0,
-    ...     water_line=15,
-    ...     layers=[
-    ...         Layer(
-    ...             name="medium dense sand",
-    ...             top=0,
-    ...             bottom=-20,
-    ...             weight=18,
-    ...             lateral_model=API_sand(phi=33, kind="cyclic"),
-    ...         ),
-    ...         Layer(
-    ...             name="firm clay",
-    ...             top=-20,
-    ...             bottom=-40,
-    ...             weight=18,
-    ...             lateral_model=API_clay(Su=[50, 70], eps50=0.015, kind="cyclic"),
-    ...         ),
-    ...     ],
-    ... )
-    >>> 
     >>> # Create Model
     >>> M = Model(name="<model name>", pile=p, soil=sp)
     >>> # Apply bottom fixity along x-axis

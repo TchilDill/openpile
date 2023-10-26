@@ -61,6 +61,8 @@ copybutton_prompt_is_regexp = True
 
 #option for matplotlib extension
 plot_include_source = True
+plot_html_show_source_link = False
+plot_html_show_formats = False
 
 # -- Options for LaTeX output ------------------------------------------------
 latex_engine = "pdflatex"

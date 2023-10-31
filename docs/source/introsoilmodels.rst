@@ -47,5 +47,10 @@ Please refer to the :ref:`ApplicationProgrammingInterface` for more details and 
     Houlsby, G. T., Gavin, K. G., Igoe, D. J. P., Jardine, R. J., Martin, C. M., McAdam, R. A., 
     Pedro, A. M. G. & Potts, D. M. (2020). PISA design model for monopiles for offshore wind 
     turbines: application to a marine sand. Géotechnique, https://doi.org/10.1680/jgeot.18.P.277.
+.. [BABH20] Burd, H. J., Abadie, C. N., Byrne, B. W., Houlsby, G. T., Martin, C. M., McAdam, R. A., 
+    Jardine, R.J., Pedro, A.M., Potts, D.M., Taborda, D.M., Zdravković, L., and Andrade, M.P. 
+    (2020). Application of the PISA Design Model to Monopiles Embedded in Layered Soils. 
+    Géotechnique 70(11): 1-55.
+https://doi.org/10.1680/jgeot.20.PISA.009
 .. [Rees97] Reese, L.C. (1997), Analysis of Laterally Loaded Piles in Weak Rock, Journal of Geotechnical
     and Geoenvironmental Engineering, ASCE, vol. 123 (11) Nov., ASCE, pp. 1010-1017.

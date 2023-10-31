@@ -14,6 +14,68 @@ from openpile.core.misc import conic
 
 
 @njit(cache=True)
+def bothkennar_clay(
+    X: float,
+    Su: float,
+    G0: float,
+    D: float,
+    L: float,
+    output_length: int = 20,
+):
+    """
+    Creates the base shear spring from the PISA clay formulation
+    published by Burd et al 2020 (see [BABH20]_) and calibrated based on Bothkennar clay 
+    response (a normally consolidated soft clay).
+
+    Parameters
+    ----------
+    X : float
+        Depth below ground level [unit: m]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    L : float
+        Embedded pile length [unit: m]
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        Hb vector [unit: kN]
+
+    """
+
+    # Generalised Bothkennar clay Model parameters
+    v_hu1 = 291.5
+    v_hu2 = 0.00
+    k_h1 = 3.008
+    k_h2 = -0.2701
+    n_h1 = 0.3113
+    n_h2 = 0.04263
+    p_u1 = 0.5279
+    p_u2 = 0.06864
+
+    # Depth variation parameters
+    v_max = v_hu1 + v_hu2 * L / D
+    k = k_h1 + k_h2 * L / D
+    n = n_h1 + n_h2 * L / D
+    p_max = p_u1 + p_u2 * L / D
+
+    # calculate normsalised conic function
+    y, p = conic(v_max, n, k, p_max, output_length)
+
+    # return non-normalised curve
+    return y * (Su * D / G0), p * (Su * D**2)
+
+
+
+@njit(cache=True)
 def dunkirk_sand(
     sig: float,
     X: float,
@@ -116,7 +178,7 @@ def cowden_clay(
 
     """
 
-    # Generalised Dunkirk Sand Model parameters
+    # Generalised Cowden clay Model parameters
     v_hu1 = 235.7
     v_hu2 = 0.00
     k_h1 = 2.717

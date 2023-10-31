@@ -19,6 +19,7 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
   - `openpile.utils.Hb_curves.custom_pisa_sand` and `openpile.utils.Hb_curves.custom_pisa_clay`
   - `openpile.utils.Mb_curves.custom_pisa_sand` and `openpile.utils.Mb_curves.custom_pisa_clay`
 - added soil models:
+  - `openpile.soilmodels.Bothkennar_clay` from the PISA joint-industry project
   - `openpile.soilmodels.Custom_pisa_sand` and `openpile.soilmodels.Custom_pisa_clay`, these models can be used to customise PISA formulations based on external sources, such as an FE model. 
 - new functions to calculate Dunkirk Sand and Cowden Clay normalized parameters, these functions are in the module: `openpile.utils.multipliers` and are the following: `get_cowden_clay_(..)_norm_param()` and `get_dunkirk_sand_(..)_norm_param()`.
 

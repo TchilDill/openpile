@@ -110,6 +110,208 @@ class API_clay_axial(AxialModel):
 
 
 @dataclass(config=PydanticConfigFrozen)
+class Bothkennar_clay(LateralModel):
+    """A class to establish the PISA Bothkennar clay model as per Burd et al 2020 (see [BABH20]_).
+
+    Parameters
+    ----------
+    Su: float or list[top_value, bottom_value]
+        Undrained shear strength. Value to range from 0 to 100 [unit: kPa]
+    G0: float or list[top_value, bottom_value]
+        Small-strain shear modulus [unit: kPa]
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for p-values
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for y-values
+    m_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for m-values
+    t_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for t-values
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.bothkennar_clay`, :py:func:`openpile.utils.mt_curves.bothkennar_clay`,
+    :py:func:`openpile.utils.Hb_curves.bothkennar_clay`, :py:func:`openpile.utils.Mb_curves.bothkennar_clay`
+
+
+    """
+
+    #: Undrained shear strength [kPa], if a variation in values, two values can be given.
+    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: small-strain shear stiffness modulus [kPa]
+    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: p-multiplier
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    #: y-multiplier
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    #: m-multiplier
+    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    #: t-multiplier
+    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+
+    # spring signature which tells that API sand only has p-y curves
+    # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
+    spring_signature = np.array([True, True, True, True], dtype=bool)
+
+    def __str__(self):
+        return f"\tCowden clay (PISA)\n\tSu = {var_to_str(self.Su)} kPa.\n\tG0 = {round(self.G0/1000,1)} MPa"
+
+    def py_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        y, p = py_curves.bothkennar_clay(
+            X=X,
+            Su=Su,
+            G0=Gmax,
+            D=D,
+            output_length=output_length,
+        )
+
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
+
+        return y * y_mult, p * p_mult
+
+    def Hb_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        y, Hb = Hb_curves.bothkennar_clay(
+            X=X,
+            Su=Su,
+            G0=Gmax,
+            D=D,
+            L=L,
+            output_length=output_length,
+        )
+
+        return y, Hb
+
+    def mt_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        _, p_array = py_curves.bothkennar_clay(
+            X=X,
+            Su=Su,
+            G0=Gmax,
+            D=D,
+            output_length=output_length,
+        )
+
+        m = np.zeros((output_length, output_length), dtype=np.float32)
+        t = np.zeros((output_length, output_length), dtype=np.float32)
+
+        for count, _ in enumerate(p_array):
+            t[count, :], m[count, :] = mt_curves.bothkennar_clay(
+                X=X,
+                Su=Su,
+                G0=Gmax,
+                D=D,
+                output_length=output_length,
+            )
+
+        # parse multipliers and apply results
+        t_mult = self.t_multiplier if isinstance(self.t_multiplier, float) else self.t_multiplier(X)
+        m_mult = self.m_multiplier if isinstance(self.m_multiplier, float) else self.m_multiplier(X)
+
+        return t * t_mult, m * m_mult
+
+    def Mb_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Dr
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+        # define G0
+        G0_t, G0_b = from_list2x_parse_top_bottom(self.G0)
+        Gmax = G0_t + (G0_b - G0_t) * depth_from_top_of_layer / layer_height
+
+        y, Mb = Mb_curves.bothkennar_clay(
+            X=X,
+            Su=Su,
+            G0=Gmax,
+            D=D,
+            L=L,
+            output_length=output_length,
+        )
+
+        return y, Mb
+
+
+@dataclass(config=PydanticConfigFrozen)
 class Cowden_clay(LateralModel):
     """A class to establish the PISA Cowden clay model as per Byrne et al 2020 (see [BHBG20]_).
 

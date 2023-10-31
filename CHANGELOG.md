@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
+## [0.7.0] - 2023-xx-xx
+
+### Added
+
+- Added soil models:
+  - `openpile.soilmodels.Bothkennar_clay` from the PISA joint-industry project
+
 ## [0.6.0] - 2023-10-23
 
 ### Added 

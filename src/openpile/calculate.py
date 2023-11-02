@@ -128,6 +128,8 @@ def unit_end_bearing(
                     )
                     * layer.axial_model.Q_multiplier
                 )
+        
+    return 0.0
 
 
 def entrapped_soil_weight(model) -> float:
@@ -143,6 +145,9 @@ def entrapped_soil_weight(model) -> float:
     float
         value of entrapped total  weight of soil inside the pile in unit:kN
     """
+    #weight water in kN/m3
+    uw_water = 10
+
     # soil volume
     Vi = _pile_inside_volume(model)
     # element mid-point elevation
@@ -156,25 +161,20 @@ def entrapped_soil_weight(model) -> float:
             & (model.soil_properties["x_bottom [m]"] >= layer.bottom)
         ].index
 
-        if layer.axial_model is None:
-            pass
-        else:
-            # Set local layer parameters for each element of the layer
-            for i in elements_for_layer:
-                # Calculate inner soil weight
-                element_sw[i] = (
-                    layer.weight * Vi[i]
-                    if elevation[i] <= model.soil.water_line
-                    else (layer.weight - 10) * Vi[i]
-                )
+        # Set local layer parameters for each element of the layer
+        for i in elements_for_layer:
+            # Calculate inner soil weight
+            element_sw[i] = (
+                layer.weight * Vi[i]
+                if elevation[i] <= model.soil.water_line
+                else (layer.weight - uw_water) * Vi[i]
+            )
 
     return element_sw.sum()
 
 
 def shaft_resistance(
     model,
-    outer_shaft: bool = True,
-    inner_shaft: bool = True,
 ) -> float:
     """Calculates shaft resistance of the pile based on the axial models assigned to the SoilProfile layers. (Unit: kN)
 

@@ -62,22 +62,45 @@ def _pile_inside_volume(model):
     return area_inside * L
 
 
-def _embedded_pile_effective_weight(model):
+def effective_pile_weight(model):
+    """Calculates the pile weight in the model with consideration of buoyancy
 
-    embedded_element = model.element_properties["x_bottom [m]"].values < model.soil.top_elevation
-    submerged_element = model.element_properties["x_bottom [m]"].values < model.soil.water_line
+    Parameters
+    ----------
+    model : openpile.construct.Model
+        OpenPile Model object
 
-    L = (
-        model.element_properties["x_top [m]"].values
-        - model.element_properties["x_bottom [m]"].values
-    )
-    V = L * model.element_properties["Area [m2]"].values
-    W = np.zeros(shape=V.shape)
-    W[submerged_element] = V[submerged_element] * (model.pile._uw - 10)
-    W[~submerged_element] = V[~submerged_element] * (model.pile._uw)
-    W[~embedded_element] = 0
+    Returns
+    -------
+    float
+        pile weight in kN
 
-    return W.sum()
+    Raises
+    ------
+    Exception
+        if soil profile does not exist
+
+    See also
+    --------
+    `openpile.construct.Pile.weight`
+    """
+
+    if model.soil is not None:
+        submerged_element = model.element_properties["x_bottom [m]"].values < model.soil.water_line
+
+        L = (
+            model.element_properties["x_top [m]"].values
+            - model.element_properties["x_bottom [m]"].values
+        )
+        V = L * model.element_properties["Area [m2]"].values
+        W = np.zeros(shape=V.shape)
+        W[submerged_element] = V[submerged_element] * (model.pile._uw - 10)
+        W[~submerged_element] = V[~submerged_element] * (model.pile._uw)
+
+        return W.sum()
+    
+    else:
+        raise Exception("Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`")
 
 
 def bearingcapacity(model, kind):

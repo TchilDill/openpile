@@ -96,7 +96,7 @@ def api_clay(
     Su : float
         Undrained shear strength [unit: kPa]
     D: float
-        Pile diameter [unit: m]
+        Pile width [unit: m]
     residual: float
         residual strength after peak strength, according to API-RP-2A,
         this value is between 0.7 and 0.9, default to 0.9
@@ -298,7 +298,7 @@ def api_sand_kraft(
     delta: float
         interface friction angle [unit: degrees]
     D: float
-        Pile diameter [unit: m]
+        Pile width [unit: m]
     G0: float
         small-strain stiffness [unit: kPa]
     K: float

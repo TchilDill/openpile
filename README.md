@@ -17,6 +17,8 @@ Open-source PILE software.
 [![Pull Requests Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](http://makeapullrequest.com)
 
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10116667.svg)](https://doi.org/10.5281/zenodo.10116667)
+
 Please see [official documentation](https://openpile.readthedocs.io/en/latest/) for more information.
 
 This package is an open source python library that provides users a tool box for geotechnical pile

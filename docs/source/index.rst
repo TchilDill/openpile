@@ -28,6 +28,18 @@ Python 3.11 is not supported!
    <a href="https://www.buymeacoffee.com/tchilldill"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=groundhog&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"></a>
 
 
+Cite OpenPile in your research paper
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can refer to OpenPile in your research paper by citing the following:
+
+    | *Guillaume M. (2023). TchilDill/openpile: OpenPile version 0.7.0 (v0.7.0). Zenodo. https://doi.org/10.5281/zenodo.10116667*
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.10116667.svg
+  :target: https://doi.org/10.5281/zenodo.10116667
+
+
+
 
 .. toctree::
    :maxdepth: 2
@@ -51,6 +63,8 @@ the Free Software Foundation, either version 3 of the License, or
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 
 
 Disclaimer

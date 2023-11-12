@@ -23,7 +23,7 @@ def bothkennar_clay(
 ):
     """
     Creates a spring from the PISA clay formulation
-    published by Burd et al 2020 (see [BABH20]_) and calibrated based on Bothkennar clay 
+    published by Burd et al 2020 (see [BABH20]_) and calibrated based on Bothkennar clay
     response (a normally consolidated soft clay).
 
     Parameters

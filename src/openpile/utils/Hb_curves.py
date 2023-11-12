@@ -24,7 +24,7 @@ def bothkennar_clay(
 ):
     """
     Creates the base shear spring from the PISA clay formulation
-    published by Burd et al 2020 (see [BABH20]_) and calibrated based on Bothkennar clay 
+    published by Burd et al 2020 (see [BABH20]_) and calibrated based on Bothkennar clay
     response (a normally consolidated soft clay).
 
     Parameters
@@ -72,7 +72,6 @@ def bothkennar_clay(
 
     # return non-normalised curve
     return y * (Su * D / G0), p * (Su * D**2)
-
 
 
 @njit(cache=True)

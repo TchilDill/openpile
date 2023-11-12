@@ -24,7 +24,7 @@ def bothkennar_clay(
 ):
     """
     Create the base moment springs from the PISA clay formulation
-    published by Burd et al 2020 (see [BABH20]_) and calibrated based on Bothkennar clay 
+    published by Burd et al 2020 (see [BABH20]_) and calibrated based on Bothkennar clay
     response (a normally consolidated soft clay).
 
     Parameters
@@ -71,7 +71,6 @@ def bothkennar_clay(
 
     # return non-normalised curve
     return t * (Su / G0), m * (Su * D**3)
-
 
 
 @njit(cache=True)

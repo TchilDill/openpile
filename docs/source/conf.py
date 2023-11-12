@@ -55,11 +55,11 @@ autodoc_class_signature = "separated"
 templates_path = ["_templates"]
 exclude_patterns = []
 
-#option for the copy button extension
+# option for the copy button extension
 copybutton_prompt_text = r">>> |\.\.\. "
 copybutton_prompt_is_regexp = True
 
-#option for matplotlib extension
+# option for matplotlib extension
 plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False

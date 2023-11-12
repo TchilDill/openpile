@@ -98,9 +98,11 @@ def effective_pile_weight(model):
         W[~submerged_element] = V[~submerged_element] * (model.pile._uw)
 
         return W.sum()
-    
+
     else:
-        raise Exception("Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`")
+        raise Exception(
+            "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
+        )
 
 
 def bearingcapacity(model, kind):
@@ -151,7 +153,7 @@ def unit_end_bearing(
                     )
                     * layer.axial_model.Q_multiplier
                 )
-        
+
     return 0.0
 
 
@@ -168,7 +170,7 @@ def entrapped_soil_weight(model) -> float:
     float
         value of entrapped total  weight of soil inside the pile in unit:kN
     """
-    #weight water in kN/m3
+    # weight water in kN/m3
     uw_water = 10
 
     # soil volume

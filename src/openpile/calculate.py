@@ -62,22 +62,47 @@ def _pile_inside_volume(model):
     return area_inside * L
 
 
-def _embedded_pile_effective_weight(model):
+def effective_pile_weight(model):
+    """Calculates the pile weight in the model with consideration of buoyancy
 
-    embedded_element = model.element_properties["x_bottom [m]"].values < model.soil.top_elevation
-    submerged_element = model.element_properties["x_bottom [m]"].values < model.soil.water_line
+    Parameters
+    ----------
+    model : openpile.construct.Model
+        OpenPile Model object
 
-    L = (
-        model.element_properties["x_top [m]"].values
-        - model.element_properties["x_bottom [m]"].values
-    )
-    V = L * model.element_properties["Area [m2]"].values
-    W = np.zeros(shape=V.shape)
-    W[submerged_element] = V[submerged_element] * (model.pile._uw - 10)
-    W[~submerged_element] = V[~submerged_element] * (model.pile._uw)
-    W[~embedded_element] = 0
+    Returns
+    -------
+    float
+        pile weight in kN
 
-    return W.sum()
+    Raises
+    ------
+    Exception
+        if soil profile does not exist
+
+    See also
+    --------
+    `openpile.construct.Pile.weight`
+    """
+
+    if model.soil is not None:
+        submerged_element = model.element_properties["x_bottom [m]"].values < model.soil.water_line
+
+        L = (
+            model.element_properties["x_top [m]"].values
+            - model.element_properties["x_bottom [m]"].values
+        )
+        V = L * model.element_properties["Area [m2]"].values
+        W = np.zeros(shape=V.shape)
+        W[submerged_element] = V[submerged_element] * (model.pile._uw - 10)
+        W[~submerged_element] = V[~submerged_element] * (model.pile._uw)
+
+        return W.sum()
+
+    else:
+        raise Exception(
+            "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
+        )
 
 
 def bearingcapacity(model, kind):
@@ -129,6 +154,8 @@ def unit_end_bearing(
                     * layer.axial_model.Q_multiplier
                 )
 
+    return 0.0
+
 
 def entrapped_soil_weight(model) -> float:
     """calculates total weight of soil inside the pile. (Unit: kN)
@@ -143,6 +170,9 @@ def entrapped_soil_weight(model) -> float:
     float
         value of entrapped total  weight of soil inside the pile in unit:kN
     """
+    # weight water in kN/m3
+    uw_water = 10
+
     # soil volume
     Vi = _pile_inside_volume(model)
     # element mid-point elevation
@@ -156,25 +186,20 @@ def entrapped_soil_weight(model) -> float:
             & (model.soil_properties["x_bottom [m]"] >= layer.bottom)
         ].index
 
-        if layer.axial_model is None:
-            pass
-        else:
-            # Set local layer parameters for each element of the layer
-            for i in elements_for_layer:
-                # Calculate inner soil weight
-                element_sw[i] = (
-                    layer.weight * Vi[i]
-                    if elevation[i] <= model.soil.water_line
-                    else (layer.weight - 10) * Vi[i]
-                )
+        # Set local layer parameters for each element of the layer
+        for i in elements_for_layer:
+            # Calculate inner soil weight
+            element_sw[i] = (
+                layer.weight * Vi[i]
+                if elevation[i] <= model.soil.water_line
+                else (layer.weight - uw_water) * Vi[i]
+            )
 
     return element_sw.sum()
 
 
 def shaft_resistance(
     model,
-    outer_shaft: bool = True,
-    inner_shaft: bool = True,
 ) -> float:
     """Calculates shaft resistance of the pile based on the axial models assigned to the SoilProfile layers. (Unit: kN)
 

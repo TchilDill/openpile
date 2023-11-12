@@ -6,7 +6,7 @@ from random import random
 
 
 # maximum resistance values
-@njit(cahce=True)
+@njit(cache=True)
 def _Qmax_api_clay(
     Su: float,
 ) -> float:

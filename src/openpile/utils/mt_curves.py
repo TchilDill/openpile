@@ -14,6 +14,62 @@ from openpile.core.misc import conic
 
 # SPRING FUNCTIONS --------------------------------------------
 @njit(cache=True)
+def bothkennar_clay(
+    X: float,
+    Su: float,
+    G0: float,
+    D: float,
+    output_length: int = 20,
+):
+    """
+    Create the rotational springs from the PISA clay formulation
+    published by Burd et al 2020 (see [BABH20]_) and calibrated based on Bothkennar clay
+    response (a normally consolidated soft clay).
+
+    Parameters
+    ----------
+    X : float
+        Depth below ground level [unit: m]
+    Su : float
+        Undrained shear strength [unit: kPa]
+    G0 : float
+        Small-strain shear modulus [unit: kPa]
+    D : float
+        Pile diameter [unit: m]
+    output_length : int, optional
+        Number of datapoints in the curve, by default 20
+
+    Returns
+    -------
+    1darray
+        t vector of length [unit: rad]
+    1darray
+        m vector [unit: kN]
+
+    """
+
+    # Bothkennar clay parameters
+    k_m1 = 1.698
+    k_m2 = -0.1576
+    n_m1 = 0.00
+    n_m2 = 0.00
+    m_m1 = 0.4862
+    m_m2 = -0.05674
+
+    # Depth variation parameters
+    k = k_m1 + k_m2 * X / D
+    n = n_m1 + n_m2 * X / D
+    m_max = m_m1 + m_m2 * X / D
+    psi_max = m_max / k
+
+    # calculate normsalised conic function
+    t, m = conic(psi_max, n, k, m_max, output_length)
+
+    # return non-normalised curve
+    return t * (Su / G0), m * (Su * D**2)
+
+
+@njit(cache=True)
 def cowden_clay(
     X: float,
     Su: float,

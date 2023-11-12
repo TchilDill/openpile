@@ -50,7 +50,6 @@ Please refer to the :ref:`ApplicationProgrammingInterface` for more details and 
 .. [BABH20] Burd, H. J., Abadie, C. N., Byrne, B. W., Houlsby, G. T., Martin, C. M., McAdam, R. A., 
     Jardine, R.J., Pedro, A.M., Potts, D.M., Taborda, D.M., Zdravković, L., and Andrade, M.P. 
     (2020). Application of the PISA Design Model to Monopiles Embedded in Layered Soils. 
-    Géotechnique 70(11): 1-55.
-https://doi.org/10.1680/jgeot.20.PISA.009
+    Géotechnique 70(11): 1-55. https://doi.org/10.1680/jgeot.20.PISA.009
 .. [Rees97] Reese, L.C. (1997), Analysis of Laterally Loaded Piles in Weak Rock, Journal of Geotechnical
     and Geoenvironmental Engineering, ASCE, vol. 123 (11) Nov., ASCE, pp. 1010-1017.

@@ -349,7 +349,7 @@ def api_clay(
     # Calculate Pmax (regular API)
     ## Pmax for shallow and deep zones (regular API)
     Pmax_shallow = (3 * Su + sig) * D + J * Su * X
-    Pmax_deep = 9 * Su * X
+    Pmax_deep = 9 * Su * D
     Pmax = min(Pmax_deep, Pmax_shallow)
 
     ylist_in = [0.0, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]

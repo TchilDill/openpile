@@ -49,7 +49,7 @@ def make_pmax_api_clay():
         J: float,
     ):
 
-        return min(9 * Su * X, (3 * Su + sig) * D + J * Su * X)
+        return min(9 * Su * D, (3 * Su + sig) * D + J * Su * X)
 
     return make
 

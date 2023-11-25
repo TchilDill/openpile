@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from numba import njit, prange
 
-from typing import List, Dict, Optional, Union, Callable
+from typing import List, Dict, Optional, Union, Callable, Tuple
 from typing_extensions import Literal
 from pydantic import (
     BaseModel,
@@ -33,6 +33,7 @@ from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str, get_val
 from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves
 from openpile.utils.misc import _fmax_api_sand, _fmax_api_clay, _Qmax_api_clay, _Qmax_api_sand
 
+from abc import ABC, abstractmethod
 
 # CONSTITUTIVE MODELS CLASSES ---------------------------------
 
@@ -42,15 +43,48 @@ class PydanticConfigFrozen:
     allow_mutation = False
 
 
-class ConstitutiveModel:
-    pass
+class LateralModel(ABC):
+    @abstractmethod
+    def py_spring_fct(self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float,
+        below_water_table: bool,
+        ymax: float,
+        output_length: int
+        ) -> Tuple[np.ndarray, np.ndarray]:
+        pass
+
+    def Hb_spring_fct(self,
+        ymax: float = 1,
+        output_length: int = 20,
+        **kwargs
+        ) -> Tuple[np.ndarray, np.ndarray]:
+
+        return np.linspace(0, ymax, output_length), np.zeros(output_length)
 
 
-class LateralModel(ConstitutiveModel):
-    pass
+    def mt_spring_fct(self,
+        ymax: float = 0.2,
+        output_length: int = 20,
+        **kwargs
+        ) -> Tuple[np.ndarray, np.ndarray]:
+
+        return np.linspace(0, ymax, output_length), np.zeros(output_length)
+
+    def Mb_spring_fct(self,
+        ymax: float = 0.2,
+        output_length: int = 20,
+        **kwargs
+        ) -> Tuple[np.ndarray, np.ndarray]:
+        
+        return np.linspace(0, ymax, output_length), np.zeros(output_length)
 
 
-class AxialModel(ConstitutiveModel):
+class AxialModel:
     pass
 
 

@@ -23,6 +23,8 @@ import math as m
 import pandas as pd
 import numpy as np
 import warnings
+
+from abc import ABC, abstractmethod, abstractproperty
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal
 from pydantic import (
@@ -38,6 +40,7 @@ from pydantic import (
     ValidationError,
 )
 from pydantic.dataclasses import dataclass
+
 import matplotlib.pyplot as plt
 
 import openpile.utils.graphics as graphics
@@ -45,9 +48,7 @@ import openpile.core.validation as validation
 import openpile.soilmodels as soilmodels
 
 from openpile.core import misc
-
-from openpile.soilmodels import ConstitutiveModel
-
+from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
 
 
@@ -56,6 +57,8 @@ class PydanticConfig:
     extra = Extra.forbid
     post_init_call = "after_validation"
 
+class AbstractPile(ABC):
+    pass
 
 @dataclass(config=PydanticConfig)
 class Pile:
@@ -139,39 +142,24 @@ class Pile:
                 elevation.append(elevation[-1] - val)
 
         # create sectional properties
-
         # spread
-        diameter = []
-        # add top and bottom of section i (essentially the same values)
-        for idx, val in enumerate(self.pile_sections["diameter"]):
-            diameter.append(val)
-            diameter.append(diameter[-1])
-
+        diameter = [x for x in self.pile_sections["diameter"].values for x in [x,x]]
         # thickness
-        thickness = []
-        # add top and bottom of section i (essentially the same values)
-        for idx, val in enumerate(self.pile_sections["wall thickness"]):
-            thickness.append(val)
-            thickness.append(thickness[-1])
+        thickness = [x for x in self.pile_sections["wall thickness"].values for x in [x,x]]
+
+        def _circular_pile_area(diameter, wall_thickness):
+            return m.pi / 4 * (diameter**2 - (diameter - 2 * wall_thickness) ** 2)
+
+        def _circular_second_moment_area(diameter, wall_thickness):
+            return m.pi / 64 * (diameter**4 - (diameter - 2 * wall_thickness) ** 4)
 
         # Area & second moment of area
-        area = []
-        second_moment_of_area = []
-        # add top and bottom of section i (essentially the same values)
-        for _, (d, wt) in enumerate(
-            zip(self.pile_sections["diameter"], self.pile_sections["wall thickness"])
-        ):
-            # calculate area
-            if self.kind == "Circular":
-                A = m.pi / 4 * (d**2 - (d - 2 * wt) ** 2)
-                I = m.pi / 64 * (d**4 - (d - 2 * wt) ** 4)
-                area.append(A)
-                area.append(area[-1])
-                second_moment_of_area.append(I)
-                second_moment_of_area.append(second_moment_of_area[-1])
-            else:
-                # not yet supporting other kind
-                raise ValueError()
+        if self.kind == "Circular":
+            area = [_circular_pile_area(x,y) for x,y in zip(diameter, thickness)]
+            second_moment_of_area = [_circular_second_moment_area(x,y) for x,y in zip(diameter, thickness)]
+        else:
+            # not yet supporting other kind
+            raise ValueError()
 
         # Create pile data
         self.data = pd.DataFrame(
@@ -487,9 +475,9 @@ class Layer:
         bottom elevation of the layer in [m].
     weight : float
         total unit weight in [kN/m3], cannot be lower than 10.
-    lateral_model : ConstitutiveModel
+    lateral_model : LateralModel
         Lateral soil model of the layer, by default None.
-    axial_model : ConstitutiveModel
+    axial_model : AxialModel
         Axial soil model of the layer, by default None.
     color : str
         soil layer color in HEX format (e.g. '#000000'), by default None.
@@ -529,9 +517,9 @@ class Layer:
     #: unit weight in kN of the layer
     weight: confloat(gt=10.0)
     #: Lateral constitutive model of the layer
-    lateral_model: Optional[ConstitutiveModel] = None
+    lateral_model: Optional[LateralModel] = None
     #: Axial constitutive model of the layer
-    axial_model: Optional[ConstitutiveModel] = None
+    axial_model: Optional[AxialModel] = None
     #: Layer's color when plotted
     color: Optional[constr(min_length=7, max_length=7)] = None
 

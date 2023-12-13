@@ -104,26 +104,38 @@ def effective_pile_weight(model):
             "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
         )
 
+def isplugged(model, kind:str="compression") -> bool:
+    
+    if kind == "compression":
+        if model.method == "API":
+            return unit_end_bearing(model)*(model.pile.tip_footprint - model.pile.tip_area) < shaft_resistance(model, outer_shaft=False, inner_shaft=True) - entrapped_soil_weight(model)
+        else:
+            return False
+        
+    elif kind == "tension":
+        return entrapped_soil_weight(model) < shaft_resistance(model, outer_shaft=False, inner_shaft=True) 
 
-def bearingcapacity(model, kind):
-    if kind == "API":
-        if not all([x.bearingcapacity_signature == "API" for x in model.soil.layer.axial_model]):
-            ValueError("All axial models must be API compliant.")
 
-    plugged = shaft_resistance(model, outer_shaft=True, inner_shaft=False)
-    +unit_end_bearing(model) * model.pile.tip_area
-    -entrapped_soil_weight(model)
-    # - model.
+def compressioncapacity(model):
 
-    # unplugged =
+    if isplugged(model, kind="compression"):
+        Q = shaft_resistance(model, outer_shaft=True, inner_shaft=False) 
+        + unit_end_bearing(model) * model.pile.tip_footprint - entrapped_soil_weight(model)
+    else:
+        Q = shaft_resistance(model, outer_shaft=True, inner_shaft=True) 
+        + unit_end_bearing(model) * model.pile.tip_area
+    
+    return Q
 
-    # isplugged =
+def tensilecapacity(model):
 
-    return {
-        "Compression": {
-            "shaft_resistance": 0,
-        }
-    }
+    if isplugged(model, kind="tension"):
+        Q = shaft_resistance(model, outer_shaft=True, inner_shaft=False) + entrapped_soil_weight(model)
+    else:
+        Q = shaft_resistance(model, outer_shaft=True, inner_shaft=True)
+
+    return Q
+
 
 
 def unit_end_bearing(
@@ -200,6 +212,8 @@ def entrapped_soil_weight(model) -> float:
 
 def shaft_resistance(
     model,
+    outer_shaft:bool,
+    inner_shaft:bool,
 ) -> float:
     """Calculates shaft resistance of the pile based on the axial models assigned to the SoilProfile layers. (Unit: kN)
 

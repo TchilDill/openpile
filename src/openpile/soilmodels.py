@@ -84,8 +84,23 @@ class LateralModel(ABC):
         return np.linspace(0, ymax, output_length), np.zeros(output_length)
 
 
-class AxialModel:
-    pass
+class AxialModel(ABC):
+    @abstractmethod
+    def unit_shaft_friction(self, *args):
+        pass
+
+    @abstractmethod
+    def unit_tip_resistance(self, *args):
+        pass
+
+    @abstractmethod
+    def tz_springs_fct(self, *args):
+        pass
+
+    @abstractmethod
+    def Qz_spring_fct(self, *args):
+        pass
+
 
 
 @dataclass(config=PydanticConfigFrozen)

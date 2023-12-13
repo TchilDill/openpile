@@ -33,7 +33,7 @@ from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str, get_val
 from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves
 from openpile.utils.misc import _fmax_api_sand, _fmax_api_clay, _Qmax_api_clay, _Qmax_api_sand
 
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 
 # CONSTITUTIVE MODELS CLASSES ---------------------------------
 
@@ -85,6 +85,10 @@ class LateralModel(ABC):
 
 
 class AxialModel(ABC):
+    @abstractproperty
+    def method(self) -> str:
+        pass
+
     @abstractmethod
     def unit_shaft_friction(self, *args):
         pass
@@ -121,9 +125,6 @@ class API_clay_axial(AxialModel):
     #: tension factor
     shaft_friction_tension_multiplier: confloat(ge=0.0, le=1.0) = 1.0
 
-    # global variable for convenience
-    bearingcapacity_signature = "API"
-
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
 
@@ -156,6 +157,9 @@ class API_clay_axial(AxialModel):
 
     def Qz_spring_fct():
         pass
+
+    def method(self) -> str:
+        return "API"
 
 
 @dataclass(config=PydanticConfigFrozen)

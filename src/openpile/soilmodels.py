@@ -828,7 +828,7 @@ class API_sand(LateralModel):
             self.spring_signature = np.array([True, False, False, False], dtype=bool)
 
     def __str__(self):
-        return f"\tAPI sand\n\tphi = {var_to_str(self.phi)}°\n\t{self.kind} curves"
+        return f"\tAPI sand\n\tphi = {var_to_str(self.phi)}°\n\t{self.kind} curves\n\text: {self.extension}"
 
     def py_spring_fct(
         self,
@@ -941,8 +941,6 @@ class API_clay(LateralModel):
         strain at 50% failure load [-]
     J: float
         empirical factor varying depending on clay stiffness, varies between 0.25 and 0.50
-    stiff_clay_threshold: float
-        undrained shear strength [kPa] at which stiff clay curve is computed
     G0: float or list[top_value, bottom_value] or None
         Small-strain shear modulus [unit: kPa], by default None
     kind: str, by default "static"
@@ -972,8 +970,6 @@ class API_clay(LateralModel):
     G0: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]] = None
     #: empirical factor varying depending on clay stiffness
     J: confloat(ge=0.25, le=0.5) = 0.5
-    #: undrained shear strength [kPa] at which stiff clay curve is computed
-    stiff_clay_threshold: PositiveFloat = 96
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
     #: y-multiplier
@@ -994,7 +990,7 @@ class API_clay(LateralModel):
             self.spring_signature = np.array([True, False, False, False], dtype=bool)
 
     def __str__(self):
-        return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{self.kind} curves"
+        return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{self.kind} curves\n\text: {self.extension}"
 
     def py_spring_fct(
         self,
@@ -1027,7 +1023,161 @@ class API_clay(LateralModel):
             eps50=eps50,
             D=D,
             J=self.J,
-            stiff_clay_threshold=self.stiff_clay_threshold,
+            kind=self.kind,
+            ymax=ymax,
+            output_length=output_length,
+        )
+
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
+
+        return y * y_mult, p * p_mult
+
+    def mt_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+
+        m = np.zeros((output_length, output_length), dtype=np.float32)
+        t = np.zeros((output_length, output_length), dtype=np.float32)
+
+        z, tz = tz_curves.api_clay(
+            sig=sig,
+            Su=Su,
+            D=D,
+            residual=1.0,
+            tensile_factor=1.0,
+            output_length=output_length,
+        )
+
+        # trasnform tz vector so that we only get the positive side of the vectors
+        tz_pos = tz[tz >= 0]
+        z_pos = z[z >= 0]
+        # check how many elements we got rid off
+        diff_length_t = output_length - len(tz_pos)
+        diff_length_z = output_length - len(z_pos)
+        # add new elements at the end of the positive only vectors
+        tz_pos = np.append(tz_pos, [tz_pos[-1]] * diff_length_t)
+        z_pos = np.append(z_pos, [z_pos[-1] + i * 0.1 for i in range(diff_length_z)])
+
+        # calculate m and t vectors (they are all the same for clay)
+        t = np.arctan(z_pos.reshape((1, -1)) / (0.5 * D)) * np.ones((output_length, 1))
+        m = 1 / 4 * np.pi * D**2 * tz_pos.reshape((1, -1)) * np.ones((output_length, 1))
+
+        return t, m
+
+
+
+@dataclass(config=PydanticConfigFrozen)
+class Modified_Matlock_clay(LateralModel):
+    """A class to establish the Modified Matlock clay model, see [BaCA06]_.
+
+    Parameters
+    ----------
+    Su: float or list[top_value, bottom_value]
+        Undrained shear strength in kPa
+    eps50: float or list[top_value, bottom_value]
+        strain at 50% failure load [-]
+    J: float
+        empirical factor varying depending on clay stiffness, varies between 0.25 and 0.50
+    G0: float or list[top_value, bottom_value] or None
+        Small-strain shear modulus [unit: kPa], by default None
+    kind: str, by default "static"
+        types of curves, can be of ("static","cyclic")
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for p-values
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for y-values
+    extension: str, by default None
+        turn on extensions by calling them in this variable
+        for API_clay, rotational springs can be added to the model with the extension "mt_curves"
+
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.api_clay`
+
+    """
+
+    #: undrained shear strength [kPa], if a variation in values, two values can be given.
+    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: strain at 50% failure load [-], if a variation in values, two values can be given.
+    eps50: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: types of curves, can be of ("static","cyclic")
+    kind: Literal["static", "cyclic"] = "static"
+    #: small-strain stiffness [kPa], if a variation in values, two values can be given.
+    G0: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]] = None
+    #: empirical factor varying depending on clay stiffness
+    J: confloat(ge=0.25, le=0.5) = 0.5
+    #: p-multiplier
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    #: y-multiplier
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    #: extensions available for soil model
+    extension: Optional[Literal["mt_curves"]] = None
+
+    # define class variables needed for all soil models
+    m_multiplier = 1.0
+    t_multiplier = 1.0
+
+    def __post_init__(self):
+        # spring signature which tells that API clay only has p-y curves in normal conditions
+        # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
+        if self.extension == "mt_curves":
+            self.spring_signature = np.array([True, False, True, False], dtype=bool)
+        else:
+            self.spring_signature = np.array([True, False, False, False], dtype=bool)
+
+    def __str__(self):
+        return f"\tModified Matlock clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{self.kind} curves\n\text: {self.extension}"
+
+    def py_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+
+        # define eps50
+        eps50_t, eps50_b = from_list2x_parse_top_bottom(self.eps50)
+        eps50 = eps50_t + (eps50_b - eps50_t) * depth_from_top_of_layer / layer_height
+
+        y, p = py_curves.modified_Matlock(
+            sig=sig,
+            X=X,
+            Su=Su,
+            eps50=eps50,
+            D=D,
+            J=self.J,
             kind=self.kind,
             ymax=ymax,
             output_length=output_length,

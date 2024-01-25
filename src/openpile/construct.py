@@ -46,6 +46,13 @@ import openpile.soilmodels as soilmodels
 
 from openpile.core import misc
 
+from openpile.materials import (
+    StructuralMaterial, 
+    Steel, 
+    Concrete, 
+    StructuralMaterialEnum,
+)
+
 from openpile.soilmodels import ConstitutiveModel
 
 from openpile.core.misc import generate_color_string
@@ -75,7 +82,7 @@ class Pile:
         - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
     kind : Literal["Circular",]
         type of pile or type of cross-section. by default "Circular"
-    material : Literal["Steel",]
+    material : Union[StructuralMaterial, StructuralMaterialEnum]
         material the pile is made of. by default "Steel"
 
 
@@ -100,8 +107,8 @@ class Pile:
     name: str
     #: select the type of pile, can be of ('Circular', )
     kind: Literal["Circular"]
-    #: select the type of material the pile is made of, can be of ('Steel', )
-    material: Literal["Steel"]
+    #: select the type of material the pile is made of, can be of StructuralMaterial or string contained in StructuralMaterialEnum ('Steel', 'Concrete')
+    material: Union[StructuralMaterial, StructuralMaterialEnum]
     #: top elevation of the pile according to general vertical reference set by user
     top_elevation: float
     #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
@@ -112,17 +119,22 @@ class Pile:
         # check that dict is correctly entered
         validation.pile_sections_must_be(self)
 
-        # Create material specific specs for given material
-        # if steel
-        if self.material == "Steel":
-            # unit weight
-            self._uw = 78.0  # kN/m3
-            # young modulus
-            self._young_modulus = 210.0e6  # kPa
-            # Poisson's ratio
-            self._nu = 0.3
-        else:
+        # Create a proper `StructuralMaterial` object 
+        # if `material` passed as a string
+        if self.material == StructuralMaterialEnum.Steel:
+            self.material = Steel()
+        elif self.material == StructuralMaterialEnum.Concrete:
+            self.material = Concrete()   
+        elif not isinstance(self.material, StructuralMaterial):
             raise UserWarning
+        
+        # Create material specific specs for given material
+        # unit weight (kN/m3)
+        self._uw = self.material.uw
+        # young modulus (kPa)
+        self._young_modulus = self.material.young_modulus
+        # Poisson's ratio
+        self._nu = self.material.nu
 
         self._shear_modulus = self._young_modulus / (2 + 2 * self._nu)
 
@@ -322,9 +334,10 @@ class Pile:
         kind: Literal[
             "Circular",
         ] = "Circular",
-        material: Literal[
-            "Steel",
-        ] = "Steel",
+        material: Union[
+            StructuralMaterial, 
+            StructuralMaterialEnum,
+        ] = StructuralMaterialEnum.Steel,
     ):
         """A method to create the pile.
 
@@ -341,7 +354,7 @@ class Pile:
             - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
         kind : Literal["Circular",]
             type of pile or type of cross-section. by default "Circular"
-        material : Literal["Steel",]
+        material : Literal["Steel", "Concrete"]
             material the pile is made of. by default "Steel"
 
         Returns
@@ -375,7 +388,10 @@ class Pile:
         bottom_elevation: float,
         diameter: float,
         wt: float,
-        material: str = "Steel",
+        material: Union[
+            StructuralMaterial, 
+            StructuralMaterialEnum,
+        ] = StructuralMaterialEnum.Steel,
     ):
         """A method to simplify the creation of a Pile instance.
         This method creates a circular and hollow pile of constant diameter and wall thickness.
@@ -392,7 +408,7 @@ class Pile:
             pile diameter [m]
         wt : float
             pile's wall thickness [m]
-        material : Literal["Steel",]
+        material : Literal["Steel", "Concrete"]
             material the pile is made of. by default "Steel"
 
         Returns

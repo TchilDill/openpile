@@ -32,18 +32,15 @@ from pydantic.dataclasses import dataclass
 from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str, get_value_at_current_depth
 from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves
 from openpile.utils.misc import _fmax_api_sand, _fmax_api_clay, _Qmax_api_clay, _Qmax_api_sand
+from openpile.materials import ConstitutiveModel
 
 
-# CONSTITUTIVE MODELS CLASSES ---------------------------------
+# SOIL CONSTITUTIVE MODELS CLASSES ---------------------------------
 
 
 class PydanticConfigFrozen:
     arbitrary_types_allowed = True
     allow_mutation = False
-
-
-class ConstitutiveModel:
-    pass
 
 
 class LateralModel(ConstitutiveModel):

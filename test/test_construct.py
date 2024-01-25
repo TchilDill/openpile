@@ -1,5 +1,7 @@
 from openpile import construct
 from openpile.soilmodels import API_clay
+from openpile.materials import Steel, Concrete
+
 import pytest
 import numpy as np
 import math as m
@@ -105,6 +107,62 @@ class TestPile:
         )
 
         assert m.isclose(pile.area.mean(), m.pi * 0.001, rel_tol=0.01)
+
+    def test_concrete_pile(self):
+        pile = construct.Pile(
+            name="",
+            kind="Circular",
+            material="Concrete",
+            top_elevation=0,
+            pile_sections={
+                "length": [20],
+                "diameter": [1.0],
+                "wall thickness": [0.5],
+            },
+        )
+
+        assert m.isclose(pile.area.mean(), m.pi / 4, rel_tol=0.01)
+        assert isinstance(pile.material, Concrete)
+        assert m.isclose(pile.material.uw, 24)
+        assert m.isclose(pile.material.young_modulus, 30e6)
+        assert m.isclose(pile.material.nu, 0.2)        
+
+    def test_steel_pile_material_obj(self):
+        pile = construct.Pile(
+            name="",
+            kind="Circular",
+            material=Steel(uw=77, young_modulus=200e6, nu=0.31),
+            top_elevation=0,
+            pile_sections={
+                "length": [20],
+                "diameter": [0.8],
+                "wall thickness": [0.08],
+            },
+        )
+
+        assert isinstance(pile.material, Steel)
+        assert m.isclose(pile.material.uw, 77)
+        assert m.isclose(pile.material.young_modulus, 200e6)
+        assert m.isclose(pile.material.nu, 0.31)
+
+    def test_concrete_pile_material_obj(self):
+        pile = construct.Pile(
+            name="",
+            kind="Circular",
+            material=Concrete(uw=25, young_modulus=28e6, nu=0.18),
+            top_elevation=0,
+            pile_sections={
+                "length": [20],
+                "diameter": [1.0],
+                "wall thickness": [0.5],
+            },
+        )
+
+        assert m.isclose(pile.area.mean(), m.pi / 4, rel_tol=0.01)
+        assert isinstance(pile.material, Concrete)
+        assert m.isclose(pile.material.uw, 25)
+        assert m.isclose(pile.material.young_modulus, 28e6)
+        assert m.isclose(pile.material.nu, 0.18)        
 
 
 class TestLayer:

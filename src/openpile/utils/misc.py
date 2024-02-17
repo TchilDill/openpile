@@ -2,8 +2,6 @@
 import math as m
 import numpy as np
 from numba import njit
-from random import random
-
 
 # maximum resistance values
 @njit(cache=True)
@@ -12,7 +10,6 @@ def _Qmax_api_clay(
 ) -> float:
     # Unit end-bearing [kPa]
     return 9 * Su
-
 
 @njit(cache=True)
 def _Qmax_api_sand(
@@ -29,7 +26,6 @@ def _Qmax_api_sand(
 
     # Unit end-bearing [kPa]
     return min(Qmax, sig * Nq)
-
 
 @njit(cache=True)
 def _fmax_api_clay(

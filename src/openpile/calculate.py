@@ -45,6 +45,17 @@ def _pile_element_surface(model):
 
 
 def _pile_inside_volume(model):
+    """calculates the volume of the pile form the model object
+
+    Parameters
+    ----------
+    model : openpile.construct.Model
+
+    Returns
+    -------
+    np.ndarray
+        inside volume of each element
+    """
     area_inside = (
         (
             model.element_properties["Diameter [m]"].values
@@ -104,16 +115,41 @@ def effective_pile_weight(model):
             "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
         )
 
-def isplugged(model, kind:str="compression") -> bool:
+def isplugged(model, method:str, kind:str="compression") -> bool:
+    """_summary_
+
+    Parameters
+    ----------
+    model : _type_
+        _description_
+    method : str
+        _description_, should be one of ("API-87","ICP-05")
+    kind : str, optional
+        _description_, by default "compression"
+
+    Returns
+    -------
+    bool
+        _description_
+
+    Raises
+    ------
+    Exception
+        _description_
+    """
     
-    if kind == "compression":
-        if model.method == "API":
-            return unit_end_bearing(model)*(model.pile.tip_footprint - model.pile.tip_area) < shaft_resistance(model, outer_shaft=False, inner_shaft=True) - entrapped_soil_weight(model)
-        else:
-            return False
-        
-    elif kind == "tension":
-        return entrapped_soil_weight(model) < shaft_resistance(model, outer_shaft=False, inner_shaft=True) 
+    if method == "API-87":
+        if kind == "compression":
+            answer = unit_end_bearing(model)*(model.pile.tip_footprint - model.pile.tip_area) < shaft_resistance(model, outer_shaft=False, inner_shaft=True) - entrapped_soil_weight(model)
+        elif kind == "tension":
+            answer = entrapped_soil_weight(model) < shaft_resistance(model, outer_shaft=False, inner_shaft=True) 
+    elif method == "ICP-05":
+        pile_tip_diameter = m.sqrt(4 * model.pile.tip_footprint / m.pi)
+        answer = True if pile_tip_diameter < 1.4 else False
+    else:
+        raise Exception("Method not implemented")
+    
+    return answer
 
 
 def compressioncapacity(model):
@@ -144,7 +180,7 @@ def unit_end_bearing(
 
     for layer in model.soil.layers:
         if layer.axial_model is None:
-            pass
+            q = 0.0
         else:
             # check if pile tip is within layer
             if (
@@ -155,7 +191,7 @@ def unit_end_bearing(
                 sig_v_tip = (model.soil_properties["sigma_v bottom [kPa]"].iloc[-1],)
 
                 # Calculate unit tip resistance with effective area
-                return (
+                q = (
                     layer.axial_model.unit_tip_resistance(
                         sig=sig_v_tip,
                         depth_from_top_of_layer=(
@@ -166,7 +202,7 @@ def unit_end_bearing(
                     * layer.axial_model.Q_multiplier
                 )
 
-    return 0.0
+    return q
 
 
 def entrapped_soil_weight(model) -> float:

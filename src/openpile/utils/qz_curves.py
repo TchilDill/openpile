@@ -10,7 +10,7 @@ import numpy as np
 from numba import njit, prange
 from random import random
 
-import openpile.utils.misc as misc
+from openpile.utils.misc import _Qmax_api_clay, _Qmax_api_sand
 
 # SPRING FUNCTIONS --------------------------------------------
 
@@ -48,7 +48,7 @@ def api_sand(
         output_length = 8
 
     # unit toe reistance [kPa]
-    f = misc._Qmax_api_sand(sig, delta)
+    f = _Qmax_api_sand(sig, delta)
 
     # piecewise function
     zlist = [-0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]
@@ -110,7 +110,7 @@ def api_clay(
         output_length = 8
 
     # unit toe reistance [kPa]
-    f = misc._Qmax_api_clay
+    f = _Qmax_api_clay
 
     # piecewise function
     zlist = [-0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]

@@ -6,7 +6,7 @@
 """
 
 # Import libraries
-import openpile.utils.misc as misc
+from openpile.utils.misc import _fmax_api_clay, _fmax_api_sand
 
 import math as m
 import numpy as np
@@ -119,7 +119,7 @@ def api_clay(
         output_length = 15
 
     # unit skin friction
-    f = misc._fmax_api_clay(sig, Su)
+    f = _fmax_api_clay(sig, Su)
 
     # piecewise function
     zlist = [0.0, 0.0016, 0.0031, 0.0057, 0.0080, 0.0100, 0.0200, 0.0300]
@@ -200,7 +200,7 @@ def api_clay_kraft(
 
     """
     return kraft_modification(
-        misc._fmax_api_clay(sig, Su), D, G0, residual, tensile_factor, RF, zif, output_length
+        _fmax_api_clay(sig, Su), D, G0, residual, tensile_factor, RF, zif, output_length
     )
 
 
@@ -243,7 +243,7 @@ def api_sand(
         output_length = 7
 
     # unit skin friction
-    f = misc._fmax_api_sand(sig, delta, K)
+    f = _fmax_api_sand(sig, delta, K)
 
     # piecewise function
     zlist = [0.0, 0.0254, 0.03, 0.04]
@@ -327,5 +327,5 @@ def api_sand_kraft(
 
     """
     return kraft_modification(
-        misc._fmax_api_sand(sig, delta, K), D, G0, residual, tensile_factor, RF, zif, output_length
+        _fmax_api_sand(sig, delta, K), D, G0, residual, tensile_factor, RF, zif, output_length
     )

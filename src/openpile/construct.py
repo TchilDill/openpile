@@ -47,9 +47,10 @@ import openpile.utils.graphics as graphics
 import openpile.core.validation as validation
 import openpile.soilmodels as soilmodels
 
-from openpile.core import misc
+from openpile.core import misc, _model_build
 from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
+from openpile.calculate import isplugged
 
 
 class PydanticConfig:
@@ -143,9 +144,9 @@ class Pile:
 
         # create sectional properties
         # spread
-        diameter = [x for x in self.pile_sections["diameter"].values for x in [x,x]]
+        diameter = [x for x in self.pile_sections["diameter"] for x in [x,x]]
         # thickness
-        thickness = [x for x in self.pile_sections["wall thickness"].values for x in [x,x]]
+        thickness = [x for x in self.pile_sections["wall thickness"] for x in [x,x]]
 
         def _circular_pile_area(diameter, wall_thickness):
             return m.pi / 4 * (diameter**2 - (diameter - 2 * wall_thickness) ** 2)
@@ -869,103 +870,7 @@ class Model:
         return values
 
     def __post_init__(self):
-        def check_springs(arr):
-            check_nan = np.isnan(arr).any()
-            check_negative = (arr < 0).any()
-
-            return check_nan or check_negative
-
-        def get_coordinates() -> pd.DataFrame:
-            # Primary discretisation over x-axis
-            x = np.array([], dtype=np.float16)
-            # add get pile relevant sections
-            x = np.append(x, self.pile.data["Elevation [m]"].values)
-            # add soil relevant layers and others
-            if self.soil is not None:
-                soil_elevations = np.array(
-                    [x.top for x in self.soil.layers] + [x.bottom for x in self.soil.layers],
-                    dtype=float,
-                )
-                if any(soil_elevations < self.pile.bottom_elevation):
-                    soil_elevations = np.append(self.pile.bottom_elevation, soil_elevations)
-                    soil_elevations = soil_elevations[soil_elevations >= self.pile.bottom_elevation]
-                x = np.append(x, soil_elevations)
-            # add user-defined elevation
-            x = np.append(x, self.x2mesh)
-
-            # get unique values and sort in reverse order
-            x = np.unique(x)[::-1]
-
-            # Secondary discretisation over x-axis depending on coarseness factor
-            x_secondary = np.array([], dtype=np.float16)
-            for i in range(len(x) - 1):
-                spacing = x[i] - x[i + 1]
-                new_spacing = spacing
-                divider = 1
-                while new_spacing > self.coarseness:
-                    divider += 1
-                    new_spacing = spacing / divider
-                new_x = x[i] - (
-                    np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider - 1))
-                )
-                x_secondary = np.append(x_secondary, new_x)
-
-            # assemble x- coordinates
-            x = np.append(x, x_secondary)
-            x = np.unique(x)[::-1]
-
-            # dummy y- coordinates
-            y = np.zeros(shape=x.shape)
-
-            # create dataframe coordinates
-            nodes = pd.DataFrame(
-                data={
-                    "x [m]": x,
-                    "y [m]": y,
-                },
-                dtype=float,
-            ).round(3)
-            nodes.index.name = "Node no."
-
-            element = pd.DataFrame(
-                data={
-                    "x_top [m]": x[:-1],
-                    "x_bottom [m]": x[1:],
-                    "y_top [m]": y[:-1],
-                    "y_bottom [m]": y[1:],
-                },
-                dtype=float,
-            ).round(3)
-            element.index.name = "Element no."
-
-            return nodes, element
-
-            # function doing the work
-
-        def get_soil_profile() -> pd.DataFrame:
-            top_elevations = [x.top for x in self.soil.layers]
-            bottom_elevations = [x.bottom for x in self.soil.layers]
-            soil_weights = [x.weight for x in self.soil.layers]
-
-            idx_sort = np.argsort(top_elevations)[::-1]
-
-            top_elevations = [top_elevations[i] for i in idx_sort]
-            soil_weights = [soil_weights[i] for i in idx_sort]
-            bottom_elevations = [bottom_elevations[i] for i in idx_sort]
-
-            # #calculate vertical stress
-            # v_stress = [0.0,]
-            # for uw, top, bottom in zip(soil_weights, top_elevations, bottom_elevations):
-            #     v_stress.append(v_stress[-1] + uw*(top-bottom))
-
-            # elevation in model w.r.t to x axis
-            x = top_elevations
-
-            return pd.DataFrame(
-                data={"Top soil layer [m]": x, "Unit Weight [kN/m3]": soil_weights},
-                dtype=np.float64,
-            )
-
+        
         def create_springs() -> np.ndarray:
             # dim of springs
             spring_dim = 15
@@ -978,6 +883,7 @@ class Model:
             Hb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
             Mb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
 
+            # allocate array for axial springs
             tz = np.zeros(shape=(self.element_number, 2, 2, 15), dtype=np.float32)
 
             # fill in spring for each element
@@ -1023,6 +929,24 @@ class Model:
                                     below_water_table=elevation[j] <= self.soil.water_line,
                                     output_length=spring_dim,
                                 )
+
+                        # # t-z curves
+                        # if (
+                        #     layer.axial_model is not None
+                        # ):  # True if tz spring function exist
+
+                        #     # calculate springs (top and bottom) for each element
+                        #     for j in [0, 1]:
+                        #         (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
+                        #             sig=sig_v[j],
+                        #             X=depth_from_ground[j],
+                        #             layer_height=(layer.top - layer.bottom),
+                        #             depth_from_top_of_layer=(layer.top - elevation[j]),
+                        #             D=pile_width,
+                        #             L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                        #             below_water_table=elevation[j] <= self.soil.water_line,
+                        #             output_length=spring_dim,
+                        #         )
 
                         if (
                             layer.lateral_model.spring_signature[2] and self.distributed_moment
@@ -1110,69 +1034,17 @@ class Model:
                 )
             return py, mt, Hb, Mb, tz
 
-        # creates mesh coordinates
-        self.nodes_coordinates, self.element_coordinates = get_coordinates()
-        self.element_number = int(self.element_coordinates.shape[0])
+        self.soil_properties, self.element_properties, self.nodes_coordinates, self.element_coordinates =  _model_build.get_all_properties(self.pile, self.soil,self.x2mesh, self.coarseness)
+        self.element_number = int(self.element_properties.shape[0])
 
-        # creates element structural properties
-        # merge Pile.data and self.coordinates
-        self.element_properties = pd.merge_asof(
-            left=self.element_coordinates.sort_values(by=["x_top [m]"]),
-            right=self.pile.data.sort_values(by=["Elevation [m]"]),
-            left_on="x_top [m]",
-            right_on="Elevation [m]",
-            direction="forward",
-        ).sort_values(by=["x_top [m]"], ascending=False)
-        # add young modulus to data
-        self.element_properties["E [kPa]"] = self.pile.E
-        # delete Elevation [m] column
-        self.element_properties.drop("Elevation [m]", inplace=True, axis=1)
-        # reset index
-        self.element_properties.reset_index(inplace=True, drop=True)
-
-        # create soil properties
-        if self.soil is not None:
-            self.soil_properties = pd.merge_asof(
-                left=self.element_coordinates[["x_top [m]", "x_bottom [m]"]].sort_values(
-                    by=["x_top [m]"]
-                ),
-                right=get_soil_profile().sort_values(by=["Top soil layer [m]"]),
-                left_on="x_top [m]",
-                right_on="Top soil layer [m]",
-                direction="forward",
-            ).sort_values(by=["x_top [m]"], ascending=False)
-            # add elevation of element w.r.t. ground level
-            self.soil_properties["xg_top [m]"] = (
-                self.soil_properties["x_top [m]"] - self.soil.top_elevation
-            )
-            self.soil_properties["xg_bottom [m]"] = (
-                self.soil_properties["x_bottom [m]"] - self.soil.top_elevation
-            )
-            # add vertical stress at top and bottom of each element
-            condition_below_water_table = self.soil_properties["x_top [m]"] <= self.soil.water_line
-            self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
-                self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
-            )
-            s = (
-                self.soil_properties["x_top [m]"] - self.soil_properties["x_bottom [m]"]
-            ) * self.soil_properties["Unit Weight [kN/m3]"]
-            self.soil_properties["sigma_v top [kPa]"] = np.insert(
-                s.cumsum().values[:-1],
-                np.where(self.soil_properties["x_top [m]"].values == self.soil.top_elevation)[0],
-                0.0,
-            )
-            self.soil_properties["sigma_v bottom [kPa]"] = s.cumsum()
-            # reset index
-            self.soil_properties.reset_index(inplace=True, drop=True)
-
-            # Create arrays of springs
-            (
-                self._py_springs,
-                self._mt_springs,
-                self._Hb_spring,
-                self._Mb_spring,
-                self._tz_springs,
-            ) = create_springs()
+        # Create arrays of springs
+        (
+            self._py_springs,
+            self._mt_springs,
+            self._Hb_spring,
+            self._Mb_spring,
+            self._tz_springs,
+        ) = create_springs()
 
         # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
         self.global_forces = self.nodes_coordinates.copy()

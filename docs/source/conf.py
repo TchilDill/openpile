@@ -34,6 +34,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx.ext.doctest",
     "matplotlib.sphinxext.plot_directive",
+    "sphinxcontrib.autodoc_pydantic",
 ]
 
 autodoc_default_options = {
@@ -73,3 +74,8 @@ numfig = True
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+
+
+#pydantic autodoc
+autodoc_pydantic_model_show_json = False
+autodoc_pydantic_settings_show_json = False

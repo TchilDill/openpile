@@ -7,15 +7,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
-## [0.9.0] - 2024-xx-xx
-
-### Added
-
-
-### Modified
-- functions in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
-
-## [0.8.0] - 2023-12-22
+## [0.8.0] - 2024-xx-xx
 
 ### Added
 - extensions of API-type lateral soil models are now considered in the string output when printing out the model or the entire soil profile.
@@ -23,6 +15,7 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 ### Modified
 
 - The API clay model available until v0.7.1 has decoupled for form the API clay and the Mofidied Matlock model, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
+- functions in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
 
 ## [0.7.1] - 2023-11-21
 

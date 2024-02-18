@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
+## [0.9.0] - 2024-xx-xx
+
+### Added
+
+
+### Modified
+- functions in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
 
 ## [0.8.0] - 2023-12-22
 

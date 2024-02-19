@@ -14,18 +14,15 @@
 import math as m
 import numpy as np
 import pandas as pd
-from numba import njit, prange
 
 from typing import List, Dict, Optional, Union, Callable, Tuple
 from typing_extensions import Literal
 from pydantic import (
     BaseModel,
     Field,
-    root_validator,
     PositiveFloat,
     confloat,
     conlist,
-    Extra,
 )
 from pydantic.dataclasses import dataclass
 
@@ -34,16 +31,15 @@ from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves
 from openpile.utils.misc import _fmax_api_sand, _fmax_api_clay, _Qmax_api_clay, _Qmax_api_sand
 
 from abc import ABC, abstractmethod, abstractproperty
+from typing import List, Dict, Optional, Union
+from typing_extensions import Literal, Annotated, Optional
+from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validator
+
 
 # CONSTITUTIVE MODELS CLASSES ---------------------------------
 
 
-class PydanticConfigFrozen:
-    arbitrary_types_allowed = True
-    allow_mutation = False
-
-
-class LateralModel(ABC):
+class LateralModel(BaseModel, ABC):
     @abstractmethod
     def py_spring_fct(self,
         sig: float,
@@ -84,7 +80,7 @@ class LateralModel(ABC):
         return np.linspace(0, ymax, output_length), np.zeros(output_length)
 
 
-class AxialModel(ABC):
+class AxialModel(BaseModel, ABC):
     @abstractproperty
     def method(self) -> str:
         pass
@@ -106,30 +102,27 @@ class AxialModel(ABC):
         pass
 
 
-
-@dataclass(config=PydanticConfigFrozen)
 class API_clay_axial(AxialModel):
 
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
-    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Su: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field( min_length=1,max_length=2)]]
     #: t-multiplier
-    t_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    t_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: z-multiplier
-    z_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    z_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: Q-multiplier
-    Q_multiplier: confloat(ge=0.0) = 1.0
+    Q_multiplier: Annotated[float,Field(ge=0.0)] = 1.0
     #: w-multiplier
-    w_multiplier: confloat(gt=0.0) = 1.0
+    w_multiplier: Annotated[float,Field(gt=0.0)] = 1.0
     #: inner_shaft_friction
     inside_friction: bool = True
     #: tension factor
-    shaft_friction_tension_multiplier: confloat(ge=0.0, le=1.0) = 1.0
+    shaft_friction_tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
 
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
 
     def unit_shaft_friction(self, sig, depth_from_top_of_layer, layer_height):
-
         # define Su
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
@@ -162,7 +155,6 @@ class API_clay_axial(AxialModel):
         return "API"
 
 
-@dataclass(config=PydanticConfigFrozen)
 class Bothkennar_clay(LateralModel):
     """A class to establish the PISA Bothkennar clay model as per Burd et al 2020 (see [BABH20]_).
 
@@ -190,17 +182,17 @@ class Bothkennar_clay(LateralModel):
     """
 
     #: Undrained shear strength [kPa], if a variation in values, two values can be given.
-    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Su: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field( min_length=1,max_length=2)]]
     #: small-strain shear stiffness modulus [kPa]
-    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    G0: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field( min_length=1,max_length=2)]]
     #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: m-multiplier
-    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    m_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: t-multiplier
-    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    t_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -364,7 +356,6 @@ class Bothkennar_clay(LateralModel):
         return y, Mb
 
 
-@dataclass(config=PydanticConfigFrozen)
 class Cowden_clay(LateralModel):
     """A class to establish the PISA Cowden clay model as per Byrne et al 2020 (see [BHBG20]_).
 
@@ -392,17 +383,17 @@ class Cowden_clay(LateralModel):
     """
 
     #: Undrained shear strength [kPa], if a variation in values, two values can be given.
-    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Su: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field( min_length=1,max_length=2)]]
     #: small-strain shear stiffness modulus [kPa]
-    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    G0: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field( min_length=1,max_length=2)]]
     #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: m-multiplier
-    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    m_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: t-multiplier
-    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    t_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -566,7 +557,6 @@ class Cowden_clay(LateralModel):
         return y, Mb
 
 
-@dataclass(config=PydanticConfigFrozen)
 class Dunkirk_sand(LateralModel):
     """A class to establish the PISA Dunkirk sand model as per  Burd et al (2020) (see [BTZA20]_)..
 
@@ -593,17 +583,17 @@ class Dunkirk_sand(LateralModel):
     """
 
     #: Relative density [%], if a variation in values, two values can be given.
-    Dr: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Dr: Union[Annotated[float,Field(gt=0.0)], Annotated[List[float],Field(gt=0.0, min_length=1,max_length=2)]]
     #: small-strain shear stiffness modulus [kPa]
-    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    G0: Union[Annotated[float,Field(gt=0.0)], Annotated[List[float],Field(gt=0.0, min_length=1,max_length=2)]]
     #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: m-multiplier
-    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    m_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: t-multiplier
-    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    t_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -776,7 +766,6 @@ class Dunkirk_sand(LateralModel):
         return y, Mb
 
 
-@dataclass(config=PydanticConfigFrozen)
 class API_sand(LateralModel):
     """A class to establish the API sand model.
 
@@ -803,17 +792,18 @@ class API_sand(LateralModel):
     """
 
     #: soil friction angle [deg], if a variation in values, two values can be given.
-    phi: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    phi: Union[Annotated[float,Field(ge=15, le=45)], Annotated[List[confloat(ge=15, le=45)],Field(min_length=1,max_length=2)]]
     #: types of curves, can be of ("static","cyclic")
     kind: Literal["static", "cyclic"] = "static"
     #: small-strain stiffness [kPa], if a variation in values, two values can be given.
-    G0: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]] = None
+    G0: Optional[Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]] = None
     #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
+
 
     # define class variables needed for all soil models
     m_multiplier = 1.0
@@ -929,7 +919,6 @@ class API_sand(LateralModel):
         return t, m
 
 
-@dataclass(config=PydanticConfigFrozen)
 class API_clay(LateralModel):
     """A class to establish the API clay model.
 
@@ -961,19 +950,19 @@ class API_clay(LateralModel):
     """
 
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
-    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Su: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]
     #: strain at 50% failure load [-], if a variation in values, two values can be given.
-    eps50: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    eps50: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]
     #: types of curves, can be of ("static","cyclic")
     kind: Literal["static", "cyclic"] = "static"
     #: small-strain stiffness [kPa], if a variation in values, two values can be given.
-    G0: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]] = None
+    G0: Optional[Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]] = None
     #: empirical factor varying depending on clay stiffness
-    J: confloat(ge=0.25, le=0.5) = 0.5
+    J: Annotated[float,Field(ge=0.25, le=0.5)] = 0.5
     #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
 
@@ -1084,7 +1073,6 @@ class API_clay(LateralModel):
 
 
 
-@dataclass(config=PydanticConfigFrozen)
 class Modified_Matlock_clay(LateralModel):
     """A class to establish the Modified Matlock clay model, see [BaCA06]_.
 
@@ -1116,19 +1104,19 @@ class Modified_Matlock_clay(LateralModel):
     """
 
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
-    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Su: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]
     #: strain at 50% failure load [-], if a variation in values, two values can be given.
-    eps50: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    eps50: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]
     #: types of curves, can be of ("static","cyclic")
     kind: Literal["static", "cyclic"] = "static"
     #: small-strain stiffness [kPa], if a variation in values, two values can be given.
-    G0: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]] = None
+    G0: Optional[Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]] = None
     #: empirical factor varying depending on clay stiffness
-    J: confloat(ge=0.25, le=0.5) = 0.5
+    J: Annotated[float,Field(ge=0.25, le=0.5)] = 0.5
     #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
 
@@ -1238,7 +1226,6 @@ class Modified_Matlock_clay(LateralModel):
         return t, m
 
 
-@dataclass(config=PydanticConfigFrozen)
 class Reese_weakrock(LateralModel):
     """A class to establish the Reese weakrock model.
 
@@ -1262,19 +1249,19 @@ class Reese_weakrock(LateralModel):
     """
 
     #: initial modulus of rock [kPa], if a variation in values, two values can be given.
-    Ei: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
-    #: scompressive strength of rock [kPa], if a variation in values, two values can be given.
-    qu: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]]
+    Ei: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]
+    #: compressive strength of rock [kPa], if a variation in values, two values can be given.
+    qu: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]
     #: Rock Quality Designation
-    RQD: confloat(ge=0.0, le=100.0)
+    RQD: Annotated[float,Field(ge=0.0, le=100.0)]
     #: dimnesional constant
-    k: confloat(ge=0.00005, le=0.0005)
+    k: Annotated[float,Field(ge=0.00005, le=0.0005)]
     #: absolute depth of top layer elevation with respect to rock surface [m]
-    ztop: confloat(ge=0.0)
-    #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    ztop: Annotated[float,Field(ge=0.0)]
+     #: p-multiplier
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
 
     # define class variables needed for all soil models
     m_multiplier = 1.0
@@ -1326,7 +1313,6 @@ class Reese_weakrock(LateralModel):
         return y * y_mult, p * p_mult
 
 
-@dataclass(config=PydanticConfigFrozen)
 class Custom_pisa_sand(LateralModel):
     """A class to establish a sand model as per PISA framework with custom normalized parameters.
 
@@ -1384,88 +1370,114 @@ class Custom_pisa_sand(LateralModel):
 
     #: small-strain shear stiffness modulus [kPa]
     G0: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized displacement at ultimate resistance of p-y curve
     py_X: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized curvature of the conic function of p-y curve, must be greater than or equal to 0 and less than or equal to 1.
     py_n: Union[
-        confloat(ge=0.0, lt=1.0),
-        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
-        Callable[[float], float],
-    ]
+        Annotated[float,Field(ge=0.0, lt=1.0)], 
+        Annotated[List[confloat(ge=0.0, lt=1.0)],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized initial stiffness of the curve  of p-y curve
     py_k: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized maximum resistance of the curve of p-y curve
     py_Y: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized displacement at ultimate resistance of m-t curve
     mt_X: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized curvature of the conic function of m-t curve, must be greater than or equal to 0 and less than 1.
     mt_n: Union[
-        confloat(ge=0.0, lt=1.0),
-        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
-        Callable[[float], float],
-    ]
+        Annotated[float,Field(ge=0.0, lt=1.0)], 
+        Annotated[List[confloat(ge=0.0, lt=1.0)],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized initial stiffness of the curve  of m-t curve
     mt_k: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized maximum resistance of the curve of m-t curve
     mt_Y: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized displacement at ultimate resistance of Hb-y curve
     Hb_X: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized curvature of the conic function of Hb-y curve, must be greater than or equal to 0 and less than 1.
     Hb_n: Union[
-        confloat(ge=0.0, lt=1.0),
-        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
-        Callable[[float], float],
-    ]
+        Annotated[float,Field(ge=0.0, lt=1.0)], 
+        Annotated[List[confloat(ge=0.0, lt=1.0)],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized initial stiffness of the curve  of Hb-y curve
     Hb_k: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized maximum resistance of the curve of Hb-y curve
     Hb_Y: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized displacement at ultimate resistance of Mb-y curve
     Mb_X: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized curvature of the conic function of Mb-y curve, must be greater than or equal to 0 and less than 1.
     Mb_n: Union[
-        confloat(ge=0.0, lt=1.0),
-        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
-        Callable[[float], float],
-    ]
+        Annotated[float,Field(ge=0.0, lt=1.0)], 
+        Annotated[List[confloat(ge=0.0, lt=1.0)],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized initial stiffness of the curve  of Mb-y curve
     Mb_k: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized maximum resistance of the curve of Mb-y curve
     Mb_Y: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: m-multiplier
-    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    m_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: t-multiplier
-    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    t_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
@@ -1677,89 +1689,121 @@ class Custom_pisa_clay(LateralModel):
     """
 
     #: undrained shear strength [kPa]
-    Su: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    Su: Union[
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: small-strain shear stiffness modulus [kPa]
-    G0: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    G0: Union[
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized displacement at ultimate resistance of p-y curve
     py_X: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized curvature of the conic function of p-y curve, must be greater than or equal to 0 and less than or equal to 1.
     py_n: Union[
-        confloat(ge=0.0, lt=1.0),
-        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
-        Callable[[float], float],
-    ]
+        Annotated[float,Field(ge=0.0, lt=1.0)], 
+        Annotated[List[confloat(ge=0.0, lt=1.0)],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized initial stiffness of the curve  of p-y curve
     py_k: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized maximum resistance of the curve of p-y curve
     py_Y: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized displacement at ultimate resistance of m-t curve
     mt_X: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized curvature of the conic function of m-t curve, must be greater than or equal to 0 and less than 1.
     mt_n: Union[
-        confloat(ge=0.0, lt=1.0),
-        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
-        Callable[[float], float],
-    ]
+        Annotated[float,Field(ge=0.0, lt=1.0)], 
+        Annotated[List[confloat(ge=0.0, lt=1.0)],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized initial stiffness of the curve  of m-t curve
     mt_k: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized maximum resistance of the curve of m-t curve
     mt_Y: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized displacement at ultimate resistance of Hb-y curve
     Hb_X: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized curvature of the conic function of Hb-y curve, must be greater than or equal to 0 and less than 1.
     Hb_n: Union[
-        confloat(ge=0.0, lt=1.0),
-        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
-        Callable[[float], float],
-    ]
+        Annotated[float,Field(ge=0.0, lt=1.0)], 
+        Annotated[List[confloat(ge=0.0, lt=1.0)],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized initial stiffness of the curve  of Hb-y curve
     Hb_k: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized maximum resistance of the curve of Hb-y curve
     Hb_Y: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized displacement at ultimate resistance of Mb-y curve
     Mb_X: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized curvature of the conic function of Mb-y curve, must be greater than or equal to 0 and less than 1.
     Mb_n: Union[
-        confloat(ge=0.0, lt=1.0),
-        conlist(confloat(ge=0.0, lt=1.0), min_items=1, max_items=2),
-        Callable[[float], float],
-    ]
+        Annotated[float,Field(ge=0.0, lt=1.0)], 
+        Annotated[List[confloat(ge=0.0, lt=1.0)],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized initial stiffness of the curve  of Mb-y curve
     Mb_k: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: normalized maximum resistance of the curve of Mb-y curve
     Mb_Y: Union[
-        PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2), Callable[[float], float]
-    ]
+        Annotated[float,Field(gt=0.0)], 
+        Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)],
+        Callable[[float], float]
+        ]
     #: p-multiplier
-    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
-    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: m-multiplier
-    m_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    m_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: t-multiplier
-    t_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    t_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]

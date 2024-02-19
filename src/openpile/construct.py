@@ -24,9 +24,18 @@ import pandas as pd
 import numpy as np
 import warnings
 
+import openpile.utils.graphics as graphics
+
+from openpile.core import misc, _model_build
+from openpile.soilmodels import LateralModel, AxialModel
+from openpile.core.misc import generate_color_string
+from openpile.calculate import isplugged
+
 from abc import ABC, abstractmethod, abstractproperty
 from typing import List, Dict, Optional, Union
-from typing_extensions import Literal
+from typing_extensions import Literal, Annotated, Optional
+from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validator
+
 from pydantic import (
     BaseModel,
     Field,
@@ -36,33 +45,23 @@ from pydantic import (
     confloat,
     conlist,
     constr,
-    Extra,
-    ValidationError,
 )
-from pydantic.dataclasses import dataclass
 
-import matplotlib.pyplot as plt
+class AbstractPile(BaseModel, ABC):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
 
-import openpile.utils.graphics as graphics
-import openpile.core.validation as validation
-import openpile.soilmodels as soilmodels
+class AbstractLayer(BaseModel, ABC):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
 
-from openpile.core import misc, _model_build
-from openpile.soilmodels import LateralModel, AxialModel
-from openpile.core.misc import generate_color_string
-from openpile.calculate import isplugged
+class AbstractSoilProfile(BaseModel, ABC):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
+
+class AbstractModel(BaseModel, ABC):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
 
 
-class PydanticConfig:
-    arbitrary_types_allowed = True
-    extra = Extra.forbid
-    post_init_call = "after_validation"
 
-class AbstractPile(ABC):
-    pass
-
-@dataclass(config=PydanticConfig)
-class Pile:
+class Pile(AbstractPile):
     """
     A class to create the pile.
 
@@ -112,10 +111,46 @@ class Pile:
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
     pile_sections: Dict[str, List[PositiveFloat]]
 
-    def __post_init__(self):
-        # check that dict is correctly entered
-        validation.pile_sections_must_be(self)
+    # check that dict is correctly entered
+    @model_validator(mode="after")
+    def pile_sections_must_be(self):
+        if self.kind == "Circular":
+            reference_list = ["diameter", "length", "wall thickness"]
+            sorted_list = list(self.pile_sections.keys())
+            sorted_list.sort()
+            if sorted_list != reference_list:
+                raise ValueError(
+                    "openpile.construct.Pile.pile_sections must have all and only the following keys: \n - "
+                    + "\n - ".join(reference_list)
+                )
+            for idx, (_, sublist) in enumerate(self.pile_sections.items()):
+                if not isinstance(sublist, list):
+                    raise ValueError(
+                        "openpile.construct.Pile.pile_sections must be a dictionary of lists"
+                    )
+                for value in sublist:
+                    if not isinstance(value, (int, float)):
+                        raise ValueError(
+                            "values in openpile.construct.Pile.pile_sections can only be numbers"
+                        )
 
+                if idx == 0:
+                    reference_length = len(sublist)
+                else:
+                    if len(sublist) != reference_length:
+                        raise ValueError(
+                            "length of lists in openpile.construct.Pile.pile_sections must be the same"
+                        )
+
+            for i in range(reference_length):
+                if self.pile_sections["diameter"][i] / 2 < self.pile_sections["wall thickness"][i]:
+                    raise ValueError(
+                        "The wall thickness cannot be larger than half the diameter of the pile"
+                    )
+
+    
+    @property
+    def data(self) -> pd.DataFrame:
         # Create material specific specs for given material
         # if steel
         if self.material == "Steel":
@@ -162,8 +197,7 @@ class Pile:
             # not yet supporting other kind
             raise ValueError()
 
-        # Create pile data
-        self.data = pd.DataFrame(
+        return pd.DataFrame(
             data={
                 "Elevation [m]": elevation,
                 "Diameter [m]": diameter,
@@ -459,8 +493,8 @@ class Pile:
         return fig if assign else None
 
 
-@dataclass(config=PydanticConfig)
-class Layer:
+
+class Layer(AbstractLayer):
     """A class to create a layer.
 
     The Layer stores information on the soil parameters of the layer as well
@@ -516,13 +550,13 @@ class Layer:
     #: bottom elevaiton of the layer
     bottom: float
     #: unit weight in kN of the layer
-    weight: confloat(gt=10.0)
+    weight: Annotated[float, Field(gt=10.0)]
     #: Lateral constitutive model of the layer
     lateral_model: Optional[LateralModel] = None
     #: Axial constitutive model of the layer
     axial_model: Optional[AxialModel] = None
     #: Layer's color when plotted
-    color: Optional[constr(min_length=7, max_length=7)] = None
+    color: Optional[Annotated[str,Field(min_length=7, max_length=7)]] = None
 
     def __post_init__(self):
         if self.color is None:
@@ -540,8 +574,7 @@ class Layer:
             return values
 
 
-@dataclass(config=PydanticConfig)
-class SoilProfile:
+class SoilProfile(AbstractSoilProfile):
     """
     A class to create the soil profile. A soil profile consist of a ground elevation (or top elevation)
     with one or more layers of soil.
@@ -764,8 +797,7 @@ class SoilProfile:
         return fig if assign is True else None
 
 
-@dataclass(config=PydanticConfig)
-class Model:
+class Model(AbstractModel):
     """
     A class to create a Model.
 

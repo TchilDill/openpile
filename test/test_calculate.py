@@ -49,12 +49,8 @@ def test_entrapped_soil_weight():
             ),
         ],
     )
-
-    # Create Model
-    M = Model(name="<model name>", pile=p, soil=sp)
-
     # check
-    assert m.isclose(calculate.entrapped_soil_weight(M), 18 * 10)
+    assert m.isclose(calculate.entrapped_soil_weight(pile=p, soil=sp), 18 * 10)
 
 
 def test_submerged_effective_pile_weight():
@@ -95,14 +91,11 @@ def test_submerged_effective_pile_weight():
         ],
     )
 
-    # Create Model
-    M = Model(name="<model name>", pile=p, soil=sp)
-
-    print(calculate.effective_pile_weight(M))
+    print(calculate.effective_pile_weight(pile=p,soil=sp))
     print((steel_weight - 10) / 10)
 
     # check
-    assert m.isclose(calculate.effective_pile_weight(M), (steel_weight - 10), abs_tol=0.1)
+    assert m.isclose(calculate.effective_pile_weight(pile=p,soil=sp), (steel_weight - 10), abs_tol=0.1)
 
 
 def test_half_submerged_effective_pile_weight():
@@ -143,12 +136,9 @@ def test_half_submerged_effective_pile_weight():
         ],
     )
 
-    # Create Model
-    M = Model(name="<model name>", pile=p, soil=sp)
-
-    print(calculate.effective_pile_weight(M))
+    print(calculate.effective_pile_weight(pile=p,soil=sp))
     print((steel_weight - 10) / 10)
 
     # check
     target_weight = 0.5 * ((steel_weight - 10) + steel_weight)
-    assert m.isclose(calculate.effective_pile_weight(M), target_weight, abs_tol=0.1)
+    assert m.isclose(calculate.effective_pile_weight(pile=p,soil=sp), target_weight, abs_tol=0.1)

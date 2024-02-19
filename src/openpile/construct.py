@@ -40,6 +40,7 @@ from pydantic import (
     BaseModel,
     Field,
     root_validator,
+    model_validator,
     validator,
     PositiveFloat,
     confloat,
@@ -558,20 +559,21 @@ class Layer(AbstractLayer):
     #: Layer's color when plotted
     color: Optional[Annotated[str,Field(min_length=7, max_length=7)]] = None
 
-    def __post_init__(self):
+    def model_post_init(self,*args,**kwargs):
         if self.color is None:
             self.color = generate_color_string("earth")
+        return self
 
     def __str__(self):
         return f"Name: {self.name}\nElevation: ({self.top}) - ({self.bottom}) m\nWeight: {self.weight} kN/m3\nLateral model: {self.lateral_model}\nAxial model: {self.axial_model}"
 
-    @root_validator
-    def check_elevations(cls, values):  # pylint: disable=no-self-argument
-        if not values["top"] > values["bottom"]:
+    @model_validator(mode="after")
+    def check_elevations(self):  
+        if not self.top > self.bottom:
             print("Bottom elevation is higher than top elevation")
             raise ValueError
         else:
-            return values
+            return self
 
 
 class SoilProfile(AbstractSoilProfile):
@@ -665,29 +667,28 @@ class SoilProfile(AbstractSoilProfile):
     #: (the cpt data outside the soil profile boundaries will be ignored)
     cpt_data: Optional[np.ndarray] = None
 
-    @root_validator
-    def check_layers_elevations(cls, values):  # pylint: disable=no-self-argument
-        layers = values["layers"]
+    @model_validator(mode="after")
+    def check_layers_elevations(self): 
 
-        top_elevations = np.array([x.top for x in layers], dtype=float)
-        bottom_elevations = np.array([x.bottom for x in layers], dtype=float)
+        top_elevations = np.array([x.top for x in self.layers], dtype=float)
+        bottom_elevations = np.array([x.bottom for x in self.layers], dtype=float)
         idx_sort = np.argsort(top_elevations)
 
         top_sorted = top_elevations[idx_sort][::-1]
         bottom_sorted = bottom_elevations[idx_sort][::-1]
 
         # check no overlap
-        if top_sorted[0] != values["top_elevation"]:
+        if top_sorted[0] != self.top_elevation:
             raise ValueError("top_elevation not matching uppermost layer's elevations.")
 
         for i in range(len(top_sorted) - 1):
             if not m.isclose(top_sorted[i + 1], bottom_sorted[i], abs_tol=0.001):
                 raise ValueError("Layers' elevations overlap.")
 
-        return values
+        return self
 
-    @root_validator
-    def check_multipliers_in_lateral_model(cls, values):
+    @model_validator(mode="after")
+    def check_multipliers_in_lateral_model(self):
         def check_multipliers_callable(multiplier, ground_level, top, bottom, type):
             # if not a float, it must be a callable, then we check for Real Positive float
             if not isinstance(multiplier, float):
@@ -715,14 +716,12 @@ class SoilProfile(AbstractSoilProfile):
                                 )
                                 return None
 
-        layers = values["layers"]
-
-        for layer in layers:
+        for layer in self.layers:
             if layer.lateral_model is not None:
                 # check p-multipliers
                 check_multipliers_callable(
                     layer.lateral_model.p_multiplier,
-                    values["top_elevation"],
+                    self.top_elevation,
                     layer.top,
                     layer.bottom,
                     "p",
@@ -730,7 +729,7 @@ class SoilProfile(AbstractSoilProfile):
                 # check y-multipliers
                 check_multipliers_callable(
                     layer.lateral_model.y_multiplier,
-                    values["top_elevation"],
+                    self.top_elevation,
                     layer.top,
                     layer.bottom,
                     "y",
@@ -738,7 +737,7 @@ class SoilProfile(AbstractSoilProfile):
                 # check m-multipliers
                 check_multipliers_callable(
                     layer.lateral_model.m_multiplier,
-                    values["top_elevation"],
+                    self.top_elevation,
                     layer.top,
                     layer.bottom,
                     "m",
@@ -746,16 +745,14 @@ class SoilProfile(AbstractSoilProfile):
                 # check t-multipliers
                 check_multipliers_callable(
                     layer.lateral_model.t_multiplier,
-                    values["top_elevation"],
+                    self.top_elevation,
                     layer.top,
                     layer.bottom,
                     "t",
                 )
 
-        return values
+        return self
 
-    def __post_init__(self):
-        pass
 
     def __str__(self):
         """List all layers in table-like format"""
@@ -892,16 +889,16 @@ class Model(AbstractModel):
     #: whether to include Q-z spring in the calculations
     base_axial: bool = False
 
-    @root_validator(skip_on_failure=True)
-    def soil_and_pile_bottom_elevation_match(cls, values):  # pylint: disable=no-self-argument
-        if values["soil"] is None:
+    @model_validator(mode="after")
+    def soil_and_pile_bottom_elevation_match(self):  # pylint: disable=no-self-argument
+        if self.soil is None:
             pass
         else:
-            if values["pile"].bottom_elevation < values["soil"].bottom_elevation:
-                raise UserWarning("The pile ends deeper than the soil profile.")
-        return values
+            if self.pile.bottom_elevation < self.soil.bottom_elevation:
+                raise ValueError("The pile ends deeper than the soil profile.")
+        return self
 
-    def __post_init__(self):
+    def model_post_init(self,*args,**kwargs):
         
         def create_springs() -> np.ndarray:
             # dim of springs

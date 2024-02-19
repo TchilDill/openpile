@@ -15,7 +15,7 @@ import math as m
 import numpy as np
 import pandas as pd
 
-from typing import List, Dict, Optional, Union, Callable, Tuple
+from typing import List, Dict, Optional, Union, Callable, Tuple, ClassVar
 from typing_extensions import Literal
 from pydantic import (
     BaseModel,
@@ -40,6 +40,10 @@ from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validat
 
 
 class LateralModel(BaseModel, ABC):
+    model_config = ConfigDict(
+        extra='allow',
+    )
+
     @abstractmethod
     def py_spring_fct(self,
         sig: float,
@@ -81,6 +85,10 @@ class LateralModel(BaseModel, ABC):
 
 
 class AxialModel(BaseModel, ABC):
+    model_config = ConfigDict(
+        extra='allow',
+    )
+
     @abstractproperty
     def method(self) -> str:
         pass
@@ -196,7 +204,7 @@ class Bothkennar_clay(LateralModel):
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-    spring_signature = np.array([True, True, True, True], dtype=bool)
+    spring_signature: ClassVar[np.array] = np.array([True, True, True, True], dtype=bool)
 
     def __str__(self):
         return f"\tCowden clay (PISA)\n\tSu = {var_to_str(self.Su)} kPa.\n\tG0 = {round(self.G0/1000,1)} MPa"
@@ -397,7 +405,7 @@ class Cowden_clay(LateralModel):
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-    spring_signature = np.array([True, True, True, True], dtype=bool)
+    spring_signature: ClassVar[np.array] = np.array([True, True, True, True], dtype=bool)
 
     def __str__(self):
         return f"\tCowden clay (PISA)\n\tSu = {var_to_str(self.Su)} kPa.\n\tG0 = {round(self.G0/1000,1)} MPa"
@@ -583,9 +591,9 @@ class Dunkirk_sand(LateralModel):
     """
 
     #: Relative density [%], if a variation in values, two values can be given.
-    Dr: Union[Annotated[float,Field(gt=0.0)], Annotated[List[float],Field(gt=0.0, min_length=1,max_length=2)]]
+    Dr: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]
     #: small-strain shear stiffness modulus [kPa]
-    G0: Union[Annotated[float,Field(gt=0.0)], Annotated[List[float],Field(gt=0.0, min_length=1,max_length=2)]]
+    G0: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field(min_length=1,max_length=2)]]
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: y-multiplier
@@ -597,7 +605,7 @@ class Dunkirk_sand(LateralModel):
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-    spring_signature = np.array([True, True, True, True], dtype=bool)
+    spring_signature: ClassVar[np.array] = np.array([True, True, True, True], dtype=bool)
 
     def __str__(self):
         return f"\tDunkirk sand (PISA)\n\tDr = {var_to_str(self.Dr)}%. \n\tG0 = {round(self.G0/1000,1)} MPa"
@@ -803,19 +811,19 @@ class API_sand(LateralModel):
     y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
+    
+    # common class variables 
+    m_multiplier: ClassVar[float] = 1.0
+    t_multiplier: ClassVar[float] = 1.0
 
-
-    # define class variables needed for all soil models
-    m_multiplier = 1.0
-    t_multiplier = 1.0
-
-    def __post_init__(self):
+    def model_post_init(self,*args,**kwargs):
         # spring signature which tells that API sand only has p-y curves in normal conditions
         # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
         if self.extension == "mt_curves":
             self.spring_signature = np.array([True, False, True, False], dtype=bool)
         else:
             self.spring_signature = np.array([True, False, False, False], dtype=bool)
+        return self
 
     def __str__(self):
         return f"\tAPI sand\n\tphi = {var_to_str(self.phi)}°\n\t{self.kind} curves\n\text: {self.extension}"
@@ -966,17 +974,18 @@ class API_clay(LateralModel):
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
 
-    # define class variables needed for all soil models
-    m_multiplier = 1.0
-    t_multiplier = 1.0
+    # common class variables 
+    m_multiplier: ClassVar[float] = 1.0
+    t_multiplier: ClassVar[float] = 1.0
 
-    def __post_init__(self):
+    def model_post_init(self,*args,**kwargs):
         # spring signature which tells that API clay only has p-y curves in normal conditions
         # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
         if self.extension == "mt_curves":
             self.spring_signature = np.array([True, False, True, False], dtype=bool)
         else:
             self.spring_signature = np.array([True, False, False, False], dtype=bool)
+        return self
 
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{self.kind} curves\n\text: {self.extension}"
@@ -1119,18 +1128,19 @@ class Modified_Matlock_clay(LateralModel):
     y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
+    
+    # common class variables 
+    m_multiplier: ClassVar[float] = 1.0
+    t_multiplier: ClassVar[float] = 1.0
 
-    # define class variables needed for all soil models
-    m_multiplier = 1.0
-    t_multiplier = 1.0
-
-    def __post_init__(self):
+    def model_post_init(self,*args,**kwargs):
         # spring signature which tells that API clay only has p-y curves in normal conditions
         # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
         if self.extension == "mt_curves":
             self.spring_signature = np.array([True, False, True, False], dtype=bool)
         else:
             self.spring_signature = np.array([True, False, False, False], dtype=bool)
+        return self
 
     def __str__(self):
         return f"\tModified Matlock clay\n\tSu = {var_to_str(self.Su)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{self.kind} curves\n\text: {self.extension}"
@@ -1263,11 +1273,12 @@ class Reese_weakrock(LateralModel):
     #: y-multiplier
     y_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
 
-    # define class variables needed for all soil models
-    m_multiplier = 1.0
-    t_multiplier = 1.0
 
-    spring_signature = np.array([True, False, False, False], dtype=bool)
+    # common class variables 
+    m_multiplier: ClassVar[float] = 1.0
+    t_multiplier: ClassVar[float] = 1.0
+    spring_signature: ClassVar[np.array] = np.array([True, False, False, False], dtype=bool)
+
 
     def __str__(self):
         return f"\tReese weakrock\n\tEi = {var_to_str(self.Ei)}kPa\n\tqu = {var_to_str(self.qu)}kPa\n\tRQD = {var_to_str(self.RQD)}%"
@@ -1481,7 +1492,7 @@ class Custom_pisa_sand(LateralModel):
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-    spring_signature = np.array([True, True, True, True], dtype=bool)
+    spring_signature: ClassVar[np.array] = np.array([True, True, True, True], dtype=bool)
 
     def __str__(self):
         return f"\tCustom PISA sand\n\tG0 = {round(self.G0/1000,1)} MPa"
@@ -1630,7 +1641,6 @@ class Custom_pisa_sand(LateralModel):
         return y, Mb
 
 
-@dataclass(config=PydanticConfigFrozen)
 class Custom_pisa_clay(LateralModel):
     """A class to establish a clay model as per PISA framework with custom normalized parameters.
 
@@ -1807,7 +1817,7 @@ class Custom_pisa_clay(LateralModel):
 
     # spring signature which tells that API sand only has p-y curves
     # signature if of the form [p-y:True, Hb:False, m-t:False, Mb:False]
-    spring_signature = np.array([True, True, True, True], dtype=bool)
+    spring_signature: ClassVar[np.array] = np.array([True, True, True, True], dtype=bool)
 
     def __str__(self):
         return f"\tCustom PISA sand\n\tG0 = {round(self.G0/1000,1)} MPa"

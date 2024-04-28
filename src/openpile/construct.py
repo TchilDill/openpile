@@ -26,6 +26,7 @@ import warnings
 
 import openpile.utils.graphics as graphics
 
+from openpile.materials import PileMaterial
 from openpile.core import misc, _model_build
 from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
@@ -104,8 +105,8 @@ class Pile(AbstractPile):
     name: str
     #: select the type of pile, can be of ('Circular', )
     kind: Literal["Circular"]
-    #: select the type of material the pile is made of, can be of ('Steel', )
-    material: Literal["Steel"]
+    #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
+    material: Union[Literal["Steel", "Concrete"], PileMaterial]
     #: top elevation of the pile according to general vertical reference set by user
     top_elevation: float
     #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
@@ -149,23 +150,17 @@ class Pile(AbstractPile):
                         "The wall thickness cannot be larger than half the diameter of the pile"
                     )
 
-    
+    # check that dict is correctly entered
+    @model_validator(mode="after")
+    def materials(self):
+        if self.material == "Steel":
+            self.material = PileMaterial.steel()
+        elif self.material == "Concrete":
+            self.material = PileMaterial.concrete()
+        return self
+
     @property
     def data(self) -> pd.DataFrame:
-        # Create material specific specs for given material
-        # if steel
-        if self.material == "Steel":
-            # unit weight
-            self._uw = 78.0  # kN/m3
-            # young modulus
-            self._young_modulus = 210.0e6  # kPa
-            # Poisson's ratio
-            self._nu = 0.3
-        else:
-            raise UserWarning
-
-        self._shear_modulus = self._young_modulus / (2 + 2 * self._nu)
-
         # create pile data used by openpile for mesh and calculations.
         # Create top and bottom elevations
         elevation = []
@@ -239,28 +234,21 @@ class Pile(AbstractPile):
         """
         Pile weight [kN].
         """
-        return round(self.volume * self._uw, 2)
+        return round(self.volume * self.material.unitweight, 2)
+
+    @property
+    def G(self) -> float:
+        """
+        Shear modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
+        """
+        return self.material.shear_modulus
 
     @property
     def E(self) -> float:
         """
         Young modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
         """
-        try:
-            return self._young_modulus
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @E.setter
-    def E(self, value: float) -> None:
-        try:
-            self._young_modulus = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
+        return self.material.young
 
     @property
     def I(self) -> float:

@@ -16,6 +16,7 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 - The API clay model available until v0.7.1 has decoupled for form the API clay and the Mofidied Matlock model, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
 - functions in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
+- PileMaterial class in `openpile.materials` module
 
 ## [0.7.1] - 2023-11-21
 

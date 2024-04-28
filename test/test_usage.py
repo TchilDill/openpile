@@ -23,11 +23,6 @@ class TestUsage:
             },
         )
 
-        # Override young's modulus
-        pile.E = 250e6
-        # Check young's modulus (value in kPa)
-        print(pile.E)
-        250000000.0
         # Override second moment of area across first section [in meters^4]
         pile.set_I(value=1.11, section=1)
         # Check updated second moment of area

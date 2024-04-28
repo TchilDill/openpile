@@ -116,8 +116,8 @@ def effective_pile_weight(pile, soil):
         )
         V = L * element_properties["Area [m2]"].values
         W = np.zeros(shape=V.shape)
-        W[submerged_element] = V[submerged_element] * (pile._uw - 10)
-        W[~submerged_element] = V[~submerged_element] * (pile._uw)
+        W[submerged_element] = V[submerged_element] * (pile.material.unitweight - 10)
+        W[~submerged_element] = V[~submerged_element] * (pile.material.unitweight)
 
         return W.sum()
 

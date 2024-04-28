@@ -27,23 +27,8 @@ from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validat
 class AbstractPileMaterial(BaseModel, ABC):
     model_config = ConfigDict(extra='forbid')
 
-    @abstractproperty
-    def unitweight(self):
-        pass
-
-    @abstractproperty
-    def young(self):
-        pass
-
-    @abstractproperty
-    def poisson(self):
-        pass
-
-    @abstractproperty
-    def shear_modulus(self):
-        return self.young / (2 + 2 * self.poisson)
-
 class PileMaterial(AbstractPileMaterial):
+    name: str = Field(min_length=1, max_length=20)
     uw: float = Field(gt=0.0)
     E: float = Field(gt=0.0)
     nu: float = Field(gt=-1.0, le=0.5)
@@ -51,7 +36,7 @@ class PileMaterial(AbstractPileMaterial):
     @property
     def unitweight(self):
         return self.uw
-    
+
     @property
     def young(self):
         return self.E
@@ -60,14 +45,18 @@ class PileMaterial(AbstractPileMaterial):
     def poisson(self):
         return self.nu
     
+    @property
+    def shear_modulus(self):
+        return self.young / (2 + 2 * self.poisson)
+    
     @classmethod
-    def custom(cls, unitweight:float,  young_modulus:float, poisson_ratio:float):
-        return cls(uw=unitweight,  E=young_modulus, nu=poisson_ratio)
+    def custom(cls, unitweight:float,  young_modulus:float, poisson_ratio:float, name:str='Custom'):
+        return cls(name=name, uw=unitweight,  E=young_modulus, nu=poisson_ratio)
 
     @classmethod
     def steel(cls):
-        return cls(uw=78.0,  E=210e6, nu=0.3)
+        return cls(name='Steel',uw=78.0,  E=210e6, nu=0.3)
 
     @classmethod
     def concrete(cls):
-        return cls(uw=24.0,  E=30e6, nu=0.2)
+        return cls(name='Concrete', uw=24.0,  E=30e6, nu=0.2)

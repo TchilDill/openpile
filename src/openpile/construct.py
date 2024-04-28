@@ -64,6 +64,17 @@ class AbstractModel(BaseModel, ABC):
 
 
 class Pile(AbstractPile):
+    #: name of the pile
+    name: str
+    #: top elevation of the pile according to general vertical reference set by user
+    top_elevation: float
+    #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
+    #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
+    pile_sections: Dict[str, List[PositiveFloat]]
+    #: select the type of pile, can be of ('Circular', )
+    kind: Literal["Circular"] 
+    #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
+    material: Union[Literal["Steel", "Concrete"], PileMaterial]
     """
     A class to create the pile.
 
@@ -101,17 +112,6 @@ class Pile(AbstractPile):
     ...     )
     """
 
-    #: name of the pile
-    name: str
-    #: select the type of pile, can be of ('Circular', )
-    kind: Literal["Circular"]
-    #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
-    material: Union[Literal["Steel", "Concrete"], PileMaterial]
-    #: top elevation of the pile according to general vertical reference set by user
-    top_elevation: float
-    #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
-    #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
-    pile_sections: Dict[str, List[PositiveFloat]]
 
     # check that dict is correctly entered
     @model_validator(mode="after")
@@ -149,10 +149,11 @@ class Pile(AbstractPile):
                     raise ValueError(
                         "The wall thickness cannot be larger than half the diameter of the pile"
                     )
+        return self
 
     # check that dict is correctly entered
     @model_validator(mode="after")
-    def materials(self):
+    def check_materials(self):
         if self.material == "Steel":
             self.material = PileMaterial.steel()
         elif self.material == "Concrete":

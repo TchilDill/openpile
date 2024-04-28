@@ -106,10 +106,7 @@ def test_api_clay(make_pmax_api_clay, xsigma, xX, xSu, xe50, xD, xJ, xkind):
 
     factor = min(1.0, xX / Xr)
 
-    if xkind == "cyclic" and xSu > 96:
-        pres = 0.5 * pmax * factor
-        pu = 0.5 * pmax
-    elif xkind == "cyclic" and xSu <= 96:
+    if xkind == "cyclic":
         pres = 0.7185 * pmax * factor
         pu = 0.7185 * pmax
     elif xkind == "static":

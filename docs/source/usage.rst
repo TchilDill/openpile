@@ -74,13 +74,11 @@ As of now, only a circular pile can be modelled in openpile, however the user ca
 the construcutor by updating the pile's properties governing the pile's behaviour under 
 axial or lateral loading.
 
-.. doctest::
+.. versionadded:: 0.8.0
+    The user cannot anymore override `E` but we can now create custom PileMaterial 
+    via :py:meth:`openpile.materials.PileMaterial.custom()`
 
-    >>> # Override young's modulus
-    >>> pile.E = 250e6
-    >>> # Check young's modulus (value in kPa)
-    >>> print(pile.E)
-    250000000.0
+.. doctest::
 
     >>> # Override second moment of area across first section [in meters^4]
     >>> pile.set_I(value=1.11, section=1)

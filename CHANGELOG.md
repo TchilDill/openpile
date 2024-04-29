@@ -18,6 +18,9 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 - functions in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
 - PileMaterial class in `openpile.materials` module
 
+### Deleted
+- :py:meth:`Pile.set_I()` method has been deleted, the second moment of area of a given pile segment can be changed by calling a Custom PileSection Geometry.
+
 ## [0.7.1] - 2023-11-21
 
 ### Fixed

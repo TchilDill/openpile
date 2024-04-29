@@ -74,42 +74,17 @@ As of now, only a circular pile can be modelled in openpile, however the user ca
 the construcutor by updating the pile's properties governing the pile's behaviour under 
 axial or lateral loading.
 
-.. versionadded:: 0.8.0
-    The user cannot anymore override `E` but we can now create custom PileMaterial 
+.. versionadded:: 1.0.0
+    The user cannot anymore override the young modulus `E` but we can now create custom PileMaterial 
     via :py:meth:`openpile.materials.PileMaterial.custom()`
 
-.. doctest::
+.. versionadded:: 1.0.0
+    The user cannot anymore override the pile width or the second moment of area `I`  but 
+    we can now create a custom PileSegment object by creating a subclass of the 
+    class :py:class:`openpile.materials.PileSegment`. 
 
-    >>> # Override second moment of area across first section [in meters^4]
-    >>> pile.set_I(value=1.11, section=1)
-    >>> # Check updated second moment of area
-    >>> print(pile)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0           7.5                0.07   1.633942   1.110000
-    1          -10.0           7.5                0.07   1.633942   1.110000
-    2          -10.0           7.5                0.08   1.864849  12.835479
-    3          -40.0           7.5                0.08   1.864849  12.835479
-    
-    >>> # Override pile's width or pile's diameter [in meters]
-    >>> pile.width = 2.22
-    >>> # Check updated width or diameter
-    >>> print(pile)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0          2.22                0.07   1.633942   1.110000
-    1          -10.0          2.22                0.07   1.633942   1.110000
-    2          -10.0          2.22                0.08   1.864849  12.835479
-    3          -40.0          2.22                0.08   1.864849  12.835479
-
-    >>> # Override pile's area  [in meters^2]
-    >>> pile.area = 1.0
-    >>> # Check updated width or diameter
-    >>> print(pile)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0          2.22                0.07        1.0   1.110000
-    1          -10.0          2.22                0.07        1.0   1.110000
-    2          -10.0          2.22                0.08        1.0  12.835479
-    3          -40.0          2.22                0.08        1.0  12.835479
-
+.. todo: add a doctest with the PileSegment class
+.. todo: add a doctest with the PileMaterial class
 
 
 .. _Ex2-plot_a_pycurve:
@@ -184,6 +159,7 @@ A Lateral and/or Axial soil model can be assigned to a layer.
        Su = 30.0-35.0 kPa
        eps50 = 0.01-0.02
        static curves
+       ext: None
     Axial model: None
 
 
@@ -229,6 +205,7 @@ Example 4 - Create a soil profile
     Lateral model: 	API sand
         phi = 33.0°
         cyclic curves
+        ext: None
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Layer 2
@@ -240,6 +217,7 @@ Example 4 - Create a soil profile
         Su = 50.0-70.0 kPa
         eps50 = 0.015
         cyclic curves
+        ext: None
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

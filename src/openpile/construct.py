@@ -62,17 +62,106 @@ class AbstractModel(BaseModel, ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
 
 
+class PileSection(ABC):
+    """
+    A Pile Segment is a section of a pile.
+    """
+    @abstractmethod
+    def get_top_elevation(self) -> float:
+        pass
+
+    @abstractmethod
+    def get_bottom_elevation(self) -> float:
+        pass
+
+    @abstractmethod
+    def get_footprint(self) -> float:
+        pass
+
+    @abstractmethod
+    def get_length(self) -> float:
+        pass
+
+    @abstractmethod
+    def get_area(self) -> float:
+        pass
+
+    @abstractmethod
+    def get_volume(self) -> float:
+        return self.area() * self.length()
+    
+    @abstractmethod
+    def get_width(self) -> float:
+        pass
+
+    @abstractmethod
+    def get_second_moment_of_area(self) -> float:
+        pass
+
+class CircularPileSection(PileSection, ABC):
+    """A circular section of a pile.
+
+    Parameters
+    ----------
+    top_elevation : float
+        the top elevation of the circular section, in meters
+    bottom_elevation : float
+        the bottom elevation of the circular section, in meters
+    diameter : float
+        the diameter of the circular section, in meters
+    thickness : Optional[float], optional
+        the wall thickness of the circular section if the section is hollow, in meters, 
+        by default None which means the section is solid.
+
+    """
+    top_elevation: float
+    bottom_elevation: float
+    diameter: Annotated[float,Field(gt=0)]
+    thickness: Optional[Annotated[float,Field(gt=0)]] = None
+
+
+    @model_validator(mode='after')
+    def get_proper_thickness(self):
+        if self.thickness is None:
+            self.thickness = self.diameter / 2
+        return self
+    
+    @model_validator(mode='after')
+    def check_elevations(self):
+        if self.bottom >= self.top:
+            raise ValueError(f"Bottom elevation ({self.bottom}) must be less than top elevation ({self.top}).")
+        return self
+    
+    def get_top_elevation(self) -> float:
+        return self.top_elevation
+
+    def get_bottom_elevation(self) -> float:
+        return self.bottom_elevation
+    
+    def get_length(self) -> float:
+        return self.top - self.bottom
+
+    def get_area(self) -> float:
+        return ( self.diameter**2 - (self.diameter - 2*self.thickness)**2 ) * m.pi / 4
+    
+    def get_footprint(self) -> float:
+        return self.diameter**2 * m.pi / 4
+
+    def get_width(self) -> float:
+        return self.diameter
+    
+    def get_second_moment_of_area(self) -> float:
+        return ( self.diameter**4 - (self.diameter - 2*self.thickness)**4 ) * m.pi / 64
+
+    def get_volume(self) -> float:
+        return self.get_area() * self.get_length()
+
 
 class Pile(AbstractPile):
     #: name of the pile
     name: str
-    #: top elevation of the pile according to general vertical reference set by user
-    top_elevation: float
-    #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
-    pile_sections: Dict[str, List[PositiveFloat]]
-    #: select the type of pile, can be of ('Circular', )
-    kind: Literal["Circular"] 
+    pile_sections: List[PileSection]
     #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
     material: Union[Literal["Steel", "Concrete"], PileMaterial]
     """
@@ -82,15 +171,8 @@ class Pile(AbstractPile):
     ----------
     name : str
         Pile/Structure's name.
-    top_elevation : float
-        top elevation of the pile. Note that this elevation provides a reference point to
-        know where the pile is located, especially with respect to other object such as a SoilProfile.
-    pile_sections : Dict[str, List[float]]
-        argument that stores the relevant data of each pile segment.
-        Below are the needed keys for the available piles:
-        - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
-    kind : Literal["Circular",]
-        type of pile or type of cross-section. by default "Circular"
+    pile_sections : List[CircularPileSection]
+        argument that stores the relevant data of each pile segment. numbering of sections is made from uppermost elevation and 0-indexed.
     material : Literal["Steel",]
         material the pile is made of. by default "Steel"
 
@@ -112,43 +194,17 @@ class Pile(AbstractPile):
     ...     )
     """
 
-
     # check that dict is correctly entered
     @model_validator(mode="after")
-    def pile_sections_must_be(self):
-        if self.kind == "Circular":
-            reference_list = ["diameter", "length", "wall thickness"]
-            sorted_list = list(self.pile_sections.keys())
-            sorted_list.sort()
-            if sorted_list != reference_list:
-                raise ValueError(
-                    "openpile.construct.Pile.pile_sections must have all and only the following keys: \n - "
-                    + "\n - ".join(reference_list)
-                )
-            for idx, (_, sublist) in enumerate(self.pile_sections.items()):
-                if not isinstance(sublist, list):
-                    raise ValueError(
-                        "openpile.construct.Pile.pile_sections must be a dictionary of lists"
-                    )
-                for value in sublist:
-                    if not isinstance(value, (int, float)):
-                        raise ValueError(
-                            "values in openpile.construct.Pile.pile_sections can only be numbers"
-                        )
-
-                if idx == 0:
-                    reference_length = len(sublist)
-                else:
-                    if len(sublist) != reference_length:
-                        raise ValueError(
-                            "length of lists in openpile.construct.Pile.pile_sections must be the same"
-                        )
-
-            for i in range(reference_length):
-                if self.pile_sections["diameter"][i] / 2 < self.pile_sections["wall thickness"][i]:
-                    raise ValueError(
-                        "The wall thickness cannot be larger than half the diameter of the pile"
-                    )
+    def pile_sections_must_not_overlap(self):
+        self.pile_sections = sorted(self.pile_sections, key=lambda x: -x.get_top_elevation())
+        for i, segment in enumerate(self.pile_sections):
+            if i == 0:
+                pass
+            else:
+                previous_segment = self.pile_sections[i-1]
+                if segment.bottom_elevation != previous_segment.top_elevation:
+                    raise ValueError(f"Pile sections are not consistent. Pile section {i} and {i-1} do not overlap.")
         return self
 
     # check that dict is correctly entered
@@ -161,48 +217,43 @@ class Pile(AbstractPile):
         return self
 
     @property
+    def top_elevation(self) -> float:
+        return self.pile_sections[0].get_top_elevation()
+
+    @property
     def data(self) -> pd.DataFrame:
         # create pile data used by openpile for mesh and calculations.
         # Create top and bottom elevations
         elevation = []
         # add bottom of section i and top of section i+1 (essentially the same values)
-        for idx, val in enumerate(self.pile_sections["length"]):
-            if idx == 0:
-                elevation.append(self.top_elevation)
-                elevation.append(elevation[-1] - val)
-            else:
-                elevation.append(elevation[-1])
-                elevation.append(elevation[-1] - val)
+        for segment in self.pile_sections:
+            elevation.append(segment.get_top_elevation())
+            elevation.append(segment.get_bottom_elevation())
 
         # create sectional properties
-        # spread
-        diameter = [x for x in self.pile_sections["diameter"] for x in [x,x]]
-        # thickness
-        thickness = [x for x in self.pile_sections["wall thickness"] for x in [x,x]]
+        width = [x.get_width() for x in self.pile_sections for x in [x,x]]
+        area = [x.get_area() for x in self.pile_sections for x in [x,x]]
+        second_moment_of_area = [x.get_second_moment_of_Area() for x in self.pile_sections for x in [x,x]]
 
-        def _circular_pile_area(diameter, wall_thickness):
-            return m.pi / 4 * (diameter**2 - (diameter - 2 * wall_thickness) ** 2)
-
-        def _circular_second_moment_area(diameter, wall_thickness):
-            return m.pi / 64 * (diameter**4 - (diameter - 2 * wall_thickness) ** 4)
-
-        # Area & second moment of area
-        if self.kind == "Circular":
-            area = [_circular_pile_area(x,y) for x,y in zip(diameter, thickness)]
-            second_moment_of_area = [_circular_second_moment_area(x,y) for x,y in zip(diameter, thickness)]
+        if all([isinstance(x,CircularPileSection) for x in self.pile_sections]):
+            return pd.DataFrame(
+                data={
+                    "Elevation [m]": elevation,
+                    "Diameter [m]": width,
+                    "Wall thickness [m]":[x.thickness for x in self.pile_sections for x in [x,x]],
+                    "Area [m2]": area,
+                    "I [m4]": second_moment_of_area,
+                }
+            )
         else:
-            # not yet supporting other kind
-            raise ValueError()
-
-        return pd.DataFrame(
-            data={
-                "Elevation [m]": elevation,
-                "Diameter [m]": diameter,
-                "Wall thickness [m]": thickness,
-                "Area [m2]": area,
-                "I [m4]": second_moment_of_area,
-            }
-        )
+            return pd.DataFrame(
+                data={
+                    "Elevation [m]": elevation,
+                    "Width [m]": width,
+                    "Area [m2]": area,
+                    "I [m4]": second_moment_of_area,
+                }
+            )
 
     def __str__(self):
         return self.data.to_string()
@@ -212,23 +263,21 @@ class Pile(AbstractPile):
         """
         Bottom elevation of the pile [m VREF].
         """
-        return self.top_elevation - sum(self.pile_sections["length"])
+        return self.pile_sections[-1].get_bottom_elevation()
 
     @property
     def length(self) -> float:
         """
         Pile length [m].
         """
-        return sum(self.pile_sections["length"])
+        return self.top_elevation - self.bottom_elevation
 
     @property
     def volume(self) -> float:
         """
         Pile volume [m3].
         """
-        A = self.data["Area [m2]"].values[1:]
-        L = np.abs(np.diff(self.data["Elevation [m]"].values))
-        return round((A * L).sum(), 2)
+        return round(sum([x.get_area() * x.get_length() for x in self.pile_sections]), 2)
 
     @property
     def weight(self) -> float:
@@ -252,133 +301,15 @@ class Pile(AbstractPile):
         return self.material.young
 
     @property
-    def I(self) -> float:
-        """
-        Second moment of area of the pile [m4].
-
-        The user can use the method :py:meth:`openpile.construct.Pile.set_I` to customise the second
-        moment of area for different sections of the pile.
-        """
-        try:
-            return self.data["I [m4]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
-    def width(self) -> float:
-        """
-        Width of the pile [m]. (Used to compute soil springs)
-        """
-        try:
-            return self.data.loc[:, "Diameter [m]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @width.setter
-    def width(self, value: float) -> None:
-        try:
-            self.data.loc[:, "Diameter [m]"] = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
-    def area(self) -> float:
-        "Sectional area of the pile [m2]"
-        try:
-            return self.data.loc[:, "Area [m2]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @area.setter
-    def area(self, value: float) -> None:
-        try:
-            self.data.loc[:, "Area [m2]"] = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
     def tip_area(self) -> float:
         "Sectional area at the bottom of the pile [m2]"
-        try:
-            return self.data["Area [m2]"].iloc[-1]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
+        return self.pile_sections[-1].get_area()
 
     @property
     def tip_footprint(self) -> float:
         "footprint area at the bottom of the pile [m2]"
-        try:
-            return (self.data["Diameter [m]"].iloc[-1]) ** 2 * m.pi / 4
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
+        return self.pile_sections[-1].get_footprint()
 
-    @classmethod
-    def create(
-        cls,
-        name: str,
-        top_elevation: float,
-        pile_sections: Dict[str, List[float]],
-        kind: Literal[
-            "Circular",
-        ] = "Circular",
-        material: Literal[
-            "Steel",
-        ] = "Steel",
-    ):
-        """A method to create the pile.
-
-        Parameters
-        ----------
-        name : str
-            Pile/Structure's name.
-        top_elevation : float
-            top elevation of the pile. Note that this elevation provides a reference point to
-            know where the pile is located, especially with respect to other object such as a SoilProfile.
-        pile_sections : Dict[str, List[float]]
-            argument that stores the relevant data of each pile segment.
-            Below are the needed keys for the available piles:
-            - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
-        kind : Literal["Circular",]
-            type of pile or type of cross-section. by default "Circular"
-        material : Literal["Steel",]
-            material the pile is made of. by default "Steel"
-
-        Returns
-        -------
-        openpile.construct.Pile
-            a Pile instance with embedded postprocessing to perform calculations with openpile.
-        """
-
-        obj = cls(
-            name=name,
-            kind=kind,
-            material=material,
-            top_elevation=top_elevation,
-            pile_sections=pile_sections,
-        )
-
-        warnings.warn(
-            "\nThe method Pile.create() will be removed in version 1.0.0."
-            "\nPlease use the base class to create a Pile instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        return obj
 
     @classmethod
     def create_tubular(
@@ -418,46 +349,17 @@ class Pile(AbstractPile):
             name=name,
             kind="Circular",
             material=material,
-            top_elevation=top_elevation,
-            pile_sections={
-                "length": [
-                    (top_elevation - bottom_elevation),
-                ],
-                "wall thickness": [
-                    wt,
-                ],
-                "diameter": [
-                    diameter,
-                ],
-            },
+            pile_sections=[
+                CircularPileSection(
+                    top_elevation=top_elevation,
+                    bottom_elevation=bottom_elevation,
+                    diameter=diameter,
+                    thickness=wt,
+                )
+            ]
         )
-
         return obj
 
-    def set_I(self, value: float, section: int) -> None:
-        """set second moment of area for a particular section of the pile.
-
-        Parameters
-        ----------
-        value : float
-            new second moment of area [m4].
-        section : int
-            section number for which to set new second moment of area
-
-        """
-        try:
-            length = len(self.data["I [m4]"].values)
-            if section * 2 > length:
-                print("section number is too large")
-            elif section < 1:
-                print("section number must be 1 or above")
-            else:
-                self.data.loc[section * 2 - 2, "I [m4]"] = value
-                self.data.loc[section * 2 - 1, "I [m4]"] = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            raise Exception
 
     def plot(self, assign=False):
         """Creates a plot of the pile with the properties.

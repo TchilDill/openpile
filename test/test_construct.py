@@ -14,16 +14,25 @@ class TestPile:
         """
         # create a steel and circular pile
         pile = construct.Pile(
-            kind="Circular",
             name="",
             material="Steel",
-            top_elevation=0,
-            pile_sections={
-                "length": [10, 30],
-                "diameter": [7.5, 8.5],
-                "wall thickness": [0.07, 0.08],
-            },
+            pile_sections=[
+                construct.CircularPileSection(
+                    top_elevation=0, 
+                    bottom_elevation=-10, 
+                    diameter=7.5, 
+                    thickness=0.07
+                ),
+                construct.CircularPileSection(
+                    top_elevation=-10, 
+                    bottom_elevation=-40, 
+                    diameter=7.5, 
+                    thickness=0.08
+                ),
+            ],
         )
+
+
         # check Young modulus is indeed Steel
         assert pile.E == 210e6
         # check even numbers of row for dataframe
@@ -31,81 +40,96 @@ class TestPile:
 
     def test_pile_width(self):
         pile = construct.Pile(
-            kind="Circular",
             name="",
             material="Steel",
-            top_elevation=0.1,
-            pile_sections={
-                "length": [20, 20],
-                "diameter": [7.5, 8.5],
-                "wall thickness": [0.07, 0.08],
-            },
+            pile_sections=[
+                construct.CircularPileSection(
+                    top_elevation=0.1, 
+                    bottom_elevation=-9.9, 
+                    diameter=8.0, 
+                    thickness=0.07
+                ),
+                construct.CircularPileSection(
+                    top_elevation=-9.9, 
+                    bottom_elevation=-39.9, 
+                    diameter=8.0, 
+                    thickness=0.08
+                ),
+            ],
         )
 
         assert pile.width.mean() == 8.00
 
     def test_pile_length(self):
         pile = construct.Pile(
-            kind="Circular",
             name="",
             material="Steel",
-            top_elevation=10,
-            pile_sections={
-                "length": [22, 16],
-                "diameter": [7.5, 8.5],
-                "wall thickness": [0.07, 0.08],
-            },
+            pile_sections=[
+                construct.CircularPileSection(
+                    top_elevation=10, 
+                    bottom_elevation=-12, 
+                    diameter=7.5, 
+                    thickness=0.07
+                ),
+                construct.CircularPileSection(
+                    top_elevation=-12, 
+                    bottom_elevation=-28, 
+                    diameter=8.5, 
+                    thickness=0.08
+                ),
+            ],
         )
 
         assert pile.length == 38.0
 
     def test_pile_bottom(self):
         pile = construct.Pile(
-            kind="Circular",
             name="",
             material="Steel",
-            top_elevation=10,
-            pile_sections={
-                "length": [10, 30],
-                "diameter": [7.5, 8.5],
-                "wall thickness": [0.07, 0.08],
-            },
+            pile_sections=[
+                construct.CircularPileSection(
+                    top_elevation=10, 
+                    bottom_elevation=-12, 
+                    diameter=7.5, 
+                    thickness=0.07
+                ),
+                construct.CircularPileSection(
+                    top_elevation=-12, 
+                    bottom_elevation=-28, 
+                    diameter=8.5, 
+                    thickness=0.08
+                ),
+            ],
         )
 
-        assert pile.bottom_elevation == -30.0
+        assert pile.bottom_elevation == -28.0
 
-    def test_pile_area1(self):
+    def test_pile_area(self):
         """check pile area"""
         # Create a pile instance with two sections of respectively 10m and 30m length.
         pile = construct.Pile(
             name="",
-            kind="Circular",
             material="Steel",
-            top_elevation=0,
-            pile_sections={
-                "length": [10, 30],
-                "diameter": [1.0, 1.0],
-                "wall thickness": [0.5, 0.5],
-            },
+            pile_sections=[
+                construct.CircularPileSection(
+                    top_elevation=10, 
+                    bottom_elevation=0, 
+                    diameter=1.0, 
+                    thickness=0.5
+                ),
+                construct.CircularPileSection(
+                    top_elevation=0, 
+                    bottom_elevation=-30, 
+                    diameter=1.0, 
+                    thickness=0.5
+                ),
+            ],
         )
 
-        assert pile.area.mean() == 0.25 * m.pi
-
-    def test_pile_area2(self):
-        pile = construct.Pile(
-            name="",
-            kind="Circular",
-            material="Steel",
-            top_elevation=0,
-            pile_sections={
-                "length": [10, 30],
-                "diameter": [1.0, 1.0],
-                "wall thickness": [0.001, 0.001],
-            },
-        )
-
-        assert m.isclose(pile.area.mean(), m.pi * 0.001, rel_tol=0.01)
-
+        assert pile.pile_sections[0].get_area() == 0.25 * m.pi
+        assert pile.pile_sections[1].get_area() == 0.25 * m.pi
+        assert pile.tip_area == 0.25 * m.pi
+        assert pile.tip_footprint == 0.25 * m.pi
 
 class TestLayer:
     def test_constructor(self):
@@ -256,7 +280,6 @@ class TestModel:
                 pile=construct.Pile(
                     name="",
                     top_elevation=20,
-                    kind="Circular",
                     material="Steel",
                     pile_sections={"length": [50], "diameter": [7], "wall thickness": [0.08]},
                 ),

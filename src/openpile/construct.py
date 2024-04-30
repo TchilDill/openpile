@@ -62,10 +62,12 @@ class AbstractModel(BaseModel, ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
 
 
-class PileSection(ABC):
+class PileSection(BaseModel, ABC):
     """
     A Pile Segment is a section of a pile.
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
+
     @abstractmethod
     def get_top_elevation(self) -> float:
         pass
@@ -98,7 +100,7 @@ class PileSection(ABC):
     def get_second_moment_of_area(self) -> float:
         pass
 
-class CircularPileSection(PileSection, ABC):
+class CircularPileSection(PileSection):
     """A circular section of a pile.
 
     Parameters
@@ -128,8 +130,8 @@ class CircularPileSection(PileSection, ABC):
     
     @model_validator(mode='after')
     def check_elevations(self):
-        if self.bottom >= self.top:
-            raise ValueError(f"Bottom elevation ({self.bottom}) must be less than top elevation ({self.top}).")
+        if self.bottom_elevation >= self.top_elevation:
+            raise ValueError(f"Bottom elevation ({self.bottom_elevation}) must be less than top elevation ({self.top_elevation}).")
         return self
     
     def get_top_elevation(self) -> float:
@@ -139,7 +141,7 @@ class CircularPileSection(PileSection, ABC):
         return self.bottom_elevation
     
     def get_length(self) -> float:
-        return self.top - self.bottom
+        return self.top_elevation - self.bottom_elevation
 
     def get_area(self) -> float:
         return ( self.diameter**2 - (self.diameter - 2*self.thickness)**2 ) * m.pi / 4
@@ -180,18 +182,35 @@ class Pile(AbstractPile):
     Example
     -------
 
-    >>> from openpile.construct import Pile
+    >>> from openpile.construct import Pile, CircularPileSection
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
     >>> pile = Pile(name = "",
-    ...         kind='Circular',
     ...         material='Steel',
-    ...         top_elevation = 0,
-    ...         pile_sections={
-    ...             'length':[10,30],
-    ...             'diameter':[7.5,7.5],
-    ...             'wall thickness':[0.07, 0.08],
-    ...         }
+    ...         pile_sections=[
+    ...             CircularPileSection(
+    ...                 top_elevation=0, 
+    ...                 bottom_elevation=-10, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.07
+    ...             ),
+    ...             CircularPileSection(
+    ...                 top_elevation=-10, 
+    ...                 bottom_elevation=-40, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.08
+    ...             ),
+    ...         ]
     ...     )
+
+    One can also create a pile from other constructors such as: create_tubular(), that creates a ciruclar hollow pile of one unique section.
+
+    >>> from openpile.construct import Pile
+    >>> pile = Pile.create_tubular(name = "",
+    ...         top_elevation = 0,
+    ...         bottom_elevation = -40,
+    ...         diameter=7.5,
+    ...         wt=0.07,
+    ...         )
     """
 
     # check that dict is correctly entered
@@ -203,8 +222,8 @@ class Pile(AbstractPile):
                 pass
             else:
                 previous_segment = self.pile_sections[i-1]
-                if segment.bottom_elevation != previous_segment.top_elevation:
-                    raise ValueError(f"Pile sections are not consistent. Pile section {i} and {i-1} do not overlap.")
+                if segment.top_elevation != previous_segment.bottom_elevation:
+                    raise ValueError(f"Pile sections are not consistent. Pile section No. {i} and No. {i-1} do not connect.")
         return self
 
     # check that dict is correctly entered
@@ -233,7 +252,7 @@ class Pile(AbstractPile):
         # create sectional properties
         width = [x.get_width() for x in self.pile_sections for x in [x,x]]
         area = [x.get_area() for x in self.pile_sections for x in [x,x]]
-        second_moment_of_area = [x.get_second_moment_of_Area() for x in self.pile_sections for x in [x,x]]
+        second_moment_of_area = [x.get_second_moment_of_area() for x in self.pile_sections for x in [x,x]]
 
         if all([isinstance(x,CircularPileSection) for x in self.pile_sections]):
             return pd.DataFrame(
@@ -347,7 +366,6 @@ class Pile(AbstractPile):
 
         obj = cls(
             name=name,
-            kind="Circular",
             material=material,
             pile_sections=[
                 CircularPileSection(

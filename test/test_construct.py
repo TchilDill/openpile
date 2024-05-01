@@ -18,14 +18,14 @@ class TestPile:
             material="Steel",
             pile_sections=[
                 construct.CircularPileSection(
-                    top_elevation=0, 
-                    bottom_elevation=-10, 
+                    top=0, 
+                    bottom=-10, 
                     diameter=7.5, 
                     thickness=0.07
                 ),
                 construct.CircularPileSection(
-                    top_elevation=-10, 
-                    bottom_elevation=-40, 
+                    top=-10, 
+                    bottom=-40, 
                     diameter=7.5, 
                     thickness=0.08
                 ),
@@ -44,21 +44,22 @@ class TestPile:
             material="Steel",
             pile_sections=[
                 construct.CircularPileSection(
-                    top_elevation=0.1, 
-                    bottom_elevation=-9.9, 
+                    top=0.1, 
+                    bottom=-9.9, 
                     diameter=8.0, 
                     thickness=0.07
                 ),
                 construct.CircularPileSection(
-                    top_elevation=-9.9, 
-                    bottom_elevation=-39.9, 
+                    top=-9.9, 
+                    bottom=-39.9, 
                     diameter=8.0, 
                     thickness=0.08
                 ),
             ],
         )
 
-        assert pile.width.mean() == 8.00
+        assert pile.pile_sections[0].width == 8.0
+        assert pile.pile_sections[1].width == 8.0
 
     def test_pile_length(self):
         pile = construct.Pile(
@@ -66,14 +67,14 @@ class TestPile:
             material="Steel",
             pile_sections=[
                 construct.CircularPileSection(
-                    top_elevation=10, 
-                    bottom_elevation=-12, 
+                    top=10, 
+                    bottom=-12, 
                     diameter=7.5, 
                     thickness=0.07
                 ),
                 construct.CircularPileSection(
-                    top_elevation=-12, 
-                    bottom_elevation=-28, 
+                    top=-12, 
+                    bottom=-28, 
                     diameter=8.5, 
                     thickness=0.08
                 ),
@@ -88,14 +89,14 @@ class TestPile:
             material="Steel",
             pile_sections=[
                 construct.CircularPileSection(
-                    top_elevation=10, 
-                    bottom_elevation=-12, 
+                    top=10, 
+                    bottom=-12, 
                     diameter=7.5, 
                     thickness=0.07
                 ),
                 construct.CircularPileSection(
-                    top_elevation=-12, 
-                    bottom_elevation=-28, 
+                    top=-12, 
+                    bottom=-28, 
                     diameter=8.5, 
                     thickness=0.08
                 ),
@@ -112,22 +113,22 @@ class TestPile:
             material="Steel",
             pile_sections=[
                 construct.CircularPileSection(
-                    top_elevation=10, 
-                    bottom_elevation=0, 
+                    top=10, 
+                    bottom=0, 
                     diameter=1.0, 
                     thickness=0.5
                 ),
                 construct.CircularPileSection(
-                    top_elevation=0, 
-                    bottom_elevation=-30, 
+                    top=0, 
+                    bottom=-30, 
                     diameter=1.0, 
                     thickness=0.5
                 ),
             ],
         )
 
-        assert pile.pile_sections[0].get_area() == 0.25 * m.pi
-        assert pile.pile_sections[1].get_area() == 0.25 * m.pi
+        assert pile.pile_sections[0].area == 0.25 * m.pi
+        assert pile.pile_sections[1].area == 0.25 * m.pi
         assert pile.tip_area == 0.25 * m.pi
         assert pile.tip_footprint == 0.25 * m.pi
 
@@ -277,11 +278,13 @@ class TestModel:
         try:
             model = construct.Model(
                 name="",
-                pile=construct.Pile(
+                pile=construct.Pile.create_tubular(
                     name="",
                     top_elevation=20,
+                    bottom_elevation=-30,
                     material="Steel",
-                    pile_sections={"length": [50], "diameter": [7], "wall thickness": [0.08]},
+                    diameter=7,
+                    wt=0.08,
                 ),
                 soil=construct.SoilProfile(
                     name="",

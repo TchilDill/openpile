@@ -32,7 +32,7 @@ from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
 from openpile.calculate import isplugged
 
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractstaticmethod, abstractproperty, abstractmethod
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
 from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validator
@@ -68,36 +68,48 @@ class PileSection(BaseModel, ABC):
     """
     model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
 
-    @abstractmethod
-    def get_top_elevation(self) -> float:
+    @abstractproperty
+    def top_elevation(self) -> float:
+        pass
+
+    @abstractproperty
+    def bottom_elevation(self) -> float:
+        pass
+
+    @abstractproperty
+    def footprint(self) -> float:
+        pass
+
+    @abstractproperty
+    def length(self) -> float:
+        pass
+
+    @abstractproperty
+    def area(self) -> float:
+        pass
+
+    @abstractproperty
+    def outer_perimeter(self) -> float:
+        pass
+
+    @abstractproperty
+    def inner_perimeter(self) -> float:
         pass
 
     @abstractmethod
-    def get_bottom_elevation(self) -> float:
+    def get_volume(self, length) -> float:
         pass
 
     @abstractmethod
-    def get_footprint(self) -> float:
+    def get_entrapped_volume(self, length) -> float:
         pass
-
-    @abstractmethod
-    def get_length(self) -> float:
-        pass
-
-    @abstractmethod
-    def get_area(self) -> float:
-        pass
-
-    @abstractmethod
-    def get_volume(self) -> float:
-        return self.area() * self.length()
     
-    @abstractmethod
-    def get_width(self) -> float:
+    @abstractproperty
+    def width(self) -> float:
         pass
 
-    @abstractmethod
-    def get_second_moment_of_area(self) -> float:
+    @abstractproperty
+    def second_moment_of_area(self) -> float:
         pass
 
 class CircularPileSection(PileSection):
@@ -105,9 +117,9 @@ class CircularPileSection(PileSection):
 
     Parameters
     ----------
-    top_elevation : float
+    top : float
         the top elevation of the circular section, in meters
-    bottom_elevation : float
+    bottom : float
         the bottom elevation of the circular section, in meters
     diameter : float
         the diameter of the circular section, in meters
@@ -116,8 +128,8 @@ class CircularPileSection(PileSection):
         by default None which means the section is solid.
 
     """
-    top_elevation: float
-    bottom_elevation: float
+    top: float
+    bottom: float
     diameter: Annotated[float,Field(gt=0)]
     thickness: Optional[Annotated[float,Field(gt=0)]] = None
 
@@ -130,34 +142,56 @@ class CircularPileSection(PileSection):
     
     @model_validator(mode='after')
     def check_elevations(self):
-        if self.bottom_elevation >= self.top_elevation:
-            raise ValueError(f"Bottom elevation ({self.bottom_elevation}) must be less than top elevation ({self.top_elevation}).")
+        if self.bottom >= self.top:
+            raise ValueError(f"Bottom elevation ({self.bottom}) must be less than top elevation ({self.top}).")
         return self
     
-    def get_top_elevation(self) -> float:
-        return self.top_elevation
+    @property
+    def top_elevation(self) -> float:
+        return self.top
 
-    def get_bottom_elevation(self) -> float:
-        return self.bottom_elevation
-    
-    def get_length(self) -> float:
-        return self.top_elevation - self.bottom_elevation
+    @property
+    def bottom_elevation(self) -> float:
+        return self.bottom
 
-    def get_area(self) -> float:
+    @property
+    def length(self) -> float:
+        return self.top - self.bottom
+
+    @property
+    def area(self) -> float:
         return ( self.diameter**2 - (self.diameter - 2*self.thickness)**2 ) * m.pi / 4
-    
-    def get_footprint(self) -> float:
+
+    @property
+    def entrapped_area(self) -> float:
+        return ( self.diameter - 2*self.thickness)**2 * m.pi / 4
+
+
+    @property
+    def outer_perimeter(self) -> float:
+        return self.diameter * m.pi
+
+    @property
+    def inner_perimeter(self) -> float:
+        return (self.diameter-2*self.thickness) * m.pi
+
+    @property
+    def footprint(self) -> float:
         return self.diameter**2 * m.pi / 4
 
-    def get_width(self) -> float:
+    @property
+    def width(self) -> float:
         return self.diameter
     
-    def get_second_moment_of_area(self) -> float:
+    @property
+    def second_moment_of_area(self) -> float:
         return ( self.diameter**4 - (self.diameter - 2*self.thickness)**4 ) * m.pi / 64
 
-    def get_volume(self) -> float:
-        return self.get_area() * self.get_length()
-
+    def get_volume(self, length) -> float:
+        return self.area * length
+    
+    def get_entrapped_volume(self, length) -> float:
+        return length * (self.diameter - 2*self.thickness)**2  * m.pi / 4
 
 class Pile(AbstractPile):
     #: name of the pile
@@ -188,14 +222,14 @@ class Pile(AbstractPile):
     ...         material='Steel',
     ...         pile_sections=[
     ...             CircularPileSection(
-    ...                 top_elevation=0, 
-    ...                 bottom_elevation=-10, 
+    ...                 top=0, 
+    ...                 bottom=-10, 
     ...                 diameter=7.5, 
     ...                 thickness=0.07
     ...             ),
     ...             CircularPileSection(
-    ...                 top_elevation=-10, 
-    ...                 bottom_elevation=-40, 
+    ...                 top=-10, 
+    ...                 bottom=-40, 
     ...                 diameter=7.5, 
     ...                 thickness=0.08
     ...             ),
@@ -216,7 +250,7 @@ class Pile(AbstractPile):
     # check that dict is correctly entered
     @model_validator(mode="after")
     def pile_sections_must_not_overlap(self):
-        self.pile_sections = sorted(self.pile_sections, key=lambda x: -x.get_top_elevation())
+        self.pile_sections = sorted(self.pile_sections, key=lambda x: -x.top_elevation)
         for i, segment in enumerate(self.pile_sections):
             if i == 0:
                 pass
@@ -237,52 +271,51 @@ class Pile(AbstractPile):
 
     @property
     def top_elevation(self) -> float:
-        return self.pile_sections[0].get_top_elevation()
+        return self.pile_sections[0].top_elevation
 
     @property
     def data(self) -> pd.DataFrame:
         # create pile data used by openpile for mesh and calculations.
         # Create top and bottom elevations
-        elevation = []
-        # add bottom of section i and top of section i+1 (essentially the same values)
-        for segment in self.pile_sections:
-            elevation.append(segment.get_top_elevation())
-            elevation.append(segment.get_bottom_elevation())
+        return pd.DataFrame(
+            data={
+                "Elevation [m]": [x for x in self.pile_sections for x in [x.top_elevation,x.bottom_elevation]],
+                "Width [m]": [x.width for x in self.pile_sections for x in [x,x]],
+                "Area [m2]": [x.area for x in self.pile_sections for x in [x,x]],
+                "I [m4]": [x.second_moment_of_area for x in self.pile_sections for x in [x,x]],
+                "Entrapped Area [m2]": [x.entrapped_area for x in self.pile_sections for x in [x,x]],
+                "Outer Perimeter [m]": [x.outer_perimeter for x in self.pile_sections for x in [x,x]],
+                "Inner Perimeter [m]": [x.inner_perimeter for x in self.pile_sections for x in [x,x]],
+            }
+        )
 
-        # create sectional properties
-        width = [x.get_width() for x in self.pile_sections for x in [x,x]]
-        area = [x.get_area() for x in self.pile_sections for x in [x,x]]
-        second_moment_of_area = [x.get_second_moment_of_area() for x in self.pile_sections for x in [x,x]]
-
+    def __str__(self):
         if all([isinstance(x,CircularPileSection) for x in self.pile_sections]):
             return pd.DataFrame(
                 data={
-                    "Elevation [m]": elevation,
-                    "Diameter [m]": width,
+                    "Elevation [m]": [x for x in self.pile_sections for x in [x.top_elevation,x.bottom_elevation]],
+                    "Diameter [m]": [x.width for x in self.pile_sections for x in [x,x]],
                     "Wall thickness [m]":[x.thickness for x in self.pile_sections for x in [x,x]],
-                    "Area [m2]": area,
-                    "I [m4]": second_moment_of_area,
+                    "Area [m2]": [x.area for x in self.pile_sections for x in [x,x]],
+                    "I [m4]": [x.second_moment_of_area for x in self.pile_sections for x in [x,x]],
                 }
-            )
+            ).to_string()
         else:
             return pd.DataFrame(
                 data={
-                    "Elevation [m]": elevation,
-                    "Width [m]": width,
-                    "Area [m2]": area,
-                    "I [m4]": second_moment_of_area,
+                    "Elevation [m]": [x for x in self.pile_sections for x in [x.top_elevation,x.bottom_elevation]],
+                    "Width [m]": [x.width for x in self.pile_sections for x in [x,x]],
+                    "Area [m2]": [x.area for x in self.pile_sections for x in [x,x]],
+                    "I [m4]": [x.second_moment_of_area for x in self.pile_sections for x in [x,x]],
                 }
-            )
-
-    def __str__(self):
-        return self.data.to_string()
+            ).to_string()
 
     @property
     def bottom_elevation(self) -> float:
         """
         Bottom elevation of the pile [m VREF].
         """
-        return self.pile_sections[-1].get_bottom_elevation()
+        return self.pile_sections[-1].bottom_elevation
 
     @property
     def length(self) -> float:
@@ -296,7 +329,7 @@ class Pile(AbstractPile):
         """
         Pile volume [m3].
         """
-        return round(sum([x.get_area() * x.get_length() for x in self.pile_sections]), 2)
+        return round(sum([x.area * x.length for x in self.pile_sections]), 2)
 
     @property
     def weight(self) -> float:
@@ -317,17 +350,17 @@ class Pile(AbstractPile):
         """
         Young modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
         """
-        return self.material.young
+        return self.material.young_modulus
 
     @property
     def tip_area(self) -> float:
         "Sectional area at the bottom of the pile [m2]"
-        return self.pile_sections[-1].get_area()
+        return self.pile_sections[-1].area
 
     @property
     def tip_footprint(self) -> float:
         "footprint area at the bottom of the pile [m2]"
-        return self.pile_sections[-1].get_footprint()
+        return self.pile_sections[-1].footprint
 
 
     @classmethod
@@ -369,8 +402,8 @@ class Pile(AbstractPile):
             material=material,
             pile_sections=[
                 CircularPileSection(
-                    top_elevation=top_elevation,
-                    bottom_elevation=bottom_elevation,
+                    top=top_elevation,
+                    bottom=bottom_elevation,
                     diameter=diameter,
                     thickness=wt,
                 )
@@ -848,7 +881,7 @@ class Model(AbstractModel):
                             self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
                         ).abs()
                         # pile width
-                        pile_width = self.element_properties["Diameter [m]"].iloc[i]
+                        pile_width = self.element_properties["Width [m]"].iloc[i]
 
                         # p-y curves
                         if (

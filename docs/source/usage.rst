@@ -20,18 +20,25 @@ A pile can be created in the simple following way in openpile.
 .. doctest::
 
     >>> # import the Pile object from the construct module
-    >>> from openpile.construct import Pile
+    >>> from openpile.construct import Pile, CircularPileSection
     
     >>> # Create a Pile
     >>> pile = Pile(name = "",
-    ...         kind='Circular',
     ...         material='Steel',
-    ...         top_elevation = 0,
-    ...         pile_sections={
-    ...             'length':[10,30],
-    ...             'diameter':[7.5,7.5],
-    ...             'wall thickness':[0.07, 0.08],
-    ...         }
+    ...         pile_sections=[
+    ...             CircularPileSection(
+    ...                 top=0, 
+    ...                 bottom=-10, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.07
+    ...             ),
+    ...             CircularPileSection(
+    ...                 top=-10, 
+    ...                 bottom=-40, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.08
+    ...             ),
+    ...         ]
     ...     )
 
     >>> # Print the pile data

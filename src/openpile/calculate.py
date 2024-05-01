@@ -18,7 +18,7 @@ class CalculateResult:
     _values: tuple
 
 
-
+COARSENESS = 0.1
 
 def _pile_element_surface(pile, soil):
     """calculates outer and inner surface of pile elements.
@@ -35,13 +35,10 @@ def _pile_element_surface(pile, soil):
         inside surface
     """
 
-    _, element_properties, _, _ = get_all_properties(pile, soil, None, 0.1)
+    _, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
 
-    perimeter_outside = element_properties["Diameter [m]"].values * m.pi
-    perimeter_inside = (
-        element_properties["Diameter [m]"].values
-        - 2 * element_properties["Wall thickness [m]"]
-    ) * m.pi
+    perimeter_outside = element_properties["Outer perimeter [m]"].values
+    perimeter_inside = element_properties["Inner perimeter [m]"].values
     L = (
         element_properties["x_top [m]"].values
         - element_properties["x_bottom [m]"].values
@@ -63,21 +60,13 @@ def _pile_inside_volume(pile, soil):
         inside volume of each element
     """
 
-    _, element_properties, _, _ = get_all_properties(pile, soil, None, 0.1)
+    _, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
 
-    area_inside = (
-        (
-            element_properties["Diameter [m]"].values
-            - 2 * element_properties["Wall thickness [m]"]
-        )
-        ** 2
-        * m.pi
-        / 4
-    )
     L = (
         element_properties["x_top [m]"].values
         - element_properties["x_bottom [m]"].values
     )
+    area_inside = element_properties["Entrapped Area [m2]"].values
 
     return area_inside * L
 
@@ -105,7 +94,7 @@ def effective_pile_weight(pile, soil):
     `openpile.construct.Pile.weight`
     """
 
-    _, element_properties, _, _ = get_all_properties(pile, soil, None, 0.1)
+    _, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
 
     if soil is not None:
         submerged_element = element_properties["x_bottom [m]"].values < soil.water_line
@@ -189,7 +178,7 @@ def unit_end_bearing(
     pile,soil,
 ) -> float:
 
-    soil_properties, _, _, _ = get_all_properties(pile, soil, None, 0.1)
+    soil_properties, _, _, _ = get_all_properties(pile, soil, None, COARSENESS)
 
     for layer in soil.layers:
         if layer.axial_model is None:
@@ -232,7 +221,7 @@ def entrapped_soil_weight(pile,soil) -> float:
         value of entrapped total  weight of soil inside the pile in unit:kN
     """
 
-    soil_properties, element_properties, _, _ = get_all_properties(pile, soil, None, 0.1)
+    soil_properties, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
 
     # weight water in kN/m3
     uw_water = 10
@@ -286,7 +275,7 @@ def shaft_resistance(
         value of shaft resistance in unit:kN
     """
 
-    soil_properties, element_properties, _, _ = get_all_properties(pile, soil, None, 0.1)
+    soil_properties, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
     elem_number = int(element_properties.shape[0])
 
     # pile element surfaces

@@ -38,7 +38,7 @@ class PileMaterial(AbstractPileMaterial):
         return self.uw
 
     @property
-    def young(self):
+    def young_modulus(self):
         return self.E
     
     @property
@@ -47,7 +47,7 @@ class PileMaterial(AbstractPileMaterial):
     
     @property
     def shear_modulus(self):
-        return self.young / (2 + 2 * self.poisson)
+        return self.young_modulus / (2 + 2 * self.poisson)
     
     @classmethod
     def custom(cls, unitweight:float,  young_modulus:float, poisson_ratio:float, name:str='Custom'):

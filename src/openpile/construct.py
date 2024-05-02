@@ -197,7 +197,7 @@ class Pile(AbstractPile):
     #: name of the pile
     name: str
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
-    pile_sections: List[PileSection]
+    sections: List[PileSection]
     #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
     material: Union[Literal["Steel", "Concrete"], PileMaterial]
     """
@@ -207,7 +207,7 @@ class Pile(AbstractPile):
     ----------
     name : str
         Pile/Structure's name.
-    pile_sections : List[CircularPileSection]
+    sections : List[CircularPileSection]
         argument that stores the relevant data of each pile segment. numbering of sections is made from uppermost elevation and 0-indexed.
     material : Literal["Steel",]
         material the pile is made of. by default "Steel"
@@ -220,7 +220,7 @@ class Pile(AbstractPile):
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
     >>> pile = Pile(name = "",
     ...         material='Steel',
-    ...         pile_sections=[
+    ...         sections=[
     ...             CircularPileSection(
     ...                 top=0, 
     ...                 bottom=-10, 
@@ -249,13 +249,13 @@ class Pile(AbstractPile):
 
     # check that dict is correctly entered
     @model_validator(mode="after")
-    def pile_sections_must_not_overlap(self):
-        self.pile_sections = sorted(self.pile_sections, key=lambda x: -x.top_elevation)
-        for i, segment in enumerate(self.pile_sections):
+    def sections_must_not_overlap(self):
+        self.sections = sorted(self.sections, key=lambda x: -x.top_elevation)
+        for i, segment in enumerate(self.sections):
             if i == 0:
                 pass
             else:
-                previous_segment = self.pile_sections[i-1]
+                previous_segment = self.sections[i-1]
                 if segment.top_elevation != previous_segment.bottom_elevation:
                     raise ValueError(f"Pile sections are not consistent. Pile section No. {i} and No. {i-1} do not connect.")
         return self
@@ -271,7 +271,7 @@ class Pile(AbstractPile):
 
     @property
     def top_elevation(self) -> float:
-        return self.pile_sections[0].top_elevation
+        return self.sections[0].top_elevation
 
     @property
     def data(self) -> pd.DataFrame:
@@ -279,34 +279,34 @@ class Pile(AbstractPile):
         # Create top and bottom elevations
         return pd.DataFrame(
             data={
-                "Elevation [m]": [x for x in self.pile_sections for x in [x.top_elevation,x.bottom_elevation]],
-                "Width [m]": [x.width for x in self.pile_sections for x in [x,x]],
-                "Area [m2]": [x.area for x in self.pile_sections for x in [x,x]],
-                "I [m4]": [x.second_moment_of_area for x in self.pile_sections for x in [x,x]],
-                "Entrapped Area [m2]": [x.entrapped_area for x in self.pile_sections for x in [x,x]],
-                "Outer Perimeter [m]": [x.outer_perimeter for x in self.pile_sections for x in [x,x]],
-                "Inner Perimeter [m]": [x.inner_perimeter for x in self.pile_sections for x in [x,x]],
+                "Elevation [m]": [x for x in self.sections for x in [x.top_elevation,x.bottom_elevation]],
+                "Width [m]": [x.width for x in self.sections for x in [x,x]],
+                "Area [m2]": [x.area for x in self.sections for x in [x,x]],
+                "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x,x]],
+                "Entrapped Area [m2]": [x.entrapped_area for x in self.sections for x in [x,x]],
+                "Outer Perimeter [m]": [x.outer_perimeter for x in self.sections for x in [x,x]],
+                "Inner Perimeter [m]": [x.inner_perimeter for x in self.sections for x in [x,x]],
             }
         )
 
     def __str__(self):
-        if all([isinstance(x,CircularPileSection) for x in self.pile_sections]):
+        if all([isinstance(x,CircularPileSection) for x in self.sections]):
             return pd.DataFrame(
                 data={
-                    "Elevation [m]": [x for x in self.pile_sections for x in [x.top_elevation,x.bottom_elevation]],
-                    "Diameter [m]": [x.width for x in self.pile_sections for x in [x,x]],
-                    "Wall thickness [m]":[x.thickness for x in self.pile_sections for x in [x,x]],
-                    "Area [m2]": [x.area for x in self.pile_sections for x in [x,x]],
-                    "I [m4]": [x.second_moment_of_area for x in self.pile_sections for x in [x,x]],
+                    "Elevation [m]": [x for x in self.sections for x in [x.top_elevation,x.bottom_elevation]],
+                    "Diameter [m]": [x.width for x in self.sections for x in [x,x]],
+                    "Wall thickness [m]":[x.thickness for x in self.sections for x in [x,x]],
+                    "Area [m2]": [x.area for x in self.sections for x in [x,x]],
+                    "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x,x]],
                 }
             ).to_string()
         else:
             return pd.DataFrame(
                 data={
-                    "Elevation [m]": [x for x in self.pile_sections for x in [x.top_elevation,x.bottom_elevation]],
-                    "Width [m]": [x.width for x in self.pile_sections for x in [x,x]],
-                    "Area [m2]": [x.area for x in self.pile_sections for x in [x,x]],
-                    "I [m4]": [x.second_moment_of_area for x in self.pile_sections for x in [x,x]],
+                    "Elevation [m]": [x for x in self.sections for x in [x.top_elevation,x.bottom_elevation]],
+                    "Width [m]": [x.width for x in self.sections for x in [x,x]],
+                    "Area [m2]": [x.area for x in self.sections for x in [x,x]],
+                    "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x,x]],
                 }
             ).to_string()
 
@@ -315,7 +315,7 @@ class Pile(AbstractPile):
         """
         Bottom elevation of the pile [m VREF].
         """
-        return self.pile_sections[-1].bottom_elevation
+        return self.sections[-1].bottom_elevation
 
     @property
     def length(self) -> float:
@@ -329,7 +329,7 @@ class Pile(AbstractPile):
         """
         Pile volume [m3].
         """
-        return round(sum([x.area * x.length for x in self.pile_sections]), 2)
+        return round(sum([x.area * x.length for x in self.sections]), 2)
 
     @property
     def weight(self) -> float:
@@ -355,12 +355,12 @@ class Pile(AbstractPile):
     @property
     def tip_area(self) -> float:
         "Sectional area at the bottom of the pile [m2]"
-        return self.pile_sections[-1].area
+        return self.sections[-1].area
 
     @property
     def tip_footprint(self) -> float:
         "footprint area at the bottom of the pile [m2]"
-        return self.pile_sections[-1].footprint
+        return self.sections[-1].footprint
 
 
     @classmethod
@@ -400,7 +400,7 @@ class Pile(AbstractPile):
         obj = cls(
             name=name,
             material=material,
-            pile_sections=[
+            sections=[
                 CircularPileSection(
                     top=top_elevation,
                     bottom=bottom_elevation,
@@ -777,7 +777,7 @@ class Model(AbstractModel):
     ... 		kind='Circular',
     ... 		material='Steel',
     ... 		top_elevation = 0,
-    ... 		pile_sections={
+    ... 		sections={
     ... 			'length':[10,30],
     ... 			'diameter':[7.5,7.5],
     ... 			'wall thickness':[0.07, 0.08],

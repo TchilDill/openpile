@@ -25,7 +25,7 @@ A pile can be created in the simple following way in openpile.
     >>> # Create a Pile
     >>> pile = Pile(name = "",
     ...         material='Steel',
-    ...         pile_sections=[
+    ...         sections=[
     ...             CircularPileSection(
     ...                 top=0, 
     ...                 bottom=-10, 

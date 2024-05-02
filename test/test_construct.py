@@ -16,7 +16,7 @@ class TestPile:
         pile = construct.Pile(
             name="",
             material="Steel",
-            pile_sections=[
+            sections=[
                 construct.CircularPileSection(
                     top=0, 
                     bottom=-10, 
@@ -42,7 +42,7 @@ class TestPile:
         pile = construct.Pile(
             name="",
             material="Steel",
-            pile_sections=[
+            sections=[
                 construct.CircularPileSection(
                     top=0.1, 
                     bottom=-9.9, 
@@ -58,14 +58,14 @@ class TestPile:
             ],
         )
 
-        assert pile.pile_sections[0].width == 8.0
-        assert pile.pile_sections[1].width == 8.0
+        assert pile.sections[0].width == 8.0
+        assert pile.sections[1].width == 8.0
 
     def test_pile_length(self):
         pile = construct.Pile(
             name="",
             material="Steel",
-            pile_sections=[
+            sections=[
                 construct.CircularPileSection(
                     top=10, 
                     bottom=-12, 
@@ -87,7 +87,7 @@ class TestPile:
         pile = construct.Pile(
             name="",
             material="Steel",
-            pile_sections=[
+            sections=[
                 construct.CircularPileSection(
                     top=10, 
                     bottom=-12, 
@@ -111,7 +111,7 @@ class TestPile:
         pile = construct.Pile(
             name="",
             material="Steel",
-            pile_sections=[
+            sections=[
                 construct.CircularPileSection(
                     top=10, 
                     bottom=0, 
@@ -127,8 +127,8 @@ class TestPile:
             ],
         )
 
-        assert pile.pile_sections[0].area == 0.25 * m.pi
-        assert pile.pile_sections[1].area == 0.25 * m.pi
+        assert pile.sections[0].area == 0.25 * m.pi
+        assert pile.sections[1].area == 0.25 * m.pi
         assert pile.tip_area == 0.25 * m.pi
         assert pile.tip_footprint == 0.25 * m.pi
 

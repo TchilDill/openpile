@@ -7,19 +7,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
-## [0.8.0] - 2024-xx-xx
+## [0.8.0] - 2024-05-xx
 
 ### Added
-- extensions of API-type lateral soil models are now considered in the string output when printing out the model or the entire soil profile.
+- extensions of API-type lateral soil models are now considered in the string output when printing out the model or the entire soil profile, i.e. when running `print(openpile.construct.Layer)`
+- the `PileMaterial` class in the brand new `openpile.materials` module is now used to determine the material of the structure. Such material can now be customised by users by creating a new instance of `openpile.materials.PileMaterial`.
 
 ### Modified
 
-- The API clay model available until v0.7.1 has decoupled for form the API clay and the Mofidied Matlock model, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
-- functions in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
-- PileMaterial class in `openpile.materials` module
+- The API clay model available until v0.7.1 has decoupled to form the `API_clay` and the mofidied_Matlock models, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
+- functions found in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
 
 ### Deleted
-- :py:meth:`Pile.set_I()` method has been deleted, the second moment of area of a given pile segment can be changed by calling a Custom PileSection Geometry.
+- The method `openpile.construct.Pile.set_I()` method has been deleted, the second moment of area of a given pile segment can be changed by calling a Custom PileSection Geometry.
+- The property `openpile.construct.Pile.E` cannot be overriden anymore, instead use the new feature where any material can be provided to the pile via `openpile.materials.PileMaterial`.
+
 
 ## [0.7.1] - 2023-11-21
 

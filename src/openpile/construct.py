@@ -31,11 +31,12 @@ from openpile.core import misc, _model_build
 from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
 from openpile.calculate import isplugged
+from openpile.core._model_build import check_springs
 
 from abc import ABC, abstractstaticmethod, abstractproperty, abstractmethod
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
-from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validator
+from pydantic import BaseModel, AfterValidator, ConfigDict, InstanceOf, Field, model_validator, computed_field
 
 from pydantic import (
     BaseModel,
@@ -193,21 +194,22 @@ class CircularPileSection(PileSection):
     def get_entrapped_volume(self, length) -> float:
         return length * (self.diameter - 2*self.thickness)**2  * m.pi / 4
 
+
 class Pile(AbstractPile):
     #: name of the pile
     name: str
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
-    sections: List[PileSection]
+    sections: List[InstanceOf[PileSection]]
     #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
     material: Union[Literal["Steel", "Concrete"], PileMaterial]
     """
-    A class to create the pile.
+    A class to create the pil.e.
 
     Parameters
     ----------
     name : str
         Pile/Structure's name.
-    sections : List[CircularPileSection]
+    sections : List[PileSection]
         argument that stores the relevant data of each pile segment. numbering of sections is made from uppermost elevation and 0-indexed.
     material : Literal["Steel",]
         material the pile is made of. by default "Steel"
@@ -246,6 +248,13 @@ class Pile(AbstractPile):
     ...         wt=0.07,
     ...         )
     """
+
+    # check that we have at least one pile section
+    @model_validator(mode="after")
+    def sections_must_be_provided(self):
+        if len(self.sections) == 0:
+            raise ValueError("No pile sections provided.")
+        return self
 
     # check that dict is correctly entered
     @model_validator(mode="after")
@@ -512,8 +521,7 @@ class Layer(AbstractLayer):
     @model_validator(mode="after")
     def check_elevations(self):  
         if not self.top > self.bottom:
-            print("Bottom elevation is higher than top elevation")
-            raise ValueError
+            raise ValueError("Bottom elevation is higher than top elevation")
         else:
             return self
 
@@ -773,16 +781,24 @@ class Model(AbstractModel):
     >>> from openpile.construct import Pile, Model, Layer
     >>> from openpile.soilmodels import API_sand
     >>> # create pile
-    ... p = Pile(name = "WTG01",
-    ... 		kind='Circular',
-    ... 		material='Steel',
-    ... 		top_elevation = 0,
-    ... 		sections={
-    ... 			'length':[10,30],
-    ... 			'diameter':[7.5,7.5],
-    ... 			'wall thickness':[0.07, 0.08],
-    ... 		}
-    ... 	)
+    ... p = Pile(name = "",
+    ...          material='Steel',
+    ...          sections=[
+    ...             CircularPileSection(
+    ...                 top=0, 
+    ...                 bottom=-10, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.07
+    ...             ),
+    ...             CircularPileSection(
+    ...                 top=-10, 
+    ...                 bottom=-40, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.08
+    ...             ),
+    ...          ]
+    ...     )
+
     >>> # Create Soil Profile
     >>> sp = SoilProfile(
     ... 	name="BH01",
@@ -839,6 +855,92 @@ class Model(AbstractModel):
             if self.pile.bottom_elevation < self.soil.bottom_elevation:
                 raise ValueError("The pile ends deeper than the soil profile.")
         return self
+
+
+    @computed_field
+    @property
+    def soil_properties(self) -> Union[Dict[str, np.ndarray], None]:
+        #dummy allocation
+        soil_properties = None
+        # create soil properties
+        if self.soil is not None:
+            soil_properties = pd.merge_asof(
+                left=self.element_coordinates[["x_top [m]", "x_bottom [m]"]].sort_values(
+                    by=["x_top [m]"]
+                ),
+                right=_model_build.get_soil_profile(self.soil).sort_values(by=["Top soil layer [m]"]),
+                left_on="x_top [m]",
+                right_on="Top soil layer [m]",
+                direction="forward",
+            ).sort_values(by=["x_top [m]"], ascending=False)
+            # add elevation of element w.r.t. ground level
+            soil_properties["xg_top [m]"] = (
+                soil_properties["x_top [m]"] - self.soil.top_elevation
+            )
+            soil_properties["xg_bottom [m]"] = (
+                soil_properties["x_bottom [m]"] - self.soil.top_elevation
+            )
+            # add vertical stress at top and bottom of each element
+            condition_below_water_table = soil_properties["x_top [m]"] <= self.soil.water_line
+            soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
+                soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
+            )
+            s = (
+                soil_properties["x_top [m]"] - soil_properties["x_bottom [m]"]
+            ) * soil_properties["Unit Weight [kN/m3]"]
+            soil_properties["sigma_v top [kPa]"] = np.insert(
+                s.cumsum().values[:-1],
+                np.where(soil_properties["x_top [m]"].values == self.soil.top_elevation)[0],
+                0.0,
+            )
+            soil_properties["sigma_v bottom [kPa]"] = s.cumsum()
+            # reset index
+            soil_properties.reset_index(inplace=True, drop=True)
+
+            return soil_properties
+
+
+    @computed_field
+    @property
+    def element_properties(self) -> Dict[str, np.ndarray]:
+        # creates element structural properties
+        # merge Pile.data and coordinates
+        element_properties = pd.merge_asof(
+            left=self.element_coordinates.sort_values(by=["x_top [m]"]),
+            right=self.pile.data.sort_values(by=["Elevation [m]"]),
+            left_on="x_top [m]",
+            right_on="Elevation [m]",
+            direction="forward",
+        ).sort_values(by=["x_top [m]"], ascending=False)
+        # add young modulus to data
+        element_properties["E [kPa]"] = self.pile.material.young_modulus
+        # delete Elevation [m] column
+        element_properties.drop("Elevation [m]", inplace=True, axis=1)
+        # reset index
+        element_properties.reset_index(inplace=True, drop=True)
+        
+        return element_properties
+
+    @computed_field
+    @property
+    def nodes_coordinates(self) -> Dict[str, np.ndarray]:
+        return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[0]
+
+    @computed_field
+    @property
+    def element_coordinates(self) -> Dict[str, np.ndarray]:
+        return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[1]
+
+    @property
+    def element_number(self) -> int:
+        return self.element_properties.shape[0]
+
+    @computed_field
+    @property
+    def nodes_coordinates(self) -> Dict[str, np.ndarray]:
+        return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[0]
+
+
 
     def model_post_init(self,*args,**kwargs):
         
@@ -1005,9 +1107,6 @@ class Model(AbstractModel):
                 )
             return py, mt, Hb, Mb, tz
 
-        self.soil_properties, self.element_properties, self.nodes_coordinates, self.element_coordinates =  _model_build.get_all_properties(self.pile, self.soil,self.x2mesh, self.coarseness)
-        self.element_number = int(self.element_properties.shape[0])
-
         # Create arrays of springs
         (
             self._py_springs,
@@ -1034,6 +1133,7 @@ class Model(AbstractModel):
         self.global_restrained["Tx"] = False
         self.global_restrained["Ty"] = False
         self.global_restrained["Rz"] = False
+        
 
     @property
     def embedment(self) -> float:

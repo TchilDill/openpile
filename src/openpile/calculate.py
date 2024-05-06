@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 import math as m
 
-from openpile.core._model_build import get_all_properties
+from openpile.core._model_build import get_coordinates, get_tip_sig_v_eff
 
 class CalculateResult:
     _values: tuple
@@ -35,7 +35,7 @@ def _pile_element_surface(pile, soil):
         inside surface
     """
 
-    _, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
+    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
 
     perimeter_outside = element_properties["Outer perimeter [m]"].values
     perimeter_inside = element_properties["Inner perimeter [m]"].values
@@ -60,7 +60,7 @@ def _pile_inside_volume(pile, soil):
         inside volume of each element
     """
 
-    _, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
+    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
 
     L = (
         element_properties["x_top [m]"].values
@@ -94,7 +94,7 @@ def effective_pile_weight(pile, soil):
     `openpile.construct.Pile.weight`
     """
 
-    _, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
+    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
 
     if soil is not None:
         submerged_element = element_properties["x_bottom [m]"].values < soil.water_line
@@ -178,7 +178,6 @@ def unit_end_bearing(
     pile,soil,
 ) -> float:
 
-    soil_properties, _, _, _ = get_all_properties(pile, soil, None, COARSENESS)
 
     for layer in soil.layers:
         if layer.axial_model is None:
@@ -190,7 +189,9 @@ def unit_end_bearing(
                 and layer.bottom <= pile.bottom_elevation
             ):
                 # vertical effective stress at pile tip
-                sig_v_tip = (soil_properties["sigma_v bottom [kPa]"].iloc[-1],)
+                sig_v_tip = get_tip_sig_v_eff(tip_elevation=pile.bottom_elevation, 
+                                              layer=soil.layers, 
+                                              water_elevation=soil.water_line,)
 
                 # Calculate unit tip resistance with effective area
                 q = (
@@ -222,6 +223,7 @@ def entrapped_soil_weight(pile,soil) -> float:
     """
 
     soil_properties, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
+    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
 
     # weight water in kN/m3
     uw_water = 10

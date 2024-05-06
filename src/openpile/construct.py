@@ -31,23 +31,18 @@ from openpile.core import misc, _model_build
 from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
 from openpile.calculate import isplugged
-from openpile.core._model_build import check_springs
+from openpile.core._model_build import check_springs, get_soil_properties, get_coordinates
 
 from abc import ABC, abstractstaticmethod, abstractproperty, abstractmethod
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
 from pydantic import BaseModel, AfterValidator, ConfigDict, InstanceOf, Field, model_validator, computed_field
+from functools import cached_property
 
 from pydantic import (
     BaseModel,
     Field,
-    root_validator,
     model_validator,
-    validator,
-    PositiveFloat,
-    confloat,
-    conlist,
-    constr,
 )
 
 class AbstractPile(BaseModel, ABC):
@@ -858,50 +853,12 @@ class Model(AbstractModel):
 
 
     @computed_field
-    @property
+    @cached_property
     def soil_properties(self) -> Union[Dict[str, np.ndarray], None]:
-        #dummy allocation
-        soil_properties = None
-        # create soil properties
-        if self.soil is not None:
-            soil_properties = pd.merge_asof(
-                left=self.element_coordinates[["x_top [m]", "x_bottom [m]"]].sort_values(
-                    by=["x_top [m]"]
-                ),
-                right=_model_build.get_soil_profile(self.soil).sort_values(by=["Top soil layer [m]"]),
-                left_on="x_top [m]",
-                right_on="Top soil layer [m]",
-                direction="forward",
-            ).sort_values(by=["x_top [m]"], ascending=False)
-            # add elevation of element w.r.t. ground level
-            soil_properties["xg_top [m]"] = (
-                soil_properties["x_top [m]"] - self.soil.top_elevation
-            )
-            soil_properties["xg_bottom [m]"] = (
-                soil_properties["x_bottom [m]"] - self.soil.top_elevation
-            )
-            # add vertical stress at top and bottom of each element
-            condition_below_water_table = soil_properties["x_top [m]"] <= self.soil.water_line
-            soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
-                soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
-            )
-            s = (
-                soil_properties["x_top [m]"] - soil_properties["x_bottom [m]"]
-            ) * soil_properties["Unit Weight [kN/m3]"]
-            soil_properties["sigma_v top [kPa]"] = np.insert(
-                s.cumsum().values[:-1],
-                np.where(soil_properties["x_top [m]"].values == self.soil.top_elevation)[0],
-                0.0,
-            )
-            soil_properties["sigma_v bottom [kPa]"] = s.cumsum()
-            # reset index
-            soil_properties.reset_index(inplace=True, drop=True)
-
-            return soil_properties
-
+        return get_soil_properties(self.pile, self.soil, self.x2mesh, self.coarseness)
 
     @computed_field
-    @property
+    @cached_property
     def element_properties(self) -> Dict[str, np.ndarray]:
         # creates element structural properties
         # merge Pile.data and coordinates
@@ -922,25 +879,53 @@ class Model(AbstractModel):
         return element_properties
 
     @computed_field
-    @property
+    @cached_property
     def nodes_coordinates(self) -> Dict[str, np.ndarray]:
         return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[0]
 
     @computed_field
-    @property
+    @cached_property
     def element_coordinates(self) -> Dict[str, np.ndarray]:
         return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[1]
+
+    @computed_field
+    @cached_property
+    def nodes_coordinates(self) -> Dict[str, np.ndarray]:
+        return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[0]
+
+    @computed_field
+    @cached_property
+    def global_forces(self) -> Dict[str, np.ndarray]:
+        # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
+        df = self.nodes_coordinates.copy()
+        df["Px [kN]"] = 0
+        df["Py [kN]"] = 0
+        df["Mz [kNm]"] = 0
+        return df
+
+    @computed_field
+    @cached_property
+    def global_forces(self) -> Dict[str, np.ndarray]:
+        # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
+        df = self.nodes_coordinates.copy()
+        df["Tx [m]"] = 0
+        df["Ty [m]"] = 0
+        df["Rz [rad]"] = 0
+        return df
+
+    @computed_field
+    @cached_property
+    def global_restrained(self) -> Dict[str, np.ndarray]:
+        # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
+        df= self.nodes_coordinates.copy()
+        df["Tx"] = False
+        df["Ty"] = False
+        df["Rz"] = False
+        return df
 
     @property
     def element_number(self) -> int:
         return self.element_properties.shape[0]
-
-    @computed_field
-    @property
-    def nodes_coordinates(self) -> Dict[str, np.ndarray]:
-        return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[0]
-
-
 
     def model_post_init(self,*args,**kwargs):
         
@@ -1115,24 +1100,6 @@ class Model(AbstractModel):
             self._Mb_spring,
             self._tz_springs,
         ) = create_springs()
-
-        # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
-        self.global_forces = self.nodes_coordinates.copy()
-        self.global_forces["Px [kN]"] = 0
-        self.global_forces["Py [kN]"] = 0
-        self.global_forces["Mz [kNm]"] = 0
-
-        # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
-        self.global_disp = self.nodes_coordinates.copy()
-        self.global_disp["Tx [m]"] = 0
-        self.global_disp["Ty [m]"] = 0
-        self.global_disp["Rz [rad]"] = 0
-
-        # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
-        self.global_restrained = self.nodes_coordinates.copy()
-        self.global_restrained["Tx"] = False
-        self.global_restrained["Ty"] = False
-        self.global_restrained["Rz"] = False
         
 
     @property

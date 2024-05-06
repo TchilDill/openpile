@@ -3,6 +3,42 @@ import pandas as pd
 import numpy as np
 
 
+
+def get_tip_sig_v_eff(tip_elevation:float, 
+                          water_elevation:float, 
+                          layers:list, #List[openpile.construct.Layer] 
+                          sig_v_mudline:float=0,
+                          water_unit_weight:float=10.0):
+        """Calculates the effective vertical stress at the pile tip"""
+        sig_v_tip = sig_v_mudline
+        water_unit_weight = 10.0
+
+        for layer in sorted(layers, key=lambda x: -x.top):
+            buoyant_weight = layer.weight - water_unit_weight
+            if tip_elevation <= layer.bottom:
+                if water_elevation <= layer.bottom:
+                    w = layer.weight
+                elif water_elevation < layer.top:
+                    w = (layer.weight * (layer.top - water_elevation) 
+                         + buoyant_weight*(water_elevation - layer.bottom)) / (layer.top - layer.bottom)
+                else:
+                    w = buoyant_weight
+
+                sig_v_tip += w * (layer.top - layer.bottom)
+            
+            elif tip_elevation < layer.top and water_elevation > layer.bottom:
+                if water_elevation <= tip_elevation:
+                    w = layer.weight
+                elif water_elevation < layer.top:
+                    w = (layer.weight * (layer.top - water_elevation) 
+                         + buoyant_weight*(water_elevation - tip_elevation)) / (layer.top - tip_elevation)
+                else:
+                    w = buoyant_weight
+
+                sig_v_tip += w * (layer.top - tip_elevation)
+
+            return sig_v_tip
+
 def check_springs(arr):
             check_nan = np.isnan(arr).any()
             check_negative = (arr < 0).any()
@@ -76,8 +112,6 @@ def get_coordinates(pile, soil, x2mesh, coarseness) -> pd.DataFrame:
 
     return nodes, element
 
-    # function doing the work
-
 def get_soil_profile(soil) -> pd.DataFrame:
     top_elevations = [x.top for x in soil.layers]
     bottom_elevations = [x.bottom for x in soil.layers]
@@ -96,3 +130,44 @@ def get_soil_profile(soil) -> pd.DataFrame:
         data={"Top soil layer [m]": x, "Unit Weight [kN/m3]": soil_weights},
         dtype=np.float64,
     )
+
+def get_soil_properties(pile, soil, x2mesh, coarseness):
+        #dummy allocation
+        soil_properties = None
+        # create soil properties
+        if soil is not None:
+            element_coordinates = get_coordinates(pile, soil, x2mesh, coarseness)[1]
+            soil_properties = pd.merge_asof(
+                left=element_coordinates[["x_top [m]", "x_bottom [m]"]].sort_values(
+                    by=["x_top [m]"]
+                ),
+                right=get_soil_profile(soil).sort_values(by=["Top soil layer [m]"]),
+                left_on="x_top [m]",
+                right_on="Top soil layer [m]",
+                direction="forward",
+            ).sort_values(by=["x_top [m]"], ascending=False)
+            # add elevation of element w.r.t. ground level
+            soil_properties["xg_top [m]"] = (
+                soil_properties["x_top [m]"] - soil.top_elevation
+            )
+            soil_properties["xg_bottom [m]"] = (
+                soil_properties["x_bottom [m]"] - soil.top_elevation
+            )
+            # add vertical stress at top and bottom of each element
+            condition_below_water_table = soil_properties["x_top [m]"] <= soil.water_line
+            soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
+                soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
+            )
+            s = (
+                soil_properties["x_top [m]"] - soil_properties["x_bottom [m]"]
+            ) * soil_properties["Unit Weight [kN/m3]"]
+            soil_properties["sigma_v top [kPa]"] = np.insert(
+                s.cumsum().values[:-1],
+                np.where(soil_properties["x_top [m]"].values == soil.top_elevation)[0],
+                0.0,
+            )
+            soil_properties["sigma_v bottom [kPa]"] = s.cumsum()
+            # reset index
+            soil_properties.reset_index(inplace=True, drop=True)
+
+            return soil_properties

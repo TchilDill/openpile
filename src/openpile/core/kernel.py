@@ -14,9 +14,10 @@ from numba import njit, prange, f4, f8, b1, char
 import numba as nb
 from typing_extensions import Literal
 
-from openpile.construct import Model, Pile
+from openpile.construct import Model, Pile, CircularPileSection
 from openpile.core.validation import UserInputError
 from openpile.core import misc
+from openpile.core._model_build import parameter2elements
 
 
 @njit(f8[:](f8[:, :], f8[:]), cache=True)
@@ -203,20 +204,35 @@ def elem_mechanical_stiffness_matrix(model):
     # calculate length vector
     L = mesh_to_element_length(model)
     # elastic properties
-    nu = model.pile._nu
-    E = model.element_properties["E [kPa]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    nu = model.pile.material.poisson
+    E = model.pile.material.young_modulus * np.ones(L.shape).reshape((-1, 1, 1))
     G = E / (2 + 2 * nu)
     # cross-section properties
-    I = model.element_properties["I [m4]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    A = model.element_properties["Area [m2]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    d = model.element_properties["Diameter [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    wt = model.element_properties["Wall thickness [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    I = parameter2elements(model.pile.sections,
+                           lambda x:x.second_moment_of_area, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+    A = parameter2elements(model.pile.sections,
+                           lambda x:x.area, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
         kappa = 0
     elif model.element_type == "Timoshenko":
-        if model.pile.kind == "Circular":
+        if all([isinstance(section, CircularPileSection) for section in model.pile.sections]):
+            # pile diameter (called width)
+            d = parameter2elements(model.pile.sections,
+                           lambda x:x.width, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+            # wall thickness
+            wt = parameter2elements(model.pile.sections,
+                           lambda x:x.thickness, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+
             a = 0.5 * d
             b = 0.5 * (d - 2 * wt)
             nom = 6 * (a**2 + b**2) ** 2 * (1 + nu) ** 2
@@ -230,10 +246,6 @@ def elem_mechanical_stiffness_matrix(model):
             kappa = nom / denom
         else:
             raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
-    else:
-        raise ValueError(
-            "Model.element.type only accepts 'EB' type (for Euler-Bernoulli) of 'T' type (for Timoshenko)"
-        )
 
     phi = 12 * E * I * kappa / (A * G * L**2)
     X = A * E / L
@@ -379,14 +391,18 @@ def elem_mt_stiffness_matrix(model, u, kind):
     )
 
     # elastic properties
-    nu = model.pile._nu
-    E = model.element_properties["E [kPa]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    nu = model.pile.material.poisson
+    E = model.pile.material.young_modulus * np.ones(L.shape).reshape((-1, 1, 1))
     G = E / (2 + 2 * nu)
     # cross-section properties
-    I = model.element_properties["I [m4]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    A = model.element_properties["Area [m2]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    d = model.element_properties["Diameter [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    wt = model.element_properties["Wall thickness [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    I = parameter2elements(model.pile.sections,
+                           lambda x:x.second_moment_of_area, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+    A = parameter2elements(model.pile.sections,
+                           lambda x:x.area, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
@@ -396,7 +412,18 @@ def elem_mt_stiffness_matrix(model, u, kind):
         C = 2 * L / 15
         D = -L / 30
     elif model.element_type == "Timoshenko":
-        if model.pile.kind == "Circular":
+        if all([isinstance(section, CircularPileSection) for section in model.pile.sections]):
+            # pile diameter (called width)
+            d = parameter2elements(model.pile.sections,
+                           lambda x:x.width, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+            # wall thickness
+            wt = parameter2elements(model.pile.sections,
+                           lambda x:x.thickness, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+
             a = 0.5 * d
             b = 0.5 * (d - 2 * wt)
             nom = 6 * (a**2 + b**2) ** 2 * (1 + nu) ** 2
@@ -477,14 +504,18 @@ def elem_p_delta_stiffness_matrix(model, u):
     P = f[::6].reshape(-1, 1, 1)
 
     # elastic properties
-    nu = model.pile._nu
-    E = model.element_properties["E [kPa]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    nu = model.pile.material.poisson
+    E = model.pile.material.young_modulus * np.ones(L.shape).reshape((-1, 1, 1))
     G = E / (2 + 2 * nu)
     # cross-section properties
-    I = model.element_properties["I [m4]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    A = model.element_properties["Area [m2]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    d = model.element_properties["Diameter [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
-    wt = model.element_properties["Wall thickness [m]"].to_numpy(dtype=float).reshape((-1, 1, 1))
+    I = parameter2elements(model.pile.sections,
+                           lambda x:x.second_moment_of_area, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+    A = parameter2elements(model.pile.sections,
+                           lambda x:x.area, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
@@ -496,7 +527,18 @@ def elem_p_delta_stiffness_matrix(model, u):
         C = 2 * L / 15
         D = -L / 30
     elif model.element_type == "Timoshenko":
-        if model.pile.kind == "Circular":
+        if all([isinstance(section, CircularPileSection) for section in model.pile.sections]):
+            # pile diameter (called width)
+            d = parameter2elements(model.pile.sections,
+                           lambda x:x.width, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+            # wall thickness
+            wt = parameter2elements(model.pile.sections,
+                           lambda x:x.thickness, 
+                           model.element_properties["x_top [m]"].values,
+                           model.element_properties["x_bottom [m]"].values).reshape((-1, 1, 1))
+
             a = 0.5 * d
             b = 0.5 * (d - 2 * wt)
             nom = 6 * (a**2 + b**2) ** 2 * (1 + nu) ** 2
@@ -527,9 +569,6 @@ def elem_p_delta_stiffness_matrix(model, u):
         D = -L * (360 * omega**2 + 60 * omega + 1) / (30 * phi) - 2 * I * (
             72 * omega**2 + 12 * omega - 1
         ) / (A * L * phi)
-
-    else:
-        raise ValueError("Model.element.type only accepts 'EulerBernoulli' or 'Timoshenko'")
 
     k = (
         np.block(

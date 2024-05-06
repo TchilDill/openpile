@@ -19,6 +19,7 @@ These objects include:
 
 """
 
+
 import math as m
 import pandas as pd
 import numpy as np
@@ -31,7 +32,7 @@ from openpile.core import misc, _model_build
 from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
 from openpile.calculate import isplugged
-from openpile.core._model_build import check_springs, get_soil_properties, get_coordinates
+from openpile.core._model_build import check_springs, get_soil_properties, get_coordinates, apply_bc, validate_bc
 
 from abc import ABC, abstractstaticmethod, abstractproperty, abstractmethod
 from typing import List, Dict, Optional, Union
@@ -82,6 +83,14 @@ class PileSection(BaseModel, ABC):
 
     @abstractproperty
     def area(self) -> float:
+        pass
+
+    @property
+    def entrapped_area(self) -> float:
+        pass
+
+    @property
+    def footprint(self) -> float:
         pass
 
     @abstractproperty
@@ -739,6 +748,68 @@ class SoilProfile(AbstractSoilProfile):
         return fig if assign is True else None
 
 
+class BoundaryFix(BaseModel):
+    """
+    A class to create a boundary condition where support is fixed.
+
+    Parameters
+    ----------
+    elevation : str
+        Elevation of the boundary condition [m VREF]
+    x : bool
+        Fix the boundary condition in the x-direction
+    y : bool
+        Fix the boundary condition in the y-direction
+    z : bool
+        Fix the boundary condition in the z-direction
+    """
+    elevation: float
+    x: Optional[bool] = None
+    y: Optional[bool] = None
+    z: Optional[bool] = None
+    
+class BoundaryDisp(BaseModel):
+    """
+    A class to create a boundary condition where displacement is given.
+
+    Parameters
+    ----------
+    elevation : str
+        Elevation of the boundary condition [m VREF]
+    x : float
+        Apply displacement in the x-direction [m]
+    y : float
+        Apply displacement in the y-direction [m]
+    z : float
+        Apply displacement in the z-direction [m]
+    """
+    elevation: float
+    x: Optional[float] = None
+    y: Optional[float] = None
+    z: Optional[float] = None
+
+class BoundaryForce(BaseModel):
+    """
+    A class to create a boundary condition where force is given.
+
+    Parameters
+    ----------
+    elevation : str
+        Elevation of the boundary condition [m VREF]
+    x : float
+        Apply force in the x-direction [kN]
+    y : float
+        Apply force in the y-direction [kN]
+    z : float
+        Apply force in the z-direction [kN]
+    """
+    elevation: float
+    x: Optional[float] = None
+    y: Optional[float] = None
+    z: Optional[float] = None
+
+
+
 class Model(AbstractModel):
     """
     A class to create a Model.
@@ -752,6 +823,10 @@ class Model(AbstractModel):
         Name of the model
     pile : Pile
         Pile instance to be included in the model.
+    boundary_conditions : list[BoundaryFix, BoundaryDisp, BoundaryForce], optional
+        list of boundary conditions to be included in the model, by default None. 
+        Boundary conditions can be added when instantiating the model with Boundary... objects or via the methods:
+        `.set_pointload()`, `.set_pointdisplacement()`, `.set_support()`
     soil : Optional[SoilProfile], optional
         SoilProfile instance, by default None.
     element_type : str, optional
@@ -821,6 +896,8 @@ class Model(AbstractModel):
     name: str
     #: pile instance that the Model should consider
     pile: Pile
+    #: boundary conditions of the model
+    boundary_conditions: List[Union[BoundaryFix, BoundaryForce, BoundaryDisp]] = Field(default_factory=list)
     #: soil profile instance that the Model should consider
     soil: Optional[SoilProfile] = None
     #: type of beam elements
@@ -843,14 +920,19 @@ class Model(AbstractModel):
     base_axial: bool = False
 
     @model_validator(mode="after")
-    def soil_and_pile_bottom_elevation_match(self):  # pylint: disable=no-self-argument
+    def soil_and_pile_bottom_elevation_match(self):
         if self.soil is None:
             pass
         else:
             if self.pile.bottom_elevation < self.soil.bottom_elevation:
                 raise ValueError("The pile ends deeper than the soil profile.")
         return self
-
+    
+    @model_validator(mode="after")
+    def bc_validation(self):
+        validate_bc(self.boundary_conditions, BoundaryDisp)
+        validate_bc(self.boundary_conditions, BoundaryForce)
+        validate_bc(self.boundary_conditions, BoundaryFix)
 
     @computed_field
     @cached_property
@@ -894,33 +976,78 @@ class Model(AbstractModel):
         return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[0]
 
     @computed_field
-    @cached_property
+    @property
     def global_forces(self) -> Dict[str, np.ndarray]:
+
+        validate_bc(self.boundary_conditions, BoundaryForce)
+
         # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
         df = self.nodes_coordinates.copy()
         df["Px [kN]"] = 0
         df["Py [kN]"] = 0
         df["Mz [kNm]"] = 0
+ 
+        nodes_elevations = df["x [m]"].values
+
+
+        df["Px [kN]"], df["Py [kN]"], df["Mz [kNm]"] = apply_bc(
+            nodes_elevations, 
+            df["Px [kN]"].values, 
+            df["Py [kN]"].values, 
+            df["Mz [kNm]"].values, 
+            self.boundary_conditions, 
+            BoundaryForce, 
+            "Load")
+
         return df
 
     @computed_field
-    @cached_property
-    def global_forces(self) -> Dict[str, np.ndarray]:
+    @property
+    def global_disp(self) -> Dict[str, np.ndarray]:
+
+        validate_bc(self.boundary_conditions, BoundaryDisp)
+
         # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
         df = self.nodes_coordinates.copy()
         df["Tx [m]"] = 0
         df["Ty [m]"] = 0
         df["Rz [rad]"] = 0
+
+        nodes_elevations = df["x [m]"].values
+
+        df["Tx [m]"], df["Ty [m]"], df["Rz [rad]"] = apply_bc(
+            nodes_elevations, 
+            df["Tx [m]"].values, 
+            df["Ty [m]"].values, 
+            df["Rz [rad]"].values, 
+            self.boundary_conditions, 
+            BoundaryDisp, 
+            "Displacement")
+
         return df
 
     @computed_field
-    @cached_property
+    @property
     def global_restrained(self) -> Dict[str, np.ndarray]:
+
+        validate_bc(self.boundary_conditions, BoundaryFix)
+
         # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
         df= self.nodes_coordinates.copy()
         df["Tx"] = False
         df["Ty"] = False
         df["Rz"] = False
+
+        nodes_elevations = df["x [m]"].values
+
+        df["Tx"], df["Ty"], df["Rz"] = apply_bc(
+            nodes_elevations, 
+            df["Tx"].values, 
+            df["Ty"].values, 
+            df["Rz"].values, 
+            self.boundary_conditions, 
+            BoundaryFix, 
+            "Fixity")
         return df
 
     @property
@@ -1192,6 +1319,7 @@ class Model(AbstractModel):
 
     def set_pointload(
         self,
+        *,
         elevation: float = 0.0,
         Py: float = None,
         Px: float = None,
@@ -1215,38 +1343,9 @@ class Model(AbstractModel):
         Mz : float, optional
             Bending moment in kNm, by default None.
         """
-
-        # identify if one node is at given elevation or if load needs to be split
-        nodes_elevations = self.nodes_coordinates["x [m]"].values
-        # check if corresponding node exist
-        check = np.isclose(nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001)
-
-        try:
-            if any(check):
-                # one node correspond, extract node
-                node_idx = int(np.where(check == True)[0])
-                # apply loads at this node
-                if Px is not None:
-                    self.global_forces.loc[node_idx, "Px [kN]"] = Px
-                if Py is not None:
-                    self.global_forces.loc[node_idx, "Py [kN]"] = Py
-                if Mz is not None:
-                    self.global_forces.loc[node_idx, "Mz [kNm]"] = Mz
-            else:
-                if (
-                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
-                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
-                ):
-                    print(
-                        "Load not applied! The chosen elevation is outside the mesh. The load must be applied on the structure."
-                    )
-                else:
-                    print(
-                        "Load not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
-                    )
-        except Exception:
-            print("\n!User Input Error! Please create Model first with the Model.create().\n")
-            raise
+        self.boundary_conditions.append(
+            BoundaryForce( elevation=elevation, x=Px, y=Py, z=Mz )
+        )
 
     def set_pointdisplacement(
         self,
@@ -1272,45 +1371,9 @@ class Model(AbstractModel):
         Rz : float, optional
             Rotation around z-axis, by default None.
         """
-
-        try:
-            # identify if one node is at given elevation or if load needs to be split
-            nodes_elevations = self.nodes_coordinates["x [m]"].values
-            # check if corresponding node exist
-            check = np.isclose(
-                nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
-            )
-
-            if any(check):
-                # one node correspond, extract node
-                node_idx = int(np.where(check == True)[0])
-                # apply displacements at this node
-                if Tx is not None:
-                    self.global_disp.loc[node_idx, "Tx [m]"] = Tx
-                    self.global_restrained.loc[node_idx, "Tx"] = Tx > 0.0
-                if Ty is not None:
-                    self.global_disp.loc[node_idx, "Ty [m]"] = Ty
-                    self.global_restrained.loc[node_idx, "Ty"] = Ty > 0.0
-                if Rz is not None:
-                    self.global_disp.loc[node_idx, "Rz [rad]"] = Rz
-                    self.global_restrained.loc[node_idx, "Rz"] = Rz > 0.0
-                # set restrain at this node
-
-            else:
-                if (
-                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
-                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
-                ):
-                    print(
-                        "Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure."
-                    )
-                else:
-                    print(
-                        "Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
-                    )
-        except Exception:
-            print("\n!User Input Error! Please create Model first with the Model.create().\n")
-            raise
+        self.boundary_conditions.append(
+            BoundaryDisp( elevation=elevation, x=Tx, y=Ty, z=Rz )
+        )
 
     def set_support(
         self,
@@ -1337,37 +1400,9 @@ class Model(AbstractModel):
         Rz : bool, optional
             Rotation around z-axis, by default False.
         """
-
-        try:
-            # identify if one node is at given elevation or if load needs to be split
-            nodes_elevations = self.nodes_coordinates["x [m]"].values
-            # check if corresponding node exist
-            check = np.isclose(
-                nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
-            )
-
-            if any(check):
-                # one node correspond, extract node
-                node_idx = int(np.where(check == True)[0])
-                # apply loads at this node
-                self.global_restrained.loc[node_idx, "Tx"] = Tx
-                self.global_restrained.loc[node_idx, "Ty"] = Ty
-                self.global_restrained.loc[node_idx, "Rz"] = Rz
-            else:
-                if (
-                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
-                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
-                ):
-                    print(
-                        "Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure."
-                    )
-                else:
-                    print(
-                        "Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
-                    )
-        except Exception:
-            print("\n!User Input Error! Please create Model first with the Model.create().\n")
-            raise
+        self.boundary_conditions.append(
+            BoundaryFix( elevation=elevation, x=Tx, y=Ty, z=Rz )
+        )
 
     def get_py_springs(self, kind: str = "node") -> pd.DataFrame:
         """Table with p-y springs computed for the given Model.

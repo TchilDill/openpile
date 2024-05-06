@@ -2,7 +2,77 @@
 import pandas as pd
 import numpy as np
 
+def validate_bc(bc_list, bc_cls):
+    """
+    helper function to validate boundary condition
+    """
+    err = False
+    flag = []
+    # check if bcs overlap
+    if len(set([(bc.elevation, bc.x) for bc in bc_list if isinstance(bc,bc_cls)])) > 1:
+        flag.append('x')
+        err = True
+    if len(set([(bc.elevation, bc.y) for bc in bc_list if isinstance(bc,bc_cls)])) > 1:
+        flag.append('y')
+        err = True
+    if len(set([(bc.elevation, bc.z) for bc in bc_list if isinstance(bc,bc_cls)])) > 1:
+        flag.append('z')
+        err = True
+    if err:        
+        raise ValueError(f"Multiple boundary conditions ({bc_cls.__name__}) are given along {', and '.join(flag)}. axis and at same elevation.")
 
+
+def apply_bc(nodes_elevations, xglobal, yglobal, zglobal, bc_list, bc_cls, output_text):
+    """
+    helper function to apply boundary condition
+    """
+    # apply boundary condition
+    for bc in bc_list:
+        if isinstance(bc, bc_cls):
+            check = np.isclose(nodes_elevations, np.tile(bc.elevation, nodes_elevations.shape), atol=0.001)
+            if any(check):
+                # one node correspond, extract node
+                node_idx = int(np.where(check == True)[0])
+                # apply loads at this node
+                if bc.x:
+                    xglobal[node_idx] = bc.x
+                if bc.y:
+                    yglobal[node_idx] = bc.y
+                if bc.z:
+                    zglobal[node_idx] = bc.z
+            else:
+                if (
+                    bc.elevation > nodes_elevations[0]
+                    or bc.elevation < nodes_elevations[-1]
+                ):
+                    print(
+                        f"{output_text} not applied! The chosen elevation is outside the mesh. The {output_text} must be applied on the structure."
+                    )
+                else:
+                    print(
+                        f"{output_text} not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
+                    )
+    return xglobal, yglobal, zglobal
+        
+
+def parameter2elements(objects:list, key:callable , elem_x_top:list, elem_x_bottom:list):
+    """converts a list of pile sections into a list of elements
+    
+    Objects must be either a list of pile sections (openpile.construct.PileSection) or a list of soil layers (openpile.construct.Layer)
+
+    """
+
+    elem_x_top = np.array(elem_x_top)
+    elem_x_bottom = np.array(elem_x_bottom)
+    #create a NaN array with same array as elem_x_top
+    elem_x_param = np.full(elem_x_top.size, np.nan)
+
+    for obj in objects:
+        top_limit, bottom_limit = obj.top, obj.bottom
+        idx = np.where((elem_x_top <= top_limit) & (elem_x_bottom >= bottom_limit))[0]
+        elem_x_param[idx] = key(obj)
+    
+    return elem_x_param
 
 def get_tip_sig_v_eff(tip_elevation:float, 
                           water_elevation:float, 

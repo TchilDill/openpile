@@ -50,7 +50,7 @@ def test_entrapped_soil_weight():
         ],
     )
     # check
-    assert m.isclose(calculate.entrapped_soil_weight(pile=p, soil=sp), 18 * 10)
+    assert m.isclose(calculate.entrapped_soil_weight(pile=p, soil=sp), soil_weight * p.length)
 
 
 def test_submerged_effective_pile_weight():

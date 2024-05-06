@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 import math as m
 
-from openpile.core._model_build import get_coordinates, get_tip_sig_v_eff
+from openpile.core._model_build import get_coordinates, get_tip_sig_v_eff, get_soil_properties, parameter2elements
 
 class CalculateResult:
     _values: tuple
@@ -37,12 +37,12 @@ def _pile_element_surface(pile, soil):
 
     element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
 
-    perimeter_outside = element_properties["Outer perimeter [m]"].values
-    perimeter_inside = element_properties["Inner perimeter [m]"].values
-    L = (
-        element_properties["x_top [m]"].values
-        - element_properties["x_bottom [m]"].values
-    )
+    elem_x_top = element_properties["x_top [m]"].values
+    elem_x_bottom = element_properties["x_bottom [m]"].values
+    L = (elem_x_top - elem_x_bottom)
+    perimeter_outside = parameter2elements(pile.sections, lambda x: x.outer_perimeter, elem_x_top, elem_x_bottom)
+    perimeter_inside = parameter2elements(pile.sections, lambda x: x.inner_perimeter, elem_x_top, elem_x_bottom)
+
 
     return perimeter_outside * L, perimeter_inside * L
 
@@ -61,12 +61,10 @@ def _pile_inside_volume(pile, soil):
     """
 
     element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
-
-    L = (
-        element_properties["x_top [m]"].values
-        - element_properties["x_bottom [m]"].values
-    )
-    area_inside = element_properties["Entrapped Area [m2]"].values
+    elem_x_top = element_properties["x_top [m]"].values
+    elem_x_bottom = element_properties["x_bottom [m]"].values
+    L = (elem_x_top - elem_x_bottom)
+    area_inside = parameter2elements(pile.sections, lambda x: x.entrapped_area, elem_x_top, elem_x_bottom)
 
     return area_inside * L
 
@@ -99,11 +97,9 @@ def effective_pile_weight(pile, soil):
     if soil is not None:
         submerged_element = element_properties["x_bottom [m]"].values < soil.water_line
 
-        L = (
-            element_properties["x_top [m]"].values
-            - element_properties["x_bottom [m]"].values
-        )
-        V = L * element_properties["Area [m2]"].values
+        elem_x_top = element_properties["x_top [m]"].values
+        elem_x_bottom = element_properties["x_bottom [m]"].values
+        V = (elem_x_top - elem_x_bottom) * parameter2elements(pile.sections, lambda x: x.area, elem_x_top, elem_x_bottom)
         W = np.zeros(shape=V.shape)
         W[submerged_element] = V[submerged_element] * (pile.material.unitweight - 10)
         W[~submerged_element] = V[~submerged_element] * (pile.material.unitweight)
@@ -222,8 +218,8 @@ def entrapped_soil_weight(pile,soil) -> float:
         value of entrapped total  weight of soil inside the pile in unit:kN
     """
 
-    soil_properties, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
     element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
+    soil_properties = get_soil_properties(pile, soil, None, COARSENESS)
 
     # weight water in kN/m3
     uw_water = 10
@@ -277,7 +273,8 @@ def shaft_resistance(
         value of shaft resistance in unit:kN
     """
 
-    soil_properties, element_properties, _, _ = get_all_properties(pile, soil, None, COARSENESS)
+    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
+    soil_properties = get_soil_properties(pile, soil, None, COARSENESS)
     elem_number = int(element_properties.shape[0])
 
     # pile element surfaces

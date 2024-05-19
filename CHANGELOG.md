@@ -21,7 +21,7 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 ### Deleted
 - The method `openpile.construct.Pile.set_I()` method has been deleted, the second moment of area of a given pile segment can be changed by calling a Custom PileSection Geometry.
 - The property `openpile.construct.Pile.E` cannot be overriden anymore, instead use the new feature where any material can be provided to the pile via `openpile.materials.PileMaterial`.
-
+- The method `openpile.construct.Model.get_pointload()` is now deprecated and cannot be used anymore. Use the property `openpile.construct.Model.boundary_conditions` instead to list all boundary conditions.
 
 ## [0.7.1] - 2023-11-21
 

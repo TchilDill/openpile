@@ -748,7 +748,7 @@ class SoilProfile(AbstractSoilProfile):
         return fig if assign is True else None
 
 
-class BoundaryFix(BaseModel):
+class BoundaryFixation(BaseModel):
     """
     A class to create a boundary condition where support is fixed.
 
@@ -768,7 +768,7 @@ class BoundaryFix(BaseModel):
     y: Optional[bool] = None
     z: Optional[bool] = None
     
-class BoundaryDisp(BaseModel):
+class BoundaryDisplacement(BaseModel):
     """
     A class to create a boundary condition where displacement is given.
 
@@ -897,7 +897,7 @@ class Model(AbstractModel):
     #: pile instance that the Model should consider
     pile: Pile
     #: boundary conditions of the model
-    boundary_conditions: List[Union[BoundaryFix, BoundaryForce, BoundaryDisp]] = Field(default_factory=list)
+    boundary_conditions: List[Union[BoundaryFixation, BoundaryForce, BoundaryDisplacement]] = Field(default_factory=list)
     #: soil profile instance that the Model should consider
     soil: Optional[SoilProfile] = None
     #: type of beam elements
@@ -930,17 +930,17 @@ class Model(AbstractModel):
     
     @model_validator(mode="after")
     def bc_validation(self):
-        validate_bc(self.boundary_conditions, BoundaryDisp)
+        validate_bc(self.boundary_conditions, BoundaryDisplacement)
         validate_bc(self.boundary_conditions, BoundaryForce)
-        validate_bc(self.boundary_conditions, BoundaryFix)
+        validate_bc(self.boundary_conditions, BoundaryFixation)
 
     @computed_field
-    @cached_property
+    # @cached_property
     def soil_properties(self) -> Union[Dict[str, np.ndarray], None]:
         return get_soil_properties(self.pile, self.soil, self.x2mesh, self.coarseness)
 
     @computed_field
-    @cached_property
+    # @cached_property
     def element_properties(self) -> Dict[str, np.ndarray]:
         # creates element structural properties
         # merge Pile.data and coordinates
@@ -969,11 +969,6 @@ class Model(AbstractModel):
     @cached_property
     def element_coordinates(self) -> Dict[str, np.ndarray]:
         return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[1]
-
-    @computed_field
-    @cached_property
-    def nodes_coordinates(self) -> Dict[str, np.ndarray]:
-        return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[0]
 
     @computed_field
     @property
@@ -1005,7 +1000,7 @@ class Model(AbstractModel):
     @property
     def global_disp(self) -> Dict[str, np.ndarray]:
 
-        validate_bc(self.boundary_conditions, BoundaryDisp)
+        validate_bc(self.boundary_conditions, BoundaryDisplacement)
 
         # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
         df = self.nodes_coordinates.copy()
@@ -1021,7 +1016,7 @@ class Model(AbstractModel):
             df["Ty [m]"].values, 
             df["Rz [rad]"].values, 
             self.boundary_conditions, 
-            BoundaryDisp, 
+            BoundaryDisplacement, 
             "Displacement")
 
         return df
@@ -1030,7 +1025,7 @@ class Model(AbstractModel):
     @property
     def global_restrained(self) -> Dict[str, np.ndarray]:
 
-        validate_bc(self.boundary_conditions, BoundaryFix)
+        validate_bc(self.boundary_conditions, BoundaryFixation)
 
         # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
         df= self.nodes_coordinates.copy()
@@ -1046,7 +1041,7 @@ class Model(AbstractModel):
             df["Ty"].values, 
             df["Rz"].values, 
             self.boundary_conditions, 
-            BoundaryFix, 
+            BoundaryFixation, 
             "Fixity")
         return df
 
@@ -1071,11 +1066,13 @@ class Model(AbstractModel):
             # allocate array for axial springs
             tz = np.zeros(shape=(self.element_number, 2, 2, 15), dtype=np.float32)
 
+            soil_prop = self.soil_properties
+
             # fill in spring for each element
             for layer in self.soil.layers:
-                elements_for_layer = self.soil_properties.loc[
-                    (self.soil_properties["x_top [m]"] <= layer.top)
-                    & (self.soil_properties["x_bottom [m]"] >= layer.bottom)
+                elements_for_layer = soil_prop.loc[
+                    (soil_prop["x_top [m]"] <= layer.top)
+                    & (soil_prop["x_bottom [m]"] >= layer.bottom)
                 ].index
 
                 # py curve
@@ -1085,14 +1082,14 @@ class Model(AbstractModel):
                     # Set local layer parameters for each element of the layer
                     for i in elements_for_layer:
                         # vertical effective stress
-                        sig_v = self.soil_properties[
+                        sig_v = soil_prop[
                             ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
                         ].iloc[i]
                         # elevation
-                        elevation = self.soil_properties[["x_top [m]", "x_bottom [m]"]].iloc[i]
+                        elevation = soil_prop[["x_top [m]", "x_bottom [m]"]].iloc[i]
                         # depth from ground
                         depth_from_ground = (
-                            self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
+                            soil_prop[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
                         ).abs()
                         # pile width
                         pile_width = self.element_properties["Width [m]"].iloc[i]
@@ -1157,7 +1154,7 @@ class Model(AbstractModel):
                     ):
 
                         # Hb curve
-                        sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
+                        sig_v_tip = soil_prop["sigma_v bottom [kPa]"].iloc[-1]
 
                         if layer.lateral_model.spring_signature[1] and self.base_shear:
 
@@ -1292,31 +1289,6 @@ class Model(AbstractModel):
         except Exception as e:
             print(e)
 
-    def get_pointload(self, output=False, verbose=True):
-        """
-        Returns the point loads currently defined in the mesh via printout statements.
-
-        Parameters
-        ----------
-        output : bool, optional
-            If true, it returns the printout statements as a variable, by default False.
-        verbose : float, optional
-            if True, printout statements printed automaically (ideal for use with iPython), by default True.
-        """
-        out = ""
-        try:
-            for idx, elevation, _, Px, Py, Mz in self.global_forces.itertuples(name=None):
-                if any([Px, Py, Mz]):
-                    string = f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
-                    if verbose is True:
-                        print(string)
-                    out += f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
-            if output is True:
-                return out
-        except Exception:
-            print("No data found. Please create the Model first.")
-            raise
-
     def set_pointload(
         self,
         *,
@@ -1372,7 +1344,7 @@ class Model(AbstractModel):
             Rotation around z-axis, by default None.
         """
         self.boundary_conditions.append(
-            BoundaryDisp( elevation=elevation, x=Tx, y=Ty, z=Rz )
+            BoundaryDisplacement( elevation=elevation, x=Tx, y=Ty, z=Rz )
         )
 
     def set_support(
@@ -1401,7 +1373,7 @@ class Model(AbstractModel):
             Rotation around z-axis, by default False.
         """
         self.boundary_conditions.append(
-            BoundaryFix( elevation=elevation, x=Tx, y=Ty, z=Rz )
+            BoundaryFixation( elevation=elevation, x=Tx, y=Ty, z=Rz )
         )
 
     def get_py_springs(self, kind: str = "node") -> pd.DataFrame:

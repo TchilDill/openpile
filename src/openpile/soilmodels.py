@@ -27,7 +27,7 @@ from pydantic import (
 from pydantic.dataclasses import dataclass
 
 from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str, get_value_at_current_depth
-from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves
+from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves, qz_curves
 from openpile.utils.misc import _fmax_api_sand, _fmax_api_clay, _Qmax_api_clay, _Qmax_api_sand
 
 from abc import ABC, abstractmethod, abstractproperty
@@ -89,7 +89,8 @@ class AxialModel(BaseModel, ABC):
         extra='allow',
     )
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def method(self) -> str:
         pass
 
@@ -122,8 +123,10 @@ class API_clay_axial(AxialModel):
     Q_multiplier: Annotated[float,Field(ge=0.0)] = 1.0
     #: w-multiplier
     w_multiplier: Annotated[float,Field(gt=0.0)] = 1.0
+    #: t-residual
+    t_residual: Annotated[float,Field(ge=0.7, le=0.9)] = 0.9
     #: inner_shaft_friction
-    inside_friction: bool = True
+    inside_friction: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
     #: tension factor
     shaft_friction_tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
 
@@ -146,22 +149,151 @@ class API_clay_axial(AxialModel):
 
     def unit_shaft_signature(self, *args, **kwargs):
         "This function determines how the unit shaft friction should be applied on outer an inner side of the pile"
-        return (
-            {"out": 1.0, "in": 1.0}
-            if self.inside_friction is True
-            else {"out": 1.0, "in": 0.0}
-        )
+        return {"out": 1.0, "in": 1.0*self.inside_friction}
         # for CPT based methods, it should be: return {'out': out_perimeter/(out_perimeter+in_perimeter), 'in':in_perimeter/(out_perimeter+in_perimeter)}
 
-    def tz_spring_fct():
-        pass
+    def tz_spring_fct(
+        self,
+        sig: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        output_length: int = 15,
+        **kwargs,
+    ):
+    
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
-    def Qz_spring_fct():
-        pass
+        z, t = tz_curves.api_clay(
+            sig=sig, 
+            Su=Su, 
+            D=D, 
+            residual=self.t_residual,
+            tensile_factor=self.tension_factor, 
+            output_length=output_length)
+
+        return z * self.z_multiplier, t * self.t_multiplier
+
+    def Qz_spring_fct(
+        self,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        output_length: int = 15,
+        **kwargs,
+    ):
+
+        # define Su
+        Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
+        Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
+        
+        w, Q = qz_curves.api_clay(
+            Su=Su, 
+            D=D, 
+            output_length=output_length,
+            **kwargs)
+        
+        return w * self.w_multiplier, Q * self.Q_multiplier
 
     def method(self) -> str:
         return "API"
 
+
+
+class API_sand_axial(AxialModel):
+
+    #: interface friction angle [deg], if a variation in values, two values can be given.
+    delta: Union[Annotated[float,Field(gt=0.0)], Annotated[List[Annotated[float, Field(ge=0, le=45)]],Field( min_length=1,max_length=2)]]
+    #: coefficient of lateral earth pressure, for open-ended piles, a value of 0.8 should be considered while 1.0 for close-ended piles
+    K: Annotated[float,Field(ge=0.8, le=1.0)] = 0.8
+    #: t-multiplier
+    t_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
+    #: z-multiplier
+    z_multiplier: Union[Callable[[float], float], Annotated[float,Field(gt=0.0)]] = 1.0
+    #: Q-multiplier
+    Q_multiplier: Annotated[float,Field(ge=0.0)] = 1.0
+    #: w-multiplier
+    w_multiplier: Annotated[float,Field(gt=0.0)] = 1.0
+    #: t-residual
+    t_residual: Annotated[float,Field(ge=0.7, le=0.9)] = 0.9
+    #: inner_shaft_friction
+    inside_friction: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
+    #: tension factor
+    shaft_friction_tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
+
+    def __str__(self):
+        return f"\tAPI sand\n\tdelta = {var_to_str(self.delta)} deg"
+
+    def unit_shaft_friction(self, sig, depth_from_top_of_layer, layer_height):
+        # define interface friction angle
+        delta_t, delta_b = from_list2x_parse_top_bottom(self.delta)
+        delta = delta_t + (delta_b - delta_t) * depth_from_top_of_layer / layer_height
+
+        return _fmax_api_sand(sig, delta, self.K)
+
+    def unit_tip_resistance(self, sig, depth_from_top_of_layer, layer_height):
+        # define interface friction angle
+        delta_t, delta_b = from_list2x_parse_top_bottom(self.delta)
+        delta = delta_t + (delta_b - delta_t) * depth_from_top_of_layer / layer_height
+
+        return _Qmax_api_sand(sig=sig, delta=delta)
+
+    def unit_shaft_signature(self, *args, **kwargs):
+        "This function determines how the unit shaft friction should be applied on outer an inner side of the pile"
+        return {"out": 1.0, "in": 1.0*self.inside_friction}
+        # for CPT based methods, it should be: return {'out': out_perimeter/(out_perimeter+in_perimeter), 'in':in_perimeter/(out_perimeter+in_perimeter)}
+
+    def tz_spring_fct(
+        self,
+        sig: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        output_length: int = 15,
+        **kwargs,
+    ):
+    
+        # define interface friction angle
+        delta_t, delta_b = from_list2x_parse_top_bottom(self.delta)
+        delta = delta_t + (delta_b - delta_t) * depth_from_top_of_layer / layer_height
+
+        z, t = tz_curves.api_sand(
+            sig=sig, 
+            delta=delta, 
+            residual=self.t_residual,
+            K=self.K,
+            tensile_factor=self.tension_factor, 
+            output_length=output_length)
+
+        return z * self.z_multiplier, t * self.t_multiplier
+
+    def Qz_spring_fct(
+        self,
+        sig:float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        output_length: int = 15,
+        **kwargs,
+    ):
+
+        # define interface friction angle
+        delta_t, delta_b = from_list2x_parse_top_bottom(self.delta)
+        delta = delta_t + (delta_b - delta_t) * depth_from_top_of_layer / layer_height
+
+        w, Q = qz_curves.api_sand(
+            sig=sig,
+            delta=delta, 
+            D=D, 
+            output_length=output_length,
+            **kwargs)
+        
+        return w * self.w_multiplier, Q * self.Q_multiplier
+
+    def method(self) -> str:
+        return "API"
 
 class Bothkennar_clay(LateralModel):
     """A class to establish the PISA Bothkennar clay model as per Burd et al 2020 (see [BABH20]_).

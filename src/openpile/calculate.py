@@ -18,14 +18,18 @@ class CalculateResult:
     _values: tuple
 
 
-COARSENESS = 0.1
 
-def _pile_element_surface(pile, soil):
+def _pile_element_surface(pile, soil, coarseness=0.1):
     """calculates outer and inner surface of pile elements.
 
     Parameters
     ----------
-    model : openpile.construct.Model
+    pile : openpile.construct.Pile
+        pile
+    soil : openpile.construct.SoilProfile
+        soil profile
+    coarseness : float, optional
+        coarseness of the elements, by default 0.1
 
     Returns
     -------
@@ -35,7 +39,7 @@ def _pile_element_surface(pile, soil):
         inside surface
     """
 
-    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
+    element_properties = get_coordinates(pile, soil, None, coarseness)[1]
 
     elem_x_top = element_properties["x_top [m]"].values
     elem_x_bottom = element_properties["x_bottom [m]"].values
@@ -47,12 +51,17 @@ def _pile_element_surface(pile, soil):
     return perimeter_outside * L, perimeter_inside * L
 
 
-def _pile_inside_volume(pile, soil):
+def _pile_inside_volume(pile, soil, coarseness=0.1):
     """calculates the volume of the pile form the model object
 
     Parameters
     ----------
-    model : openpile.construct.Model
+    pile : openpile.construct.Pile
+        pile
+    soil : openpile.construct.SoilProfile
+        soil profile
+    coarseness : float, optional
+        coarseness of the elements, by default 0.1
 
     Returns
     -------
@@ -60,7 +69,7 @@ def _pile_inside_volume(pile, soil):
         inside volume of each element
     """
 
-    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
+    element_properties = get_coordinates(pile, soil, None, coarseness)[1]
     elem_x_top = element_properties["x_top [m]"].values
     elem_x_bottom = element_properties["x_bottom [m]"].values
     L = (elem_x_top - elem_x_bottom)
@@ -69,13 +78,17 @@ def _pile_inside_volume(pile, soil):
     return area_inside * L
 
 
-def effective_pile_weight(pile, soil):
+def effective_pile_weight(pile, soil, coarseness=0.1):
     """Calculates the pile weight in the model with consideration of buoyancy
 
     Parameters
     ----------
-    model : openpile.construct.Model
-        OpenPile Model object
+    pile : openpile.construct.Pile
+        pile
+    soil : openpile.construct.SoilProfile
+        soil profile
+    coarseness : float, optional
+        coarseness of the elements, by default 0.1
 
     Returns
     -------
@@ -92,7 +105,7 @@ def effective_pile_weight(pile, soil):
     `openpile.construct.Pile.weight`
     """
 
-    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
+    element_properties = get_coordinates(pile, soil, None,coarseness=0.1)
 
     if soil is not None:
         submerged_element = element_properties["x_bottom [m]"].values < soil.water_line
@@ -204,13 +217,17 @@ def unit_end_bearing(
     return q
 
 
-def entrapped_soil_weight(pile,soil) -> float:
+def entrapped_soil_weight(pile,soil, coarseness=0.1) -> float:
     """calculates total weight of soil inside the pile. (Unit: kN)
 
     Parameters
     ----------
-    model : openpile.construct.Model
-        OpenPile Model to assess
+    pile : openpile.construct.Pile
+        pile
+    soil : openpile.construct.SoilProfile
+        soil profile
+    coarseness : float, optional
+        coarseness of the elements, by default 0.1
 
     Returns
     -------
@@ -218,8 +235,8 @@ def entrapped_soil_weight(pile,soil) -> float:
         value of entrapped total  weight of soil inside the pile in unit:kN
     """
 
-    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
-    soil_properties = get_soil_properties(pile, soil, None, COARSENESS)
+    element_properties = get_coordinates(pile, soil, None, coarseness)[1]
+    soil_properties = get_soil_properties(pile, soil, None, coarseness)
 
     # weight water in kN/m3
     uw_water = 10
@@ -255,17 +272,22 @@ def shaft_resistance(
     soil,
     outer_shaft:bool,
     inner_shaft:bool,
+    coarseness:float = 0.1
 ) -> float:
     """Calculates shaft resistance of the pile based on the axial models assigned to the SoilProfile layers. (Unit: kN)
 
     Parameters
     ----------
-    model : openpile.construct.Model
-        OpenPile Model to assess
-    outer_shaft : bool, optional
-        outer shaft resistance toggle switch, by default True
+    pile : openpile.construct.Pile
+        pile
+    soil : openpile.construct.SoilProfile
+        soil profile
+    outer_shaft : bool
+        outer shaft resistance toggle switch
     inner_shaft : bool, optional
-        inner shaft resistance toggle switch, by default True
+        inner shaft resistance toggle switch
+    coarseness : float
+        coarseness of the elements, by default 0.1
 
     Returns
     -------
@@ -273,8 +295,8 @@ def shaft_resistance(
         value of shaft resistance in unit:kN
     """
 
-    element_properties = get_coordinates(pile, soil, None, COARSENESS)[1]
-    soil_properties = get_soil_properties(pile, soil, None, COARSENESS)
+    element_properties = get_coordinates(pile, soil, None, coarseness)[1]
+    soil_properties = get_soil_properties(pile, soil, None, coarseness)
     elem_number = int(element_properties.shape[0])
 
     # pile element surfaces

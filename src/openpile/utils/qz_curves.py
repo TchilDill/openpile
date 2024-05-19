@@ -110,7 +110,7 @@ def api_clay(
         output_length = 8
 
     # unit toe reistance [kPa]
-    f = _Qmax_api_clay
+    f = _Qmax_api_clay(Su)
 
     # piecewise function
     zlist = [-0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]

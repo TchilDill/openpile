@@ -843,6 +843,10 @@ class Model(AbstractModel):
         include lateral spring at pile toe, by default False.
     base_moment : bool, optional
         include moment spring at pile toe, by default False.
+    distributed_axial : bool, optional
+        include distributed axial springs, by default True.
+    base_axial : bool, optional
+        include base axial springs, by default True.
 
 
     Example
@@ -915,9 +919,9 @@ class Model(AbstractModel):
     #: whether to include Mb-t spring in the calculations
     base_moment: bool = True
     #: whether to include t-z springs in the calculations
-    distributed_axial: bool = False
+    distributed_axial: bool = True
     #: whether to include Q-z spring in the calculations
-    base_axial: bool = False
+    base_axial: bool = True
 
     @model_validator(mode="after")
     def soil_and_pile_bottom_elevation_match(self):
@@ -1054,6 +1058,9 @@ class Model(AbstractModel):
         def create_springs() -> np.ndarray:
             # dim of springs
             spring_dim = 15
+            # springs dim for axial
+            tz_springs_dim = 15
+            qz_spring_dim = 8
 
             # Allocate array
             py = np.zeros(shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32)
@@ -1064,7 +1071,8 @@ class Model(AbstractModel):
             Mb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
 
             # allocate array for axial springs
-            tz = np.zeros(shape=(self.element_number, 2, 2, 15), dtype=np.float32)
+            tz = np.zeros(shape=(self.element_number, 2, 2, tz_springs_dim), dtype=np.float32)
+            qz = np.zeros(shape=(1, 1, 2, qz_spring_dim), dtype=np.float32)
 
             soil_prop = self.soil_properties
 
@@ -1075,24 +1083,63 @@ class Model(AbstractModel):
                     & (soil_prop["x_bottom [m]"] >= layer.bottom)
                 ].index
 
-                # py curve
-                if layer.lateral_model is None:
-                    pass
-                else:
+
+
+
+                for i in elements_for_layer:
                     # Set local layer parameters for each element of the layer
-                    for i in elements_for_layer:
-                        # vertical effective stress
-                        sig_v = soil_prop[
-                            ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
-                        ].iloc[i]
-                        # elevation
-                        elevation = soil_prop[["x_top [m]", "x_bottom [m]"]].iloc[i]
-                        # depth from ground
-                        depth_from_ground = (
-                            soil_prop[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
-                        ).abs()
-                        # pile width
-                        pile_width = self.element_properties["Width [m]"].iloc[i]
+                    # vertical effective stress
+                    sig_v = soil_prop[
+                        ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
+                    ].iloc[i]
+                    # elevation
+                    elevation = soil_prop[["x_top [m]", "x_bottom [m]"]].iloc[i]
+                    # depth from ground
+                    depth_from_ground = (
+                        soil_prop[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
+                    ).abs()
+                    # pile width
+                    pile_width = self.element_properties["Width [m]"].iloc[i]
+                    sig_v_tip = soil_prop["sigma_v bottom [kPa]"].iloc[-1]
+
+                    # t-z curves
+                    if layer.axial_model is not None:
+
+                        if self.distributed_axial: # True if tz spring function exist
+                            # calculate springs (top and bottom) for each element
+                            for j in [0, 1]:
+                                (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
+                                    sig=sig_v[j],
+                                    X=depth_from_ground[j],
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - elevation[j]),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=elevation[j] <= self.soil.water_line,
+                                    output_length=tz_springs_dim,
+                                )
+                        
+                        if (
+                            layer.top >= self.pile.bottom_elevation
+                            and layer.bottom <= self.pile.bottom_elevation 
+                            and self.base_axial
+                        ):
+                            # calculate Hb spring
+                            (qz[0, 0, 1], qz[0, 0, 0]) = layer.axial_model.Qz_spring_fct(
+                                sig=sig_v_tip,
+                                X=(self.soil.top_elevation - self.soil.bottom_elevation),
+                                layer_height=(layer.top - layer.bottom),
+                                depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
+                                D=pile_width,
+                                L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                below_water_table=self.pile.bottom_elevation
+                                <= self.soil.water_line,
+                                output_length=qz_spring_dim,
+                            )
+                            
+
+                    # py curve
+                    if layer.lateral_model is not None:
 
                         # p-y curves
                         if (
@@ -1111,24 +1158,6 @@ class Model(AbstractModel):
                                     below_water_table=elevation[j] <= self.soil.water_line,
                                     output_length=spring_dim,
                                 )
-
-                        # # t-z curves
-                        # if (
-                        #     layer.axial_model is not None
-                        # ):  # True if tz spring function exist
-
-                        #     # calculate springs (top and bottom) for each element
-                        #     for j in [0, 1]:
-                        #         (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
-                        #             sig=sig_v[j],
-                        #             X=depth_from_ground[j],
-                        #             layer_height=(layer.top - layer.bottom),
-                        #             depth_from_top_of_layer=(layer.top - elevation[j]),
-                        #             D=pile_width,
-                        #             L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                        #             below_water_table=elevation[j] <= self.soil.water_line,
-                        #             output_length=spring_dim,
-                        #         )
 
                         if (
                             layer.lateral_model.spring_signature[2] and self.distributed_moment
@@ -1154,8 +1183,6 @@ class Model(AbstractModel):
                     ):
 
                         # Hb curve
-                        sig_v_tip = soil_prop["sigma_v bottom [kPa]"].iloc[-1]
-
                         if layer.lateral_model.spring_signature[1] and self.base_shear:
 
                             # calculate Hb spring
@@ -1186,6 +1213,12 @@ class Model(AbstractModel):
                                 output_length=spring_dim,
                             )
 
+            # ensure springs are oriented correctly with respect to x-axis
+            # going down is compression and should be negative in "z" values
+            #TODO change axes names for z and x. 
+            tz[:,:,1] = tz[:,:,1]*(-1)
+            qz[:,:,1] = qz[:,:,1]*(-1)
+
             if check_springs(py):
                 print("py springs have negative or NaN values.")
                 print(
@@ -1214,7 +1247,8 @@ class Model(AbstractModel):
                 Please check that: 2 < L/D < 6.
                 """
                 )
-            return py, mt, Hb, Mb, tz
+
+            return py, mt, Hb, Mb, tz, qz
 
         # Create arrays of springs
         (
@@ -1223,6 +1257,7 @@ class Model(AbstractModel):
             self._Hb_spring,
             self._Mb_spring,
             self._tz_springs,
+            self._qz_springs,
         ) = create_springs()
         
 

@@ -89,8 +89,8 @@ class AxialModel(BaseModel, ABC):
         extra='allow',
     )
 
-    @abstractmethod
     @property
+    @abstractmethod
     def method(self) -> str:
         pass
 
@@ -128,7 +128,7 @@ class API_clay_axial(AxialModel):
     #: inner_shaft_friction
     inside_friction: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
     #: tension factor
-    shaft_friction_tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
+    tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
 
     def __str__(self):
         return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
@@ -171,7 +171,7 @@ class API_clay_axial(AxialModel):
             Su=Su, 
             D=D, 
             residual=self.t_residual,
-            tensile_factor=self.tension_factor, 
+            tensile_factor=self.tension_multiplier, 
             output_length=output_length)
 
         return z * self.z_multiplier, t * self.t_multiplier
@@ -192,8 +192,7 @@ class API_clay_axial(AxialModel):
         w, Q = qz_curves.api_clay(
             Su=Su, 
             D=D, 
-            output_length=output_length,
-            **kwargs)
+            output_length=output_length)
         
         return w * self.w_multiplier, Q * self.Q_multiplier
 
@@ -221,7 +220,7 @@ class API_sand_axial(AxialModel):
     #: inner_shaft_friction
     inside_friction: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
     #: tension factor
-    shaft_friction_tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
+    tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
 
     def __str__(self):
         return f"\tAPI sand\n\tdelta = {var_to_str(self.delta)} deg"
@@ -264,7 +263,7 @@ class API_sand_axial(AxialModel):
             delta=delta, 
             residual=self.t_residual,
             K=self.K,
-            tensile_factor=self.tension_factor, 
+            tensile_factor=self.tension_multiplier, 
             output_length=output_length)
 
         return z * self.z_multiplier, t * self.t_multiplier

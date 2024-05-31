@@ -739,6 +739,9 @@ def build_stiffness_matrix(model, u=None, kind=None):
             if model.distributed_lateral:
                 k += elem_py_stiffness_matrix(model, u, kind)
 
+            if model.distributed_axial:
+                k += elem_tz_stiffness_matrix(model, u, kind)
+
             if model.distributed_moment:
                 if not model.distributed_lateral:
                     raise UserInputError(
@@ -755,6 +758,10 @@ def build_stiffness_matrix(model, u=None, kind=None):
 
         if model.base_moment:
             K[-1, -1] += calculate_base_spring_stiffness(u[-1], model._Mb_spring, kind)
+
+        if model.base_axial:
+            K[-3, -3] += calculate_base_spring_stiffness(u[-3], model._qz_spring, kind)
+
 
     return K
 

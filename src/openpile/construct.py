@@ -1279,7 +1279,7 @@ class Model(AbstractModel):
             self._Hb_spring,
             self._Mb_spring,
             self._tz_springs,
-            self._qz_springs,
+            self._qz_spring,
         ) = create_springs()
         
 

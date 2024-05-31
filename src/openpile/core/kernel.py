@@ -353,6 +353,76 @@ def elem_py_stiffness_matrix(model, u, kind):
     return ktop + kbottom
 
 
+def elem_tz_stiffness_matrix(model, u, kind):
+    """creates soil element stiffness matrix based on model info and element number.
+
+    The soil stiffness matrix assumes the soil stiffness to vary lineraly along the elements.
+
+    #TODO: proof here
+
+    Parameters
+    ----------
+    model : openpile class object `openpile.construct.Model`
+        includes information on soil/structure, elements, nodes and other model-related data.
+    u: np.ndarray
+        Global displacement vector
+    kind: str
+        "initial", "secant" or "tangent"
+
+    Returns
+    -------
+    k: numpy array (3d)
+        soil consistent stiffness matrix of all elememts related to the t-z soil springs' stiffness
+
+    Raises
+    ------
+    ValueError
+        ndof per node can be either 2 or 3
+
+    """
+
+    # calculate length vector
+    L = mesh_to_element_length(model)
+
+    # calculate the spring stiffness
+    ksoil = calculate_tz_springs_stiffness(u=u[::3], springs=model._tz_springs, kind=kind)
+
+    N = 0 * L
+    A = L / 4
+    B = L / 12
+
+    ktop = (
+        np.block(
+            [
+                [A, N, N, B, N, N],
+                [N, N, N, N, N, N],
+                [N, N, N, N, N, N],
+                [B, N, N, B, N, N],
+                [N, N, N, N, N, N],
+                [N, N, N, N, N, N],
+            ]
+        )
+        * ksoil[:, 0]
+    )
+
+    kbottom = (
+        np.block(
+            [
+                [B, N, N, B, N, N],
+                [N, N, N, N, N, N],
+                [N, N, N, N, N, N],
+                [B, N, N, A, N, N],
+                [N, N, N, N, N, N],
+                [N, N, N, N, N, N],
+            ]
+        )
+        * ksoil[:, 1]
+    )
+
+    return ktop + kbottom
+
+
+
 def elem_mt_stiffness_matrix(model, u, kind):
     """creates soil element stiffness matrix based on model info and element number.
 
@@ -785,7 +855,7 @@ def calculate_base_spring_stiffness(
 def calculate_py_springs_stiffness(
     u: np.ndarray, springs: np.ndarray, kind: Literal["initial", "secant", "tangent"]
 ):
-    """Calculate springs stiffness for py or t-z springs.
+    """Calculate springs stiffness for py springs.
 
     Parameters
     ----------
@@ -843,6 +913,67 @@ def calculate_py_springs_stiffness(
 
     return k
 
+
+
+@njit(cache=True)
+def calculate_tz_springs_stiffness(
+    u: np.ndarray, springs: np.ndarray, kind: Literal["initial", "secant", "tangent"]
+):
+    """Calculate springs stiffness for t-z springs.
+
+    Parameters
+    ----------
+    u : np.ndarray
+        displacements to calculate stiffness.
+        For dofs related to t-z curves, u = U[::3] where U is the global displacement vector.
+        For dofs related to p-y curves, u = U[1::3] where U is the global displacement vector.
+    springs : np.ndarray
+        soil-structure interaction py springs array of shape (n_elem, 2, 2, spring_dim)
+    kind : str
+        defines whether it is initial, secant of tangent stiffness to define
+
+    Returns
+    -------
+    k: np.ndarray
+        secant or tangent stiffness for all elements. Array of shape(n_elem,2,1,1)
+    """
+
+    # double inner values for u
+    d = double_inner_njit(u)
+
+    # displacement with same dimension as spring
+    d = np.abs(d).reshape((-1, 2, 1, 1))
+
+    k = np.zeros(d.shape, dtype=np.float64)
+
+    #determine place where 0 value of tz-spring is located
+    spring_0_index = round(springs.shape[-1]/2)-1
+
+    for i in range(k.shape[0]):
+        for j in range(k.shape[1]):
+            if np.sum(springs[i, j, 1]) == 0:
+                pass
+            else:
+                if kind == "initial" or d[i, j, 0, 0] == 0.0:
+                    dx = springs[i, j, 1, spring_0_index] - springs[i, j, 1, spring_0_index+1]
+                    p0 = springs[i, j, 0, spring_0_index]
+                    p1 = springs[i, j, 0, spring_0_index+1]
+                elif kind == "secant":
+                    dx = d[i, j, 0, 0]
+                    p0 = springs[i, j, 0, spring_0_index]
+                    p1 = np.interp(dx, springs[i, j, 1], springs[i, j, 0])
+                elif kind == "tangent":
+                    dx = min(0.0005, abs(d[i, j, 0, 0]))
+                    if d[i, j, 0, 0] > 0:
+                        p0 = np.interp(d[i, j, 0, 0] - dx, springs[i, j, 1], springs[i, j, 0])
+                    else:
+                        p0 = np.interp(d[i, j, 0, 0] + dx, springs[i, j, 1], springs[i, j, 0])
+
+                    p1 = np.interp(d[i, j, 0, 0], springs[i, j, 1], springs[i, j, 0])
+
+                k[i, j, 0, 0] = abs((p1 - p0) / dx)
+
+    return k
 
 @njit(cache=True)
 def calculate_mt_springs_stiffness(

@@ -14,7 +14,6 @@ from numba import njit, prange
 from random import random
 
 # Kraft et al (1989) formulation aid to ease up implementation
-@njit(cache=True)
 def kraft_modification(
     fmax: float,
     D: float,
@@ -58,9 +57,14 @@ def kraft_modification(
 
     if output_length < 15:
         output_length = 15
+    if output_length % 2 == 0:
+        output_length += 1
+
+
+    half_length = round(output_length/2)-2
 
     # define t till tmax
-    tpos = np.linspace(0, fmax, output_length - 2)
+    tpos = np.linspace(0, fmax, half_length )
     # define z till zmax
     zpos = tpos * 0.5 * D / G0 * np.log((zif - RF * tpos / fmax) / (1 - RF * tpos / fmax))
     # define z where t = tmax, a.k.a zmax here
@@ -71,9 +75,7 @@ def kraft_modification(
     z = np.append(zpos, [zres, zres + 0.005])
     t = np.append(tpos, [residual * fmax, residual * fmax])
 
-    return np.append(-z[-1::-1], np.append([0.0], z[1:])), np.append(
-        -t[-1::-1] * tensile_factor, np.append([0.0], t[1:])
-    )
+    return np.append(-z[-1:0:-1], z), np.append(-t[-1:0:-1] * tensile_factor, t)
 
 
 # API clay function

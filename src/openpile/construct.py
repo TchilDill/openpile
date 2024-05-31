@@ -922,6 +922,8 @@ class Model(AbstractModel):
     distributed_axial: bool = True
     #: whether to include Q-z spring in the calculations
     base_axial: bool = True
+    #: plugging 
+    plugging: bool = None
 
     @model_validator(mode="after")
     def soil_and_pile_bottom_elevation_match(self):
@@ -1083,9 +1085,6 @@ class Model(AbstractModel):
                     & (soil_prop["x_bottom [m]"] >= layer.bottom)
                 ].index
 
-
-
-
                 for i in elements_for_layer:
                     # Set local layer parameters for each element of the layer
                     # vertical effective stress
@@ -1100,12 +1099,16 @@ class Model(AbstractModel):
                     ).abs()
                     # pile width
                     pile_width = self.element_properties["Width [m]"].iloc[i]
+                    perimeter_out = self.element_properties["Outer Perimeter [m]"].iloc[i]
+                    perimeter_in = self.element_properties["Outer Perimeter [m]"].iloc[i]
+
                     sig_v_tip = soil_prop["sigma_v bottom [kPa]"].iloc[-1]
 
                     # t-z curves
                     if layer.axial_model is not None:
 
                         if self.distributed_axial: # True if tz spring function exist
+
                             # calculate springs (top and bottom) for each element
                             for j in [0, 1]:
                                 (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
@@ -1118,6 +1121,16 @@ class Model(AbstractModel):
                                     below_water_table=elevation[j] <= self.soil.water_line,
                                     output_length=tz_springs_dim,
                                 )
+
+                                if self.plugging:
+                                    effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature['out'])
+                                elif self.plugging is None:
+                                    #TODO for now we get unplugged but insert axial capacity calculation and validation func that no axial model that differ  in their metho property can be used simultaneously. 
+                                    effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'] +perimeter_in*layer.axial_model.unit_shaft_signature()['in'])
+                                else:
+                                    effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'] +perimeter_in*layer.axial_model.unit_shaft_signature()['in'])
+                                
+                                tz[i, j, 0] = tz[i, j, 0]*effective_perimeter
                         
                         if (
                             layer.top >= self.pile.bottom_elevation
@@ -1136,7 +1149,16 @@ class Model(AbstractModel):
                                 <= self.soil.water_line,
                                 output_length=qz_spring_dim,
                             )
-                            
+
+                            if self.plugging:
+                                effective_area = self.pile.tip_footprint
+                            elif self.plugging is None:
+                                #TODO for now we get unplugged but insert axial capacity calculation and validation func that no axial model that differ  in their metho property can be used simultaneously. 
+                                effective_area = self.pile.tip_area
+                            else:
+                                effective_area = self.pile.tip_area
+
+                            qz[0, 0, 0] = qz[0, 0, 0]*effective_area
 
                     # py curve
                     if layer.lateral_model is not None:

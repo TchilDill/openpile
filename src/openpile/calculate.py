@@ -105,7 +105,7 @@ def effective_pile_weight(pile, soil, coarseness=0.1):
     `openpile.construct.Pile.weight`
     """
 
-    element_properties = get_coordinates(pile, soil, None,coarseness=0.1)
+    element_properties = get_coordinates(pile, soil, None,coarseness=0.1)[1]
 
     if soil is not None:
         submerged_element = element_properties["x_bottom [m]"].values < soil.water_line
@@ -199,7 +199,7 @@ def unit_end_bearing(
             ):
                 # vertical effective stress at pile tip
                 sig_v_tip = get_tip_sig_v_eff(tip_elevation=pile.bottom_elevation, 
-                                              layer=soil.layers, 
+                                              layers=soil.layers, 
                                               water_elevation=soil.water_line,)
 
                 # Calculate unit tip resistance with effective area

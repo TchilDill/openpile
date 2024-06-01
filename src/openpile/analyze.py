@@ -481,8 +481,8 @@ def winkler(model, max_iter: int = 100):
                       Boundary conditions may not be realistic or values may be too large."""
                 )
                 # dummy output vars
-                Q = np.zeros(F.shape)
-                d = np.zeros(U.shape)
+                Q = np.full(F.shape, np.nan)
+                d = np.full(U.shape, np.nan)
                 nr_tol = np.nan
                 break
 

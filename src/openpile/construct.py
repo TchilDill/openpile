@@ -1123,7 +1123,7 @@ class Model(AbstractModel):
                                 )
 
                                 if self.plugging:
-                                    effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature['out'])
+                                    effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'])
                                 elif self.plugging is None:
                                     #TODO for now we get unplugged but insert axial capacity calculation and validation func that no axial model that differ  in their metho property can be used simultaneously. 
                                     effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'] +perimeter_in*layer.axial_model.unit_shaft_signature()['in'])

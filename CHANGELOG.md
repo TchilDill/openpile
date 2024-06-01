@@ -7,11 +7,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
-## [0.8.0] - 2024-05-xx
+## [0.8.0] - 2024-06-xx
+
+*OpenPile's kernel now accounts for axial soil springs when running a Winkler analysis. The axial soil springs are by default turned on (`base_axial` and `distributed_axial` arguments of `openpile.construct.Model`) and considered if an `axial_model` is fed to a `openpile.construct.Layer`*
 
 ### Added
+- 
 - extensions of API-type lateral soil models are now considered in the string output when printing out the model or the entire soil profile, i.e. when running `print(openpile.construct.Layer)`
 - the `PileMaterial` class in the brand new `openpile.materials` module is now used to determine the material of the structure. Such material can now be customised by users by creating a new instance of `openpile.materials.PileMaterial`.
+
 
 ### Modified
 

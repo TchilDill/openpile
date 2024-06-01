@@ -465,6 +465,11 @@ def winkler(model, max_iter: int = 100):
 
         # Initialise residual forces
         Rg = F
+        # initialise output vars
+        Q = np.zeros(F.shape)
+        nr_tol = np.nan
+        
+
 
         # incremental calculations to convergence
         iter_no = 0

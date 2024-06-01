@@ -726,9 +726,7 @@ def build_stiffness_matrix(model, u=None, kind=None):
 
     # mechanical stiffness properties
     k = elem_mechanical_stiffness_matrix(model)
-    k += elem_p_delta_stiffness_matrix(model, u)
-
-    # k = np.maximum(0,k)
+    # k += elem_p_delta_stiffness_matrix(model, u)
 
     # add soil contribution
     if model.soil is not None:
@@ -922,7 +920,7 @@ def calculate_py_springs_stiffness(
 
 
 
-@njit(cache=True)
+# @njit(cache=True)
 def calculate_tz_springs_stiffness(
     u: np.ndarray, springs: np.ndarray, kind: Literal["initial", "secant", "tangent"]
 ):
@@ -949,7 +947,7 @@ def calculate_tz_springs_stiffness(
     d = double_inner_njit(u)
 
     # displacement with same dimension as spring
-    d = np.abs(d).reshape((-1, 2, 1, 1))
+    d = np.array(d).reshape((-1, 2, 1, 1))
 
     k = np.zeros(d.shape, dtype=np.float64)
 
@@ -958,7 +956,7 @@ def calculate_tz_springs_stiffness(
 
     for i in range(k.shape[0]):
         for j in range(k.shape[1]):
-            if np.sum(springs[i, j, 1]) == 0:
+            if np.sum(np.abs(springs[i, j, 1])) == 0:
                 pass
             else:
                 if kind == "initial" or d[i, j, 0, 0] == 0.0:
@@ -968,15 +966,15 @@ def calculate_tz_springs_stiffness(
                 elif kind == "secant":
                     dx = d[i, j, 0, 0]
                     p0 = springs[i, j, 0, spring_0_index]
-                    p1 = np.interp(dx, springs[i, j, 1], springs[i, j, 0])
+                    p1 = np.interp(dx, springs[i, j, 1][::-1], springs[i, j, 0][::-1])
                 elif kind == "tangent":
                     dx = min(0.0005, abs(d[i, j, 0, 0]))
                     if d[i, j, 0, 0] > 0:
-                        p0 = np.interp(d[i, j, 0, 0] - dx, springs[i, j, 1], springs[i, j, 0])
+                        p0 = np.interp(d[i, j, 0, 0] - dx, springs[i, j, 1][::-1], springs[i, j, 0][::-1])
                     else:
-                        p0 = np.interp(d[i, j, 0, 0] + dx, springs[i, j, 1], springs[i, j, 0])
+                        p0 = np.interp(d[i, j, 0, 0] + dx, springs[i, j, 1][::-1], springs[i, j, 0][::-1])
 
-                    p1 = np.interp(d[i, j, 0, 0], springs[i, j, 1], springs[i, j, 0])
+                    p1 = np.interp(d[i, j, 0, 0], (-1)*springs[i, j, 1][::-1], springs[i, j, 0][::-1])
 
                 k[i, j, 0, 0] = abs((p1 - p0) / dx)
 

@@ -1346,6 +1346,31 @@ class Model(AbstractModel):
         except Exception as e:
             print(e)
 
+    def _update_bc(self, elevation, x, y, z, BC_class):
+            # list existing
+            existing_bcs= [x for x in self.boundary_conditions if x.elevation == elevation and isinstance(x,BC_class)]
+
+            # check if elevation already exists for the provided axis
+            if existing_bcs:
+                # check if elevation already exists for the provided axis and modify boundary condition object
+                if x is not None:
+                    bc_exist = [x for x in existing_bcs if x.x]
+                    if len(bc_exist):
+                        bc_exist[0].x = x
+                if y is not None:
+                    bc_exist = [x for x in existing_bcs if x.y]
+                    if len(bc_exist):
+                        bc_exist[0].y = y
+                if z is not None:
+                    bc_exist = [x for x in existing_bcs if x.z]
+                    if len(bc_exist):
+                        bc_exist[0].z = z
+            else:
+                # add BC
+                self.boundary_conditions.append(
+                    BC_class( elevation=elevation, x=x, y=y, z=z )
+                )   
+
     def set_pointload(
         self,
         *,
@@ -1360,7 +1385,6 @@ class Model(AbstractModel):
         .. note:
             If run several times at the same elevation, the loads are overwritten by the last command.
 
-
         Parameters
         ----------
         elevation : float, optional
@@ -1372,9 +1396,7 @@ class Model(AbstractModel):
         Mz : float, optional
             Bending moment in kNm, by default None.
         """
-        self.boundary_conditions.append(
-            BoundaryForce( elevation=elevation, x=Px, y=Py, z=Mz )
-        )
+        self._update_bc(elevation, x=Px, y=Py, z=Mz, BC_class=BoundaryForce)
 
     def set_pointdisplacement(
         self,
@@ -1400,9 +1422,8 @@ class Model(AbstractModel):
         Rz : float, optional
             Rotation around z-axis, by default None.
         """
-        self.boundary_conditions.append(
-            BoundaryDisplacement( elevation=elevation, x=Tx, y=Ty, z=Rz )
-        )
+        self._update_bc(elevation, x=Tx, y=Ty, z=Rz, BC_class=BoundaryDisplacement)
+
 
     def set_support(
         self,
@@ -1429,9 +1450,8 @@ class Model(AbstractModel):
         Rz : bool, optional
             Rotation around z-axis, by default False.
         """
-        self.boundary_conditions.append(
-            BoundaryFixation( elevation=elevation, x=Tx, y=Ty, z=Rz )
-        )
+        self._update_bc(elevation, x=Tx, y=Ty, z=Rz, BC_class=BoundaryFixation)
+
 
     def get_py_springs(self, kind: str = "node") -> pd.DataFrame:
         """Table with p-y springs computed for the given Model.

@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 
+
 def validate_bc(bc_list, bc_cls):
     """
     helper function to validate boundary condition

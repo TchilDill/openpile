@@ -1383,7 +1383,7 @@ class Model(AbstractModel):
         Defines the point load(s) at a given elevation.
 
         .. note:
-            If run several times at the same elevation, the loads are overwritten by the last command.
+            If run several times at the same elevation, the loads along relevant axes are overwritten by the last command.
 
         Parameters
         ----------
@@ -1411,6 +1411,9 @@ class Model(AbstractModel):
         .. note::
             for defining supports, this function should not be used, rather use `.set_support()`.
 
+        .. note:
+            If run several times at the same elevation, the displacements along relevant axes are overwritten by the last command.
+
         Parameters
         ----------
         elevation : float, optional
@@ -1436,7 +1439,7 @@ class Model(AbstractModel):
         Defines the supports at a given elevation. If True, the relevant degree of freedom is restrained.
 
         .. note:
-            If run several times at the same elevation, the support are overwritten by the last command.
+            If run several times at the same elevation, the support along relevant axes are overwritten by the last command.
 
 
         Parameters
@@ -1560,7 +1563,7 @@ class Model(AbstractModel):
         if self.soil is None:
             return None
         else:
-            spring_dim = self._Hb_spring.shape[-1]
+            spring_dim = self._Mb_spring.shape[-1]
 
             column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
 
@@ -1571,7 +1574,7 @@ class Model(AbstractModel):
                 }
             )
             df["type"] = ["Mb", "t"]
-            df[column_values_spring] = self._Hb_spring.reshape(2, spring_dim)
+            df[column_values_spring] = self._Mb_spring.reshape(2, spring_dim)
 
             return df
 

@@ -1456,7 +1456,7 @@ class Model(AbstractModel):
         self._update_bc(elevation, x=Tx, y=Ty, z=Rz, BC_class=BoundaryFixation)
 
 
-    def get_py_springs(self, kind: str = "node") -> pd.DataFrame:
+    def get_distributed_lateral_springs(self, kind: str = "node") -> pd.DataFrame:
         """Table with p-y springs computed for the given Model.
 
         Posible to extract the springs at the node level (i.e. spring at each node)
@@ -1490,7 +1490,7 @@ class Model(AbstractModel):
             else:
                 return None
 
-    def get_mt_springs(self, kind: str = "node") -> pd.DataFrame:
+    def get_distributed_rotational_springs(self, kind: str = "node") -> pd.DataFrame:
         """Table with m-t (rotational) springs computed for the given Model.
 
         Posible to extract the springs at the node level (i.e. spring at each node)
@@ -1524,14 +1524,13 @@ class Model(AbstractModel):
             else:
                 return None
 
-    def get_Hb_spring(self) -> pd.DataFrame:
-        """Table with Hb (base shear) spring computed for the given Model.
-
+    def get_base_shear_spring(self) -> pd.DataFrame:
+        """Table with Hb (base shear) spring computed for the given Model with Hb-value [kN] and y-value [m].
 
         Returns
         -------
         pd.DataFrame (or None if no SoilProfile is present)
-            Table with Hb spring, i.e. H-value [kN] and y-value [m].
+            Table with Hb spring.
         """
         if self.soil is None:
             return None
@@ -1551,14 +1550,14 @@ class Model(AbstractModel):
 
             return df
 
-    def get_Mb_spring(self) -> pd.DataFrame:
-        """Table with Mb (base moment) spring computed for the given Model.
+    def get_base_rotational_spring(self) -> pd.DataFrame:
+        """Table with Mb (base moment) spring computed for the given Model with M-value [kNn] and t-value [-].
 
 
         Returns
         -------
         pd.DataFrame (or None if no SoilProfile is present)
-            Table with Mb spring, i.e. M-value [kNn] and t-value [-].
+            Table with Mb spring, i.e. 
         """
         if self.soil is None:
             return None

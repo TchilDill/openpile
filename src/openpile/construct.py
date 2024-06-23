@@ -109,7 +109,8 @@ class PileSection(BaseModel, ABC):
     def get_entrapped_volume(self, length) -> float:
         pass
     
-    @abstractproperty
+    @property
+    @abstractmethod
     def width(self) -> float:
         pass
 
@@ -847,6 +848,8 @@ class Model(AbstractModel):
         include distributed axial springs, by default True.
     base_axial : bool, optional
         include base axial springs, by default True.
+    plugging : bool, optional
+        whether the pile is plugged or unplugged, by default False.
 
 
     Example
@@ -1117,19 +1120,22 @@ class Model(AbstractModel):
                                     layer_height=(layer.top - layer.bottom),
                                     depth_from_top_of_layer=(layer.top - elevation[j]),
                                     D=pile_width,
+                                    #TODO add wall thickness for CPT methods?
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                     below_water_table=elevation[j] <= self.soil.water_line,
                                     output_length=tz_springs_dim,
                                 )
 
-                                if self.plugging:
-                                    effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'])
-                                elif self.plugging is None:
-                                    #TODO for now we get unplugged but insert axial capacity calculation and validation func that no axial model that differ  in their metho property can be used simultaneously. 
-                                    effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'] +perimeter_in*layer.axial_model.unit_shaft_signature()['in'])
-                                else:
-                                    effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'] +perimeter_in*layer.axial_model.unit_shaft_signature()['in'])
+                                if layer.axial_model.method == "API":
+                                    if self.plugging:
+                                        effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'])
+                                    else:
+                                        effective_perimeter = (perimeter_out*layer.axial_model.unit_shaft_signature()['out'] +perimeter_in*layer.axial_model.unit_shaft_signature()['in'])
                                 
+                                else:
+                                    # potentially incorrect when we implement CPT methods
+                                    raise NotImplementedError('Axial models that are not based on API are not yet implemented.')
+
                                 tz[i, j, 0] = tz[i, j, 0]*effective_perimeter
                         
                         if (
@@ -1150,13 +1156,14 @@ class Model(AbstractModel):
                                 output_length=qz_spring_dim,
                             )
 
-                            if self.plugging:
-                                effective_area = self.pile.tip_footprint
-                            elif self.plugging is None:
-                                #TODO for now we get unplugged but insert axial capacity calculation and validation func that no axial model that differ  in their metho property can be used simultaneously. 
-                                effective_area = self.pile.tip_area
-                            else:
-                                effective_area = self.pile.tip_area
+                            if layer.axial_model.method == "API":
+                                if self.plugging:
+                                    effective_area = self.pile.tip_footprint
+                                else:
+                                    effective_area = self.pile.tip_area
+                            else: 
+                                # potentially incorrect when we implement CPT methods
+                                raise NotImplementedError('Axial models that are not based on API are not yet implemented.')
 
                             qz[0, 0, 0] = qz[0, 0, 0]*effective_area
 
@@ -1457,7 +1464,7 @@ class Model(AbstractModel):
 
 
     def get_distributed_lateral_springs(self, kind: str = "node") -> pd.DataFrame:
-        """Table with p-y springs computed for the given Model.
+        """Table with p-y springs computed for the given Model with p-value [kN/m] and y-value [m].
 
         Posible to extract the springs at the node level (i.e. spring at each node)
         or element level (i.e. top and bottom springs at each element)
@@ -1470,7 +1477,7 @@ class Model(AbstractModel):
         Returns
         -------
         pd.DataFrame (or None if no SoilProfile is present)
-            Table with p-y springs, i.e. p-value [kN/m] and y-value [m].
+            Table with p-y springs
         """
         if self.soil is None:
             return None
@@ -1491,9 +1498,9 @@ class Model(AbstractModel):
                 return None
 
     def get_distributed_rotational_springs(self, kind: str = "node") -> pd.DataFrame:
-        """Table with m-t (rotational) springs computed for the given Model.
+        """Table with m-t (rotational) springs computed for the given Model with m-value [kNm] and t-value [radians]
 
-        Posible to extract the springs at the node level (i.e. spring at each node)
+        Possible to extract the springs at the node level (i.e. spring at each node)
         or element level (i.e. top and bottom springs at each element)
 
         Parameters
@@ -1504,7 +1511,7 @@ class Model(AbstractModel):
         Returns
         -------
         pd.DataFrame (or None if no SoilProfile is present)
-            Table with m-t springs, i.e. m-value [kNm] and t-value [-].
+            Table with m-t springs.
         """
         if self.soil is None:
             return None
@@ -1551,7 +1558,7 @@ class Model(AbstractModel):
             return df
 
     def get_base_rotational_spring(self) -> pd.DataFrame:
-        """Table with Mb (base moment) spring computed for the given Model with M-value [kNn] and t-value [-].
+        """Table with Mb (base moment) spring computed for the given Model with M-value [kNn] and t-value [radians].
 
 
         Returns

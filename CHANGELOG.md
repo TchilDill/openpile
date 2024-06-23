@@ -7,19 +7,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
-## [0.8.0] - 2024-06-xx
+## [1.0.0] - 2024-06-xx
 
 *OpenPile's kernel now accounts for axial soil springs when running a Winkler analysis. The axial soil springs are by default turned on (`base_axial` and `distributed_axial` arguments of `openpile.construct.Model`) and considered if an `axial_model` is fed to a `openpile.construct.Layer`*
 
+The minimum python version to use with Openpile >= 1.0.0 is python 3.8.
+
 ### Added
-- 
 - extensions of API-type lateral soil models are now considered in the string output when printing out the model or the entire soil profile, i.e. when running `print(openpile.construct.Layer)`
 - the `PileMaterial` class in the brand new `openpile.materials` module is now used to determine the material of the structure. Such material can now be customised by users by creating a new instance of `openpile.materials.PileMaterial`.
 
 
 ### Modified
 
-- The API clay model available until v0.7.1 has decoupled to form the `API_clay` and the mofidied_Matlock models, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
+- `openpile.construct.Model.get_py_springs()` and other related methods to extract springs have been updated to the following naming style: `.get_distributed_lateral_springs()`, see documentation for more details. 
+- The API clay model available until v0.7.1 has been decoupled to form the `API_clay` and the mofidied_Matlock models, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
 - functions found in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
 
 ### Deleted

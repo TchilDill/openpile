@@ -25,6 +25,7 @@ The minimum python version to use with Openpile >= 1.0.0 is python 3.8.
 - functions found in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
 
 ### Deleted
+- The functions `openpile.analyze.simple_beam_analysis()` and `openpile.analyze.simple_winkler_analysis()` are now removed from the code.
 - The method `openpile.construct.Pile.set_I()` method has been deleted, the second moment of area of a given pile segment can be changed by calling a Custom PileSection Geometry.
 - The property `openpile.construct.Pile.E` cannot be overriden anymore, instead use the new feature where any material can be provided to the pile via `openpile.materials.PileMaterial`.
 - The method `openpile.construct.Model.get_pointload()` is now deprecated and cannot be used anymore. Use the property `openpile.construct.Model.boundary_conditions` instead to list all boundary conditions.

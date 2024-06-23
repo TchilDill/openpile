@@ -373,7 +373,7 @@ class AnalyzeResult:
 def beam(model):
     """
     Function where loading or displacement defined in the model boundary conditions
-    are used to solve the system of equations, .
+    are used to solve the system of equations, this is a linear problem and is solved with one iteration.
 
     Parameters
     ----------
@@ -446,7 +446,7 @@ def winkler(model, max_iter: int = 100):
     """
 
     if model.soil is None:
-        UserWarning("SoilProfile must be provided when creating the Model.")
+        UserWarning("A SoilProfile must be provided to the model before running this model.")
 
     else:
         # initialise global force
@@ -547,27 +547,15 @@ def winkler(model, max_iter: int = 100):
         return results
 
 
-def simple_winkler_analysis(model, max_iter: int = 100):
+def simple_winkler_analysis(*args, **kwargs):
+    """
+    .. versionremoved: 1.0.0
+        Use :func:`winkler` instead that keeps the same functional behaviour.
+    """
 
-    # deprecation warning
-    warnings.warn(
-        "\nThe method Analyze.simple_winkler_analysis() will be removed in version 1.0.0."
-        "\nPlease use the Analyze.winkler() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+def simple_beam_analysis(*args, **kwargs):
+    """
+    .. versionremoved: 1.0.0
+        Use :func:`beam` instead that keeps the same functional behaviour.
 
-    return winkler(model, max_iter)
-
-
-def simple_beam_analysis(model):
-
-    # deprecation warning
-    warnings.warn(
-        "\nThe method Analyze.simple_beam_analysis() will be removed in version 1.0.0."
-        "\nPlease use the Analyze.beam() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    return beam(model)
+    """

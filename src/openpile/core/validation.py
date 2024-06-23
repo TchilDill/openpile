@@ -46,7 +46,7 @@ def check_boundary_conditions(model):
     Parameters
     ----------
     model: openppile.construct.Model object
-        Mehs object crated from openpile
+        object crated from openpile
     """
     # rename vars
     restrained_dof = model.global_restrained

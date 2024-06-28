@@ -115,6 +115,8 @@ class API_clay_axial(AxialModel):
 
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
     Su: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field( min_length=1,max_length=2)]]
+    #: limiting value of unit shaft friction normalized to undrained shear strength
+    alpha_limit: Annotated[float,Field(gt=0.0)] = 1.0
     #: t-multiplier
     t_multiplier: Union[Callable[[float], float], Annotated[float,Field(ge=0.0)]] = 1.0
     #: z-multiplier
@@ -138,7 +140,7 @@ class API_clay_axial(AxialModel):
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
-        return _fmax_api_clay(sig, Su=Su)
+        return _fmax_api_clay(sig, Su=Su, alpha=self.alpha_limit)
 
     def unit_tip_resistance(self, sig, depth_from_top_of_layer, layer_height):
         # define Su

@@ -231,8 +231,8 @@ Example 4 - Create a soil profile
 
 .. _Ex5-run_winkler:
 
-Example 5 - Run a winkler analysis
-==================================
+Example 5 - Run a lateral pile analysis
+=======================================
 
 .. plot::
     :context:

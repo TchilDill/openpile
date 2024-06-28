@@ -14,8 +14,8 @@ The axial  model calculates skin friction along the pile and end-bearing at pile
 
 OpenPile's use of this model is done by calling the following class in a layer:
 
-* in coarse-grained materials, :py:class:`openpile.soilmodels.API_ax_sand`
-* in fine-grained materials, :py:class:`openpile.soilmodels.API_ax_clay`
+* in coarse-grained materials, :py:class:`openpile.soilmodels.API_sand_axial`
+* in fine-grained materials, :py:class:`openpile.soilmodels.API_clay_axial`
 
 This soil model then provides soil springs as given by the function(s) below and depending on the type of material:
 
@@ -39,11 +39,64 @@ characteristics of the soil [KrRK81]_ in the backbone curve.
 
 **API Sand**
 
-*pending..*
+For sand, the API guidelines provide methods to estimate the resistance offered by sandy soils along the pile. 
+These springs are defined based on the following considerations:
+
+1. **Unit Skin Friction :math:`f_s`:** This is the frictional resistance per unit area along the pile shaft. It depends on the effective overburden pressure and the soil-pile interface properties.
+
+     .. math::
+     
+       f_s = \sigma_v^\prime \cdot K \cdot tan(\delta) < f_{s,\text{max}}
+     
+     where:
+     
+     - \sigma_v^\prime is the effective vertical stress at the depth considered.
+     - K is the coefficient of horizontal earth pressure (typically ranges from 0.4 to 1.0 for sands).
+     - \delta is the angle of friction between the pile and the sand, often taken as a fraction of the soil's internal friction angle :math:`\varphi` (usually :math:`\delta = 0.7 \varphi` to :math:`\varphi`).
+     - Limit Skin Friction :math:`f_{s,\text{max}}` is the maximum unit skin friction that can be mobilized. It is typically given by empirical correlations or laboratory tests. The following is assumed in OpenPile:
+
+      .. list-table:: Delta and f_s,max Values
+        :header-rows: 0
+
+        * - :math:`\delta` [degrees]
+          - 15
+          - 20
+          - 25
+          - 30
+          - 35
+        * - :math:`f_{s,\text{max}}`[kPa]
+          - 47.8
+          - 67
+          - 81.3
+          - 95.7
+          - 114.8
+
+  2. A backbone curve computed via the piecewise formulation seen in [API2000]_.
+
 
 **API Clay**
 
-*pending..*
+For clay, the API guidelines describe the axial soil springs in a manner that accounts for the undrained shear strength of the clay. 
+The springs are characterized as follows:
+
+1. **Unit Skin Friction :math:`f_s`:** For clay, this is based on the undrained shear strength :math:`S_u` of the soil and a factor that accounts for the adhesion between the clay and the pile.
+
+     .. math::
+     
+        f_s = \alpha \cdot S_u < f_{s,\text{max}}
+     
+     where:
+     
+     - :math:`\alpha` is the adhesion factor, which depends on the type of clay and the pile material. 
+       It typically ranges from 0.5 to 1.0 for soft clays and 0.3 to 0.6 for stiff clays.
+       As per the API guidelines, this adhesion factor can be calculated as:
+     - :math:`S_u` is the undrained shear strength of the clay.
+     - Limit Skin Friction :math:`f_{s,\text{max}}` is the maximum unit skin friction for clay, 
+       which can be directly related to the undrained shear strength and the adhesion factor. 
+       In general, the limit skin friction is set to the undrained shear strength.
+
+  2. A backbone curve computed via the piecewise formulation seen in [API2000]_.
+
 
 Base spring - Q-z curve
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -53,7 +106,7 @@ The maximum resistance is calculated as follows:
 * API clay: :math:`Q_{max} = 9 S_u`
   where :math:`S_u` is the clay undrained shear strength.
 * API sand: :math:`Q_{max} = N_q \sigma^\prime_v`
-  where :math:`\sigma^\prime_v` is the overburden effective stress and :math:`N_q` is 
+  where :math:`\sigma_v^\prime` is the overburden effective stress and :math:`N_q` is 
   the end-bearing factor depending on the interface friction angle :math:`\delta = \phi - 5` given in [API2000]_.
 
 

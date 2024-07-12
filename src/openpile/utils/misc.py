@@ -60,9 +60,9 @@ def _fmax_api_clay(
         psi = Su / sig
 
     if psi > 1.0:
-        alpha = min(0.5 * psi ** (-0.25), alpha)
+        alpha = min(0.5 * psi ** (-0.25), alpha_limit)
     else:
-        alpha = min(0.5 * psi ** (-0.5), alpha)
+        alpha = min(0.5 * psi ** (-0.5), alpha_limit)
 
     # Unit skin friction [kPa]
     return alpha * Su

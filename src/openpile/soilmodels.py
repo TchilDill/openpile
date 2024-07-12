@@ -30,7 +30,7 @@ from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str, get_val
 from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves, qz_curves
 from openpile.utils.misc import _fmax_api_sand, _fmax_api_clay, _Qmax_api_clay, _Qmax_api_sand
 
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
 from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validator
@@ -112,7 +112,65 @@ class AxialModel(BaseModel, ABC):
 
 
 class API_clay_axial(AxialModel):
+    """A class to assign API clay for t-z and q-z curves in a Layer.
 
+    Parameters
+    ----------
+    Su: float or function taking the depth as argument and returns the multiplier
+        Undrained shear strength of soil. [unit: kPa]
+    alpha_limit: float
+        Limit of unit shaft friction, normalized with undrained shear strength. 
+    t_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for t-values, by default it is 1.0
+    z_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for z-values, by default it is 1.0
+    Q_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for Q-values, by default it is 1.0
+    w_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for w-values, by default it is 1.0
+    t_residual: float
+        Residual value of t-z curves, by default it is 0.9 and can range from 0.7 to 0.9.
+    inside_friction: float or function taking the depth as argument and returns the multiplier
+        multiplier for inner shaft friction, by default it is 1.0
+    tension_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for tensile strength, by default it is 1.0
+
+    Returns
+    -------
+    AxialModel
+        AxialModel object with API clay.
+
+    Example
+    -------
+
+    >>> from openpile.construct import Layer
+    >>> from openpile.soilmodels import API_clay_axial, API_clay
+    >>> clay_layer = Layer(
+    ...                 name="clay",
+    ...                 top=-20,
+    ...                 bottom=-40,
+    ...                 weight=18,
+    ...                 lateral_model=API_clay(Su=[50, 70], eps50=0.015, kind="cyclic"),
+    ...                 axial_model=API_clay_axial(Su=[50, 70])
+    ...             )
+    >>> print(clay_layer)
+    Name: clay
+    Elevation: (-20.0) - (-40.0) m
+    Weight: 18.0 kN/m3
+    Lateral model: 	API clay
+        Su = 50.0-70.0 kPa
+        eps50 = 0.015
+        cyclic curves
+        ext: None
+    Axial model: 	API clay
+        Su = 50.0-70.0 kPa
+        alpha_limit = 1.0
+
+    See also
+    --------
+    :py:func:`openpile.utils.tz_curves.api_sand`, :py:func:`openpile.utils.qz_curves.api_sand`,
+
+    """
     #: undrained shear strength [kPa], if a variation in values, two values can be given.
     Su: Union[Annotated[float,Field(gt=0.0)], Annotated[List[PositiveFloat],Field( min_length=1,max_length=2)]]
     #: limiting value of unit shaft friction normalized to undrained shear strength
@@ -133,14 +191,29 @@ class API_clay_axial(AxialModel):
     tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
 
     def __str__(self):
-        return f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa"
+        out = f"\tAPI clay\n\tSu = {var_to_str(self.Su)} kPa\n\talpha_limit = {var_to_str(self.alpha_limit)}"
+        if self.t_multiplier != 1.0:
+            out += f"\n\tt-multiplier = {var_to_str(self.t_multiplier)}"
+        if self.z_multiplier != 1.0:
+            out += f"\n\tz-multiplier = {var_to_str(self.z_multiplier)}"
+        if self.Q_multiplier != 1.0:
+                out += f"\n\tQ-multiplier = {var_to_str(self.Q_multiplier)}"
+        if self.w_multiplier != 1.0:
+            out += f"\n\tw-multiplier = {var_to_str(self.w_multiplier)}"
+        if self.t_residual != 0.9:
+                out += f"\n\tt-residual = {var_to_str(self.t_residual)}"
+        if self.inside_friction != 1.0:
+            out += f"\n\tinner_shaft_friction = {var_to_str(self.inside_friction*100):.0f}%"
+        if self.tension_multiplier != 1.0:
+            out += f"\n\ttension_multiplier = {var_to_str(self.tension_multiplier)}"
+        return out
 
     def unit_shaft_friction(self, sig, depth_from_top_of_layer, layer_height):
         # define Su
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
-        return _fmax_api_clay(sig, Su=Su, alpha=self.alpha_limit)
+        return _fmax_api_clay(sig, Su, self.alpha_limit)
 
     def unit_tip_resistance(self, sig, depth_from_top_of_layer, layer_height):
         # define Su
@@ -204,7 +277,64 @@ class API_clay_axial(AxialModel):
 
 
 class API_sand_axial(AxialModel):
+    """A class to assign API sand for t-z and q-z curves in a Layer.
 
+    Parameters
+    ----------
+    delta: float or list[top_value, bottom_value]
+        interface friction angle of sand/pile. Typical value ranges between 70% and 100% of internal friction angle of soil. [unit: degrees]
+    K: float
+        Coefficient of earth pressure against pile, it should be 0.8 for open-ended piles and 1.0 for closed-ended piles.
+    t_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for t-values, by default it is 1.0
+    z_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for z-values, by default it is 1.0
+    Q_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for Q-values, by default it is 1.0
+    w_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for w-values, by default it is 1.0
+    inside_friction: float or function taking the depth as argument and returns the multiplier
+        multiplier for inner shaft friction, by default it is 1.0
+    tension_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for tensile strength, by default it is 1.0
+
+    Returns
+    -------
+    AxialModel
+        AxialModel object with API sand.
+
+    Example
+    -------
+
+    >>> from openpile.construct import Layer
+    >>> from openpile.soilmodels import API_sand_axial, API_sand
+    >>> sand_layer = Layer(
+    ...                 name="sand",
+    ...                 top=-20,
+    ...                 bottom=-40,
+    ...                 weight=18,
+    ...                 lateral_model=API_sand(phi=30, kind='cyclic'),
+    ...                 axial_model=API_sand_axial(
+    ...                     delta=25,
+    ...                 ),
+    ...             )
+    >>> print(sand_layer)
+    Name: sand
+    Elevation: (-20.0) - (-40.0) m
+    Weight: 18.0 kN/m3
+    Lateral model: 	API sand
+        phi = 30.0°
+        cyclic curves
+        ext: None
+    Axial model: 	API sand
+        delta = 25.0 deg
+        K = 0.8
+
+    See also
+    --------
+    :py:func:`openpile.utils.tz_curves.api_sand`, :py:func:`openpile.utils.qz_curves.api_sand`,
+
+    """
     #: interface friction angle [deg], if a variation in values, two values can be given.
     delta: Union[Annotated[float,Field(gt=0.0)], Annotated[List[Annotated[float, Field(ge=0, le=45)]],Field( min_length=1,max_length=2)]]
     #: coefficient of lateral earth pressure, for open-ended piles, a value of 0.8 should be considered while 1.0 for close-ended piles
@@ -217,15 +347,26 @@ class API_sand_axial(AxialModel):
     Q_multiplier: Annotated[float,Field(ge=0.0)] = 1.0
     #: w-multiplier
     w_multiplier: Annotated[float,Field(gt=0.0)] = 1.0
-    #: t-residual
-    t_residual: Annotated[float,Field(ge=0.7, le=0.9)] = 0.9
     #: inner_shaft_friction
     inside_friction: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
     #: tension factor
     tension_multiplier: Annotated[float,Field(ge=0.0, le=1.0)] = 1.0
 
     def __str__(self):
-        return f"\tAPI sand\n\tdelta = {var_to_str(self.delta)} deg"
+        out = f"\tAPI sand\n\tdelta = {var_to_str(self.delta)} deg\n\tK = {var_to_str(self.K)}"
+        if self.t_multiplier != 1.0:
+            out += f"\n\tt-multiplier = {var_to_str(self.t_multiplier)}"
+        if self.z_multiplier != 1.0:
+            out += f"\n\tz-multiplier = {var_to_str(self.z_multiplier)}"
+        if self.Q_multiplier != 1.0:
+                out += f"\n\tQ-multiplier = {var_to_str(self.Q_multiplier)}"
+        if self.w_multiplier != 1.0:
+            out += f"\n\tw-multiplier = {var_to_str(self.w_multiplier)}"
+        if self.inside_friction != 1.0:
+            out += f"\n\tinner_shaft_friction = {var_to_str(self.inside_friction*100):.0f}%"
+        if self.tension_multiplier != 1.0:
+            out += f"\n\ttension_multiplier = {var_to_str(self.tension_multiplier)}"
+        return out
 
     def unit_shaft_friction(self, sig, depth_from_top_of_layer, layer_height):
         # define interface friction angle
@@ -263,7 +404,6 @@ class API_sand_axial(AxialModel):
         z, t = tz_curves.api_sand(
             sig=sig, 
             delta=delta, 
-            residual=self.t_residual,
             K=self.K,
             tensile_factor=self.tension_multiplier, 
             output_length=output_length)

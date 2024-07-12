@@ -148,6 +148,7 @@ def api_clay(
     sig: float,
     Su: float,
     D: float,
+    alpha_limit: float = 1.0,
     residual: float = 0.9,
     tensile_factor: float = 1.0,
     output_length: int = 15,
@@ -163,6 +164,8 @@ def api_clay(
         Undrained shear strength [unit: kPa]
     D: float
         Pile width [unit: m]
+    alpha_limit: float
+        maximum value of the alpha parameter, default to 1.0
     residual: float
         residual strength after peak strength, according to API-RP-2A,
         this value is between 0.7 and 0.9, default to 0.9
@@ -185,7 +188,7 @@ def api_clay(
         output_length = 15
 
     # unit skin friction
-    f = _fmax_api_clay(sig, Su)
+    f = _fmax_api_clay(sig, Su, alpha_limit)
 
     # call backbone curve
     z, t = backbone_api_clay(residual, tensile_factor, output_length)
@@ -199,6 +202,7 @@ def api_clay_kraft(
     Su: float,
     D: float,
     G0: float,
+    alpha_limit: float = 1.0,
     residual: float = 1.0,
     tensile_factor: float = 1.0,
     RF: float = 0.9,
@@ -218,6 +222,8 @@ def api_clay_kraft(
         Pile diameter [unit: m]
     G0: float
         small-strain stiffness [unit: kPa]
+    alpha_limit: float
+        limit of the alpha parameter, by default 1.0
     residual: float
         residual strength after peak strength, by default 1.0
     tensile_factor: float
@@ -243,7 +249,7 @@ def api_clay_kraft(
     """
 
     return kraft_modification(
-        _fmax_api_clay(sig, Su), D, G0, residual, tensile_factor, RF, zif, output_length
+        _fmax_api_clay(sig, Su, alpha_limit), D, G0, residual, tensile_factor, RF, zif, output_length
     )
 
 

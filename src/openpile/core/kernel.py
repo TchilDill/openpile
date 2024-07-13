@@ -8,6 +8,7 @@
 """
 # general utilities for openfile
 
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 from numba import njit, prange, f4, f8, b1, char
@@ -92,7 +93,7 @@ def global_dof_vector_to_consistent_stacked_array(dof_vector, dim):
     return arr
 
 
-def solve_equations(K, F, d, restraints):
+def solve_equations(K, F, U, restraints):
     r"""function that solves the system of equations
 
     The function uses numba to speed up the computational time.
@@ -141,19 +142,87 @@ def solve_equations(K, F, d, restraints):
         prescribed_dof_true = np.where(restraints)[0]
         prescribed_dof_false = np.where(~restraints)[0]
 
+        prescribed_disp = U
+
         Fred = F[prescribed_dof_false] - numba_ix(K, prescribed_dof_false, prescribed_dof_true).dot(
-            d[prescribed_dof_true]
+            prescribed_disp[prescribed_dof_true]
         )
         Kred = numba_ix(K, prescribed_dof_false, prescribed_dof_false)
 
-        d[prescribed_dof_false] = jit_solve(Kred, Fred)
+        U[prescribed_dof_false] = jit_solve(Kred, Fred)
     else:
-        d = jit_solve(K, F)
+        U = jit_solve(K, F)
 
-    Q = K.dot(d) - F
+    Q = K.dot(U) - F
 
-    return d, Q
+    return U, Q
 
+
+
+def solve_equations_beam(K, F, d, restraints):
+    r"""function that solves the system of equations
+
+    The function uses numba to speed up the computational time.
+
+    The system of equations to solve is the following :eq:`solve_eq_3dof_example` assuming a trivial 3 degree of freedom system:
+    
+    .. math::
+        :label: solve_eq_3dof_example
+    
+        \begin{pmatrix}
+        U_1\\ 
+        U_2\\ 
+        U_3
+        \end{pmatrix} = 
+        \begin{bmatrix}
+        K_{11} & K_{12} & K_{13} \\ 
+        K_{21} & K_{22} & K_{23}\\ 
+        K_{31} & K_{23} & K_{33}
+        \end{bmatrix} \cdot \begin{pmatrix}
+        F_1 \\ 
+        F_2 \\ 
+        F_3
+        \end{pmatrix}
+        \\
+        \\
+
+    Parameters
+    ----------
+    K : float numpy array of dim (ndof, ndof)
+        Global stiffness matrix with all dofs in unit:1/kPa.
+    F : float numpy array of dim (ndof, 1)
+        External force vetor (can also be denoted as load vector) in unit:kN.
+    restraints: boolean numpy array of dim (ndof, 1)
+        External vector of restrained dof.
+        
+    Returns
+    -------
+    U : float numpy array of dim (ndof, 1)
+        Global displacement vector in unit:m.
+    Q : float numpy array of dim (ndof, 1)
+        Global reaction force vector in unit:kN
+    
+    """
+
+    displacements = deepcopy(d)
+    prescribed_displacements = restraints | (d>0)
+
+    if prescribed_displacements.any():
+        prescribed_dof_true = np.where(prescribed_displacements)[0]
+        prescribed_dof_false = np.where(~prescribed_displacements)[0]
+
+        Fred = F[prescribed_dof_false] - numba_ix(K, prescribed_dof_false, prescribed_dof_true).dot(
+            displacements[prescribed_dof_true]
+        )
+        Kred = numba_ix(K, prescribed_dof_false, prescribed_dof_false)
+
+        displacements[prescribed_dof_false] = jit_solve(Kred, Fred)
+    else:
+        displacements = jit_solve(K, F)
+
+    Q = K.dot(displacements) - F
+
+    return displacements, Q
 
 def mesh_to_element_length(model) -> np.ndarray:
     

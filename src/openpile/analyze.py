@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import warnings
 
 from dataclasses import dataclass
+from copy import deepcopy
 
 from openpile.core import kernel
 import openpile.core.validation as validation
@@ -402,7 +403,7 @@ def beam(model):
     # initialise global stiffness matrix
     K = kernel.build_stiffness_matrix(model, d)
     # first run with no stress stiffness matrix
-    d, Q = kernel.solve_equations(K, F, U, restraints=supports)
+    d, Q = kernel.solve_equations_beam(K, F, U, restraints=supports)
 
     # internal forces
     q_int = kernel.pile_internal_forces(model, d)
@@ -460,7 +461,7 @@ def winkler(model, max_iter: int = 100):
         # validation.check_boundary_conditions(model)
 
         # Initialise residual forces
-        Rg = F
+        Rg = deepcopy(F)
 
         # incremental calculations to convergence
         iter_no = 0
@@ -484,8 +485,9 @@ def winkler(model, max_iter: int = 100):
 
             # External forces
             F_ext = F - Q
-            control = np.linalg.norm(F_ext)
-            nr_tol = 1e-4 * control
+            if iter_no == 1:
+                control = np.linalg.norm(F_ext)
+                nr_tol = 1e-4 * control
 
             # add up increment displacements
             d += u_inc

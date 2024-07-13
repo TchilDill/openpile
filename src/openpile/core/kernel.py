@@ -14,7 +14,7 @@ from numba import njit, prange, f4, f8, b1, char
 import numba as nb
 from typing_extensions import Literal
 
-from openpile.construct import Model, Pile, CircularPileSection
+from openpile.construct import CircularPileSection
 from openpile.core.validation import UserInputError
 from openpile.core import misc
 from openpile.core._model_build import parameter2elements
@@ -92,7 +92,7 @@ def global_dof_vector_to_consistent_stacked_array(dof_vector, dim):
     return arr
 
 
-def solve_equations(K, F, U, restraints):
+def solve_equations(K, F, d, restraints):
     r"""function that solves the system of equations
 
     The function uses numba to speed up the computational time.
@@ -141,20 +141,18 @@ def solve_equations(K, F, U, restraints):
         prescribed_dof_true = np.where(restraints)[0]
         prescribed_dof_false = np.where(~restraints)[0]
 
-        prescribed_disp = U
-
         Fred = F[prescribed_dof_false] - numba_ix(K, prescribed_dof_false, prescribed_dof_true).dot(
-            prescribed_disp[prescribed_dof_true]
+            d[prescribed_dof_true]
         )
         Kred = numba_ix(K, prescribed_dof_false, prescribed_dof_false)
 
-        U[prescribed_dof_false] = jit_solve(Kred, Fred)
+        d[prescribed_dof_false] = jit_solve(Kred, Fred)
     else:
-        U = jit_solve(K, F)
+        d = jit_solve(K, F)
 
-    Q = K.dot(U) - F
+    Q = K.dot(d) - F
 
-    return U, Q
+    return d, Q
 
 
 def mesh_to_element_length(model) -> np.ndarray:

@@ -10,15 +10,21 @@ def validate_bc(bc_list, bc_cls):
     err = False
     flag = []
     # check if bcs overlap
-    if len(set([(bc.elevation, bc.x) for bc in bc_list if isinstance(bc,bc_cls)])) > 1:
-        flag.append('x')
-        err = True
-    if len(set([(bc.elevation, bc.y) for bc in bc_list if isinstance(bc,bc_cls)])) > 1:
-        flag.append('y')
-        err = True
-    if len(set([(bc.elevation, bc.z) for bc in bc_list if isinstance(bc,bc_cls)])) > 1:
-        flag.append('z')
-        err = True
+    bc_checklist = set([(bc.elevation, bc.x) for bc in bc_list if isinstance(bc,bc_cls)])
+    if len(bc_checklist) > 1:
+        if len(set([bc[0] for bc in bc_checklist])) != len([bc[0] for bc in bc_checklist]) :
+            flag.append('x')
+            err = True
+    bc_checklist = set([(bc.elevation, bc.y) for bc in bc_list if isinstance(bc,bc_cls)])
+    if len(bc_checklist) > 1:
+        if len(set([bc[0] for bc in bc_checklist])) != len([bc[0] for bc in bc_checklist]) :
+            flag.append('y')
+            err = True
+    bc_checklist = set([(bc.elevation, bc.z) for bc in bc_list if isinstance(bc,bc_cls)])
+    if len(bc_checklist) > 1:
+        if len(set([bc[0] for bc in bc_checklist])) != len([bc[0] for bc in bc_checklist]) :
+            flag.append('z')
+            err = True
     if err:        
         raise ValueError(f"Multiple boundary conditions ({bc_cls.__name__}) are given along {', and '.join(flag)}. axis and at same elevation.")
 

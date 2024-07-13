@@ -387,7 +387,7 @@ def beam(model):
     """
 
     # validate boundary conditions
-    validation.check_boundary_conditions(model)
+    # validation.check_boundary_conditions(model)
 
     # initialise global force
     F = kernel.mesh_to_global_force_dof_vector(model.global_forces)
@@ -402,10 +402,6 @@ def beam(model):
     # initialise global stiffness matrix
     K = kernel.build_stiffness_matrix(model, d)
     # first run with no stress stiffness matrix
-    d, Q = kernel.solve_equations(K, F, U, restraints=supports)
-    # rerun global stiffness matrix
-    K = kernel.build_stiffness_matrix(model, d)
-    # second run with stress stiffness matrix
     d, Q = kernel.solve_equations(K, F, U, restraints=supports)
 
     # internal forces

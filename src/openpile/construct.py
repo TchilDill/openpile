@@ -1013,9 +1013,9 @@ class Model(AbstractModel):
 
         # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
         df = self.nodes_coordinates.copy()
-        df["Tx [m]"] = 0
-        df["Ty [m]"] = 0
-        df["Rz [rad]"] = 0
+        df["Tx [m]"] = 0.0
+        df["Ty [m]"] = 0.0
+        df["Rz [rad]"] = 0.0
 
         nodes_elevations = df["x [m]"].values
 
@@ -1279,15 +1279,16 @@ class Model(AbstractModel):
 
             return py, mt, Hb, Mb, tz, qz
 
-        # Create arrays of springs
-        (
-            self._py_springs,
-            self._mt_springs,
-            self._Hb_spring,
-            self._Mb_spring,
-            self._tz_springs,
-            self._qz_spring,
-        ) = create_springs()
+        if self.soil is not None:
+            # Create arrays of springs
+            (
+                self._py_springs,
+                self._mt_springs,
+                self._Hb_spring,
+                self._Mb_spring,
+                self._tz_springs,
+                self._qz_spring,
+            ) = create_springs()
         
 
     @property
@@ -1355,25 +1356,18 @@ class Model(AbstractModel):
 
     def _update_bc(self, elevation, x, y, z, BC_class):
             # list existing
-            existing_bcs= [x for x in self.boundary_conditions if x.elevation == elevation and isinstance(x,BC_class)]
+            existing_bcs= [bc for bc in self.boundary_conditions if bc.elevation == elevation and isinstance(bc,BC_class)]
 
             # check if elevation already exists for the provided axis
-            if existing_bcs:
+            if len(existing_bcs) == 1:
                 # check if elevation already exists for the provided axis and modify boundary condition object
                 if x is not None:
-                    bc_exist = [x for x in existing_bcs if x.x]
-                    if len(bc_exist):
-                        bc_exist[0].x = x
+                    existing_bcs[0].x = x
                 if y is not None:
-                    bc_exist = [x for x in existing_bcs if x.y]
-                    if len(bc_exist):
-                        bc_exist[0].y = y
+                    existing_bcs[0].y = y
                 if z is not None:
-                    bc_exist = [x for x in existing_bcs if x.z]
-                    if len(bc_exist):
-                        bc_exist[0].z = z
+                    existing_bcs[0].z = z
             else:
-                # add BC
                 self.boundary_conditions.append(
                     BC_class( elevation=elevation, x=x, y=y, z=z )
                 )   
@@ -1438,9 +1432,9 @@ class Model(AbstractModel):
     def set_support(
         self,
         elevation: float = 0.0,
-        Ty: bool = False,
-        Tx: bool = False,
-        Rz: bool = False,
+        Ty: bool = None,
+        Tx: bool = None,
+        Rz: bool = None,
     ):
         """
         Defines the supports at a given elevation. If True, the relevant degree of freedom is restrained.
@@ -1454,11 +1448,11 @@ class Model(AbstractModel):
         elevation : float, optional
             the elevation must match the elevation of a node, by default 0.0.
         Ty : bool, optional
-            Translation along y-axis, by default False.
+            Translation along y-axis, by default None.
         Tx : bool, optional
-            Translation along x-axis, by default False.
+            Translation along x-axis, by default None.
         Rz : bool, optional
-            Rotation around z-axis, by default False.
+            Rotation around z-axis, by default None.
         """
         self._update_bc(elevation, x=Tx, y=Ty, z=Rz, BC_class=BoundaryFixation)
 
@@ -1612,6 +1606,21 @@ class Model(AbstractModel):
         """
         fig = graphics.connectivity_plot(self)
         return fig if assign else None
+
+
+    def solve(self):
+        """
+        Solves the boundary conditions by calling either:
+         - :py:func:`openpile.analyze.beam` if no SoilProfile is provided
+         - :py:func:`openpile.analyze.winkler` if a SoilProfile is provided
+
+        Returns
+        -------
+        AnalyzeResult
+            objects that stores results of the analysis.
+        """
+        from openpile.analyze import beam, winkler
+        return beam(self) if self.soil is None else winkler(self)
 
     @classmethod
     def create(

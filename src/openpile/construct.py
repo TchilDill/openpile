@@ -1035,7 +1035,7 @@ class Model(AbstractModel):
     def global_restrained(self) -> Dict[str, np.ndarray]:
 
         validate_bc(self.boundary_conditions, BoundaryFixation)
-
+        
         # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
         df= self.nodes_coordinates.copy()
         df["Tx"] = False

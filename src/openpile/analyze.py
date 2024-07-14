@@ -395,7 +395,7 @@ def beam(model):
     # initiliase prescribed displacement vector
     U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
     # initialise global supports vector
-    supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
+    supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) |  (U!=0.0)
 
     # initialise displacement vectors
     d = np.zeros(U.shape)
@@ -403,7 +403,7 @@ def beam(model):
     # initialise global stiffness matrix
     K = kernel.build_stiffness_matrix(model, d)
     # first run with no stress stiffness matrix
-    d, Q = kernel.solve_equations_beam(K, F, U, restraints=supports)
+    d, Q = kernel.solve_equations(K, F, U, restraints=supports)
 
     # internal forces
     q_int = kernel.pile_internal_forces(model, d)
@@ -455,7 +455,7 @@ def winkler(model, max_iter: int = 100):
         # initialise global stiffness matrix
         K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
         # initialise global supports vector
-        supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
+        supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) | (U!=0.0)
 
         # validate boundary conditions
         # validation.check_boundary_conditions(model)
@@ -485,9 +485,8 @@ def winkler(model, max_iter: int = 100):
 
             # External forces
             F_ext = F - Q
-            if iter_no == 1:
-                control = np.linalg.norm(F_ext)
-                nr_tol = 1e-4 * control
+            control = np.linalg.norm(F_ext)
+            nr_tol = 1e-4 * control
 
             # add up increment displacements
             d += u_inc
@@ -503,10 +502,25 @@ def winkler(model, max_iter: int = 100):
             if np.linalg.norm(Rg[~supports]) < nr_tol and iter_no > 1:
                 # do not accept convergence without iteration (without a second call to solve equations)
                 print(f"Converged at iteration no. {iter_no}")
+
+                # final stiffness matrix
+                K_final = kernel.build_stiffness_matrix(model, u=d, kind="secant")
+
+                # calculate final reaction forces
+                _, Q = kernel.solve_equations(
+                    K_final, 
+                    kernel.mesh_to_global_force_dof_vector(model.global_forces), 
+                    kernel.mesh_to_global_disp_dof_vector(model.global_disp), 
+                    restraints=supports)
+
                 break
 
             if iter_no == 100:
                 print("Not converged after 100 iterations.")
+                
+                # dummy output vars
+                Q = np.full(F.shape, np.nan)
+                d = np.full(U.shape, np.nan)
 
             # re-calculate global stiffness matrix for next iterations
             K = kernel.build_stiffness_matrix(model, u=d, kind="tangent")

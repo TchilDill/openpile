@@ -7,8 +7,7 @@
 Welcome to openpile's documentation!
 ------------------------------------
 
-This package is an open source python library that provides users a toolbox for geotechnical pile
-calculations.
+This package is an open source python library that provides users a toolbox for beam/pile calculations.
 
 This package allows the user to:
 
@@ -20,7 +19,7 @@ This package allows the user to:
   soil models such as the widely used traditional API models for sand and clay or more recent models that stem from 
   the PISA joint-industry project.
 
-This library supports the following versions of python: 3.7-3.10. 
+This library supports the following versions of python: 3.8-3.10. 
 Python 3.11 is not supported!
 
 .. raw:: html
@@ -37,7 +36,6 @@ You can refer to OpenPile in your research paper by citing the following:
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.10116667.svg
   :target: https://doi.org/10.5281/zenodo.10116667
-
 
 
 
@@ -63,8 +61,6 @@ the Free Software Foundation, either version 3 of the License, or
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-
 
 
 Disclaimer

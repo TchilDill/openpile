@@ -301,9 +301,9 @@ def api_clay(
     ymax: float = 0.0,
     output_length: int = 20,
 ):
-    """
+    r"""
     Creates the API clay p-y curve from relevant input.
-    The initil slope of the curve is taken as :math:`k_{initial} = \dfrac{0.23 P_{max}}{0.25*eps50*D}` 
+    The initil slope of the curve is taken as :math:`k_{initial} = \dfrac{0.23 P_{max}}{0.25*eps50*D}`
 
     Parameters
     ----------
@@ -390,7 +390,6 @@ def api_clay(
                     p[i] = 0.7185 * Pmax
                 else:
                     p[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
-
 
         # modification of initial slope of the curve (DNVGL RP-C203 B.2.2.4)
         if y[i] == 0.1 * y50:
@@ -508,6 +507,7 @@ def modified_Matlock(
             p[i] = 0.23 * Pmax
 
     return y, p
+
 
 @njit(parallel=True, cache=True)
 def reese_weakrock(

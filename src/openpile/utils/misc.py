@@ -11,6 +11,7 @@ def _Qmax_api_clay(
     # Unit end-bearing [kPa]
     return 9 * Su
 
+
 @njit(cache=True)
 def _Qmax_api_sand(
     sig: float,
@@ -26,6 +27,7 @@ def _Qmax_api_sand(
 
     # Unit end-bearing [kPa]
     return min(Qmax, sig * Nq)
+
 
 @njit(cache=True)
 def _fmax_api_clay(
@@ -45,7 +47,7 @@ def _fmax_api_clay(
         undrained shear strength in kPa.
     alpha_limit : float
         limit value for the skin friction normalized to undrained shear strength.
-    
+
 
     Returns
     -------

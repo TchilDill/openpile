@@ -24,8 +24,10 @@ from typing import List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
 from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validator
 
+
 class AbstractPileMaterial(BaseModel, ABC):
-    model_config = ConfigDict(extra='forbid')
+    model_config = ConfigDict(extra="forbid")
+
 
 class PileMaterial(AbstractPileMaterial):
     name: str = Field(min_length=1, max_length=20)
@@ -40,23 +42,25 @@ class PileMaterial(AbstractPileMaterial):
     @property
     def young_modulus(self):
         return self.E
-    
+
     @property
     def poisson(self):
         return self.nu
-    
+
     @property
     def shear_modulus(self):
         return self.young_modulus / (2 + 2 * self.poisson)
-    
+
     @classmethod
-    def custom(cls, unitweight:float,  young_modulus:float, poisson_ratio:float, name:str='Custom'):
-        return cls(name=name, uw=unitweight,  E=young_modulus, nu=poisson_ratio)
+    def custom(
+        cls, unitweight: float, young_modulus: float, poisson_ratio: float, name: str = "Custom"
+    ):
+        return cls(name=name, uw=unitweight, E=young_modulus, nu=poisson_ratio)
 
     @classmethod
     def steel(cls):
-        return cls(name='Steel',uw=78.0,  E=210e6, nu=0.3)
+        return cls(name="Steel", uw=78.0, E=210e6, nu=0.3)
 
     @classmethod
     def concrete(cls):
-        return cls(name='Concrete', uw=24.0,  E=30e6, nu=0.2)
+        return cls(name="Concrete", uw=24.0, E=30e6, nu=0.2)

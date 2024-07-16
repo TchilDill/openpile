@@ -60,11 +60,10 @@ def kraft_modification(
     if output_length % 2 == 0:
         output_length += 1
 
-
-    half_length = round(output_length/2)-2
+    half_length = round(output_length / 2) - 2
 
     # define t till tmax
-    tpos = np.linspace(0, fmax, half_length )
+    tpos = np.linspace(0, fmax, half_length)
     # define z till zmax
     zpos = tpos * 0.5 * D / G0 * np.log((zif - RF * tpos / fmax) / (1 - RF * tpos / fmax))
     # define z where t = tmax, a.k.a zmax here
@@ -128,7 +127,7 @@ def backbone_api_clay(
     add_t_values = np.zeros((add_values), dtype=np.float32)
 
     for i in range(add_values):
-        add_z_values[i] = (0.02 + random() * 0.01)
+        add_z_values[i] = 0.02 + random() * 0.01
         add_t_values[i] = residual
 
     z = np.append(z, add_z_values)
@@ -140,7 +139,6 @@ def backbone_api_clay(
     t = t[z_id_sorted]
 
     return z, t
-
 
 
 # API clay function
@@ -193,7 +191,7 @@ def api_clay(
     # call backbone curve
     z, t = backbone_api_clay(residual, tensile_factor, output_length)
 
-    return z*D, t*f
+    return z * D, t * f
 
 
 @njit(cache=True)
@@ -249,7 +247,14 @@ def api_clay_kraft(
     """
 
     return kraft_modification(
-        _fmax_api_clay(sig, Su, alpha_limit), D, G0, residual, tensile_factor, RF, zif, output_length
+        _fmax_api_clay(sig, Su, alpha_limit),
+        D,
+        G0,
+        residual,
+        tensile_factor,
+        RF,
+        zif,
+        output_length,
     )
 
 
@@ -349,9 +354,9 @@ def api_sand(
     f = _fmax_api_sand(sig, delta, K)
 
     # call backbone curve
-    z,t = backbone_api_sand(tensile_factor, output_length)
+    z, t = backbone_api_sand(tensile_factor, output_length)
 
-    return z, t*f
+    return z, t * f
 
 
 @njit(cache=True)

@@ -17,21 +17,10 @@ class TestPile:
             name="",
             material="Steel",
             sections=[
-                construct.CircularPileSection(
-                    top=0, 
-                    bottom=-10, 
-                    diameter=7.5, 
-                    thickness=0.07
-                ),
-                construct.CircularPileSection(
-                    top=-10, 
-                    bottom=-40, 
-                    diameter=7.5, 
-                    thickness=0.08
-                ),
+                construct.CircularPileSection(top=0, bottom=-10, diameter=7.5, thickness=0.07),
+                construct.CircularPileSection(top=-10, bottom=-40, diameter=7.5, thickness=0.08),
             ],
         )
-
 
         # check Young modulus is indeed Steel
         assert pile.E == 210e6
@@ -43,18 +32,8 @@ class TestPile:
             name="",
             material="Steel",
             sections=[
-                construct.CircularPileSection(
-                    top=0.1, 
-                    bottom=-9.9, 
-                    diameter=8.0, 
-                    thickness=0.07
-                ),
-                construct.CircularPileSection(
-                    top=-9.9, 
-                    bottom=-39.9, 
-                    diameter=8.0, 
-                    thickness=0.08
-                ),
+                construct.CircularPileSection(top=0.1, bottom=-9.9, diameter=8.0, thickness=0.07),
+                construct.CircularPileSection(top=-9.9, bottom=-39.9, diameter=8.0, thickness=0.08),
             ],
         )
 
@@ -66,18 +45,8 @@ class TestPile:
             name="",
             material="Steel",
             sections=[
-                construct.CircularPileSection(
-                    top=10, 
-                    bottom=-12, 
-                    diameter=7.5, 
-                    thickness=0.07
-                ),
-                construct.CircularPileSection(
-                    top=-12, 
-                    bottom=-28, 
-                    diameter=8.5, 
-                    thickness=0.08
-                ),
+                construct.CircularPileSection(top=10, bottom=-12, diameter=7.5, thickness=0.07),
+                construct.CircularPileSection(top=-12, bottom=-28, diameter=8.5, thickness=0.08),
             ],
         )
 
@@ -88,18 +57,8 @@ class TestPile:
             name="",
             material="Steel",
             sections=[
-                construct.CircularPileSection(
-                    top=10, 
-                    bottom=-12, 
-                    diameter=7.5, 
-                    thickness=0.07
-                ),
-                construct.CircularPileSection(
-                    top=-12, 
-                    bottom=-28, 
-                    diameter=8.5, 
-                    thickness=0.08
-                ),
+                construct.CircularPileSection(top=10, bottom=-12, diameter=7.5, thickness=0.07),
+                construct.CircularPileSection(top=-12, bottom=-28, diameter=8.5, thickness=0.08),
             ],
         )
 
@@ -112,18 +71,8 @@ class TestPile:
             name="",
             material="Steel",
             sections=[
-                construct.CircularPileSection(
-                    top=10, 
-                    bottom=0, 
-                    diameter=1.0, 
-                    thickness=0.5
-                ),
-                construct.CircularPileSection(
-                    top=0, 
-                    bottom=-30, 
-                    diameter=1.0, 
-                    thickness=0.5
-                ),
+                construct.CircularPileSection(top=10, bottom=0, diameter=1.0, thickness=0.5),
+                construct.CircularPileSection(top=0, bottom=-30, diameter=1.0, thickness=0.5),
             ],
         )
 
@@ -131,6 +80,7 @@ class TestPile:
         assert pile.sections[1].area == 0.25 * m.pi
         assert pile.tip_area == 0.25 * m.pi
         assert pile.tip_footprint == 0.25 * m.pi
+
 
 class TestLayer:
     def test_constructor(self):
@@ -310,7 +260,9 @@ class TestModel:
             assert False, f"Constructor does not work"
 
         # check that p_y springs are all zero
-        assert not np.all(model.get_distributed_lateral_springs()[["VAL 0", "VAL 1", "VAL 2"]].values)
+        assert not np.all(
+            model.get_distributed_lateral_springs()[["VAL 0", "VAL 1", "VAL 2"]].values
+        )
 
         # # check that m_t springs are all zero
         # assert not np.all( model.get_mt_springs()[['VAL 0','VAL 1','VAL 2']].values )

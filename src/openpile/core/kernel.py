@@ -159,10 +159,10 @@ def solve_equations(K, F, U, restraints):
 
 
 def mesh_to_element_length(model) -> np.ndarray:
-    
-    #initialize element properties
+
+    # initialize element properties
     elem_prop = model.element_properties
-    
+
     # elememt coordinates along z and y-axes
     ez = np.array(
         [
@@ -213,18 +213,22 @@ def elem_mechanical_stiffness_matrix(model):
     E = model.pile.material.young_modulus * np.ones(L.shape).reshape((-1, 1, 1))
     G = E / (2 + 2 * nu)
 
-    #initialize element properties
+    # initialize element properties
     elem_prop = model.element_properties
 
     # cross-section properties
-    I = parameter2elements(model.pile.sections,
-                           lambda x:x.second_moment_of_area, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
-    A = parameter2elements(model.pile.sections,
-                           lambda x:x.area, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+    I = parameter2elements(
+        model.pile.sections,
+        lambda x: x.second_moment_of_area,
+        elem_prop["x_top [m]"].values,
+        elem_prop["x_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
+    A = parameter2elements(
+        model.pile.sections,
+        lambda x: x.area,
+        elem_prop["x_top [m]"].values,
+        elem_prop["x_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
@@ -232,15 +236,19 @@ def elem_mechanical_stiffness_matrix(model):
     elif model.element_type == "Timoshenko":
         if all([isinstance(section, CircularPileSection) for section in model.pile.sections]):
             # pile diameter (called width)
-            d = parameter2elements(model.pile.sections,
-                           lambda x:x.width, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+            d = parameter2elements(
+                model.pile.sections,
+                lambda x: x.width,
+                elem_prop["x_top [m]"].values,
+                elem_prop["x_bottom [m]"].values,
+            ).reshape((-1, 1, 1))
             # wall thickness
-            wt = parameter2elements(model.pile.sections,
-                           lambda x:x.thickness, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+            wt = parameter2elements(
+                model.pile.sections,
+                lambda x: x.thickness,
+                elem_prop["x_top [m]"].values,
+                elem_prop["x_bottom [m]"].values,
+            ).reshape((-1, 1, 1))
 
             a = 0.5 * d
             b = 0.5 * (d - 2 * wt)
@@ -423,7 +431,6 @@ def elem_tz_stiffness_matrix(model, u, kind):
     return ktop + kbottom
 
 
-
 def elem_mt_stiffness_matrix(model, u, kind):
     """creates soil element stiffness matrix based on model info and element number.
 
@@ -469,7 +476,7 @@ def elem_mt_stiffness_matrix(model, u, kind):
         kind=kind,
     )
 
-    #initialize element properties
+    # initialize element properties
     elem_prop = model.element_properties
 
     # elastic properties
@@ -477,14 +484,18 @@ def elem_mt_stiffness_matrix(model, u, kind):
     E = model.pile.material.young_modulus * np.ones(L.shape).reshape((-1, 1, 1))
     G = E / (2 + 2 * nu)
     # cross-section properties
-    I = parameter2elements(model.pile.sections,
-                           lambda x:x.second_moment_of_area, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
-    A = parameter2elements(model.pile.sections,
-                           lambda x:x.area, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+    I = parameter2elements(
+        model.pile.sections,
+        lambda x: x.second_moment_of_area,
+        elem_prop["x_top [m]"].values,
+        elem_prop["x_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
+    A = parameter2elements(
+        model.pile.sections,
+        lambda x: x.area,
+        elem_prop["x_top [m]"].values,
+        elem_prop["x_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
@@ -496,15 +507,19 @@ def elem_mt_stiffness_matrix(model, u, kind):
     elif model.element_type == "Timoshenko":
         if all([isinstance(section, CircularPileSection) for section in model.pile.sections]):
             # pile diameter (called width)
-            d = parameter2elements(model.pile.sections,
-                           lambda x:x.width, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+            d = parameter2elements(
+                model.pile.sections,
+                lambda x: x.width,
+                elem_prop["x_top [m]"].values,
+                elem_prop["x_bottom [m]"].values,
+            ).reshape((-1, 1, 1))
             # wall thickness
-            wt = parameter2elements(model.pile.sections,
-                           lambda x:x.thickness, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+            wt = parameter2elements(
+                model.pile.sections,
+                lambda x: x.thickness,
+                elem_prop["x_top [m]"].values,
+                elem_prop["x_bottom [m]"].values,
+            ).reshape((-1, 1, 1))
 
             a = 0.5 * d
             b = 0.5 * (d - 2 * wt)
@@ -585,7 +600,7 @@ def elem_p_delta_stiffness_matrix(model, u):
     f = pile_internal_forces(model, u)
     P = f[::6].reshape(-1, 1, 1)
 
-    #initialize element properties
+    # initialize element properties
     elem_prop = model.element_properties
 
     # elastic properties
@@ -593,14 +608,18 @@ def elem_p_delta_stiffness_matrix(model, u):
     E = model.pile.material.young_modulus * np.ones(L.shape).reshape((-1, 1, 1))
     G = E / (2 + 2 * nu)
     # cross-section properties
-    I = parameter2elements(model.pile.sections,
-                           lambda x:x.second_moment_of_area, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
-    A = parameter2elements(model.pile.sections,
-                           lambda x:x.area, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+    I = parameter2elements(
+        model.pile.sections,
+        lambda x: x.second_moment_of_area,
+        elem_prop["x_top [m]"].values,
+        elem_prop["x_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
+    A = parameter2elements(
+        model.pile.sections,
+        lambda x: x.area,
+        elem_prop["x_top [m]"].values,
+        elem_prop["x_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
@@ -614,15 +633,19 @@ def elem_p_delta_stiffness_matrix(model, u):
     elif model.element_type == "Timoshenko":
         if all([isinstance(section, CircularPileSection) for section in model.pile.sections]):
             # pile diameter (called width)
-            d = parameter2elements(model.pile.sections,
-                           lambda x:x.width, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+            d = parameter2elements(
+                model.pile.sections,
+                lambda x: x.width,
+                elem_prop["x_top [m]"].values,
+                elem_prop["x_bottom [m]"].values,
+            ).reshape((-1, 1, 1))
             # wall thickness
-            wt = parameter2elements(model.pile.sections,
-                           lambda x:x.thickness, 
-                           elem_prop["x_top [m]"].values,
-                           elem_prop["x_bottom [m]"].values).reshape((-1, 1, 1))
+            wt = parameter2elements(
+                model.pile.sections,
+                lambda x: x.thickness,
+                elem_prop["x_top [m]"].values,
+                elem_prop["x_bottom [m]"].values,
+            ).reshape((-1, 1, 1))
 
             a = 0.5 * d
             b = 0.5 * (d - 2 * wt)
@@ -761,7 +784,6 @@ def build_stiffness_matrix(model, u=None, kind=None):
         if model.base_axial:
             K[-3, -3] += calculate_base_axial_spring_stiffness(u[-3], model._qz_spring, kind)
 
-
     return K
 
 
@@ -857,7 +879,6 @@ def calculate_base_spring_stiffness(
     return k
 
 
-
 @njit(cache=True)
 def calculate_base_axial_spring_stiffness(
     u: np.ndarray, spring: np.ndarray, kind: Literal["initial", "secant", "tangent"]
@@ -882,17 +903,17 @@ def calculate_base_axial_spring_stiffness(
     # displacement with same dimension as spring
     d = u
 
-    #determine place where 0 value of qz-spring is located
-    #TODO: make this dynamic 
+    # determine place where 0 value of qz-spring is located
+    # TODO: make this dynamic
     spring_0_index = 1
 
     if np.sum(np.abs(spring[0, 0, 0])) == 0:
         k = 0.0
     else:
         if kind == "initial" or d == 0.0:
-            dx = spring[0, 0, 1, spring_0_index] - spring[0, 0, 1, spring_0_index+1]
+            dx = spring[0, 0, 1, spring_0_index] - spring[0, 0, 1, spring_0_index + 1]
             p0 = spring[0, 0, 0, spring_0_index]
-            p1 = spring[0, 0, 0, spring_0_index+1]
+            p1 = spring[0, 0, 0, spring_0_index + 1]
         elif kind == "secant":
             dx = d
             p0 = spring[0, 0, 0, spring_0_index]
@@ -909,6 +930,7 @@ def calculate_base_axial_spring_stiffness(
         k = abs((p1 - p0) / dx)
 
     return k
+
 
 @njit(cache=True)
 def calculate_py_springs_stiffness(
@@ -973,7 +995,6 @@ def calculate_py_springs_stiffness(
     return k
 
 
-
 # @njit(cache=True)
 def calculate_tz_springs_stiffness(
     u: np.ndarray, springs: np.ndarray, kind: Literal["initial", "secant", "tangent"]
@@ -1005,8 +1026,8 @@ def calculate_tz_springs_stiffness(
 
     k = np.zeros(d.shape, dtype=np.float64)
 
-    #determine place where 0 value of tz-spring is located
-    spring_0_index = round(springs.shape[-1]/2)-1
+    # determine place where 0 value of tz-spring is located
+    spring_0_index = round(springs.shape[-1] / 2) - 1
 
     for i in range(k.shape[0]):
         for j in range(k.shape[1]):
@@ -1014,9 +1035,9 @@ def calculate_tz_springs_stiffness(
                 pass
             else:
                 if kind == "initial" or d[i, j, 0, 0] == 0.0:
-                    dx = springs[i, j, 1, spring_0_index] - springs[i, j, 1, spring_0_index+1]
+                    dx = springs[i, j, 1, spring_0_index] - springs[i, j, 1, spring_0_index + 1]
                     p0 = springs[i, j, 0, spring_0_index]
-                    p1 = springs[i, j, 0, spring_0_index+1]
+                    p1 = springs[i, j, 0, spring_0_index + 1]
                 elif kind == "secant":
                     dx = d[i, j, 0, 0]
                     p0 = springs[i, j, 0, spring_0_index]
@@ -1024,15 +1045,20 @@ def calculate_tz_springs_stiffness(
                 elif kind == "tangent":
                     dx = min(0.0005, abs(d[i, j, 0, 0]))
                     if d[i, j, 0, 0] > 0:
-                        p0 = np.interp(d[i, j, 0, 0] - dx, springs[i, j, 1][::-1], springs[i, j, 0][::-1])
+                        p0 = np.interp(
+                            d[i, j, 0, 0] - dx, springs[i, j, 1][::-1], springs[i, j, 0][::-1]
+                        )
                     else:
-                        p0 = np.interp(d[i, j, 0, 0] + dx, springs[i, j, 1][::-1], springs[i, j, 0][::-1])
+                        p0 = np.interp(
+                            d[i, j, 0, 0] + dx, springs[i, j, 1][::-1], springs[i, j, 0][::-1]
+                        )
 
                     p1 = np.interp(d[i, j, 0, 0], springs[i, j, 1][::-1], springs[i, j, 0][::-1])
 
                 k[i, j, 0, 0] = abs((p1 - p0) / dx)
 
     return k
+
 
 @njit(cache=True)
 def calculate_mt_springs_stiffness(

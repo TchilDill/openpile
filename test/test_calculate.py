@@ -91,11 +91,13 @@ def test_submerged_effective_pile_weight():
         ],
     )
 
-    print(calculate.effective_pile_weight(pile=p,soil=sp))
+    print(calculate.effective_pile_weight(pile=p, soil=sp))
     print((steel_weight - 10) / 10)
 
     # check
-    assert m.isclose(calculate.effective_pile_weight(pile=p,soil=sp), (steel_weight - 10), abs_tol=0.1)
+    assert m.isclose(
+        calculate.effective_pile_weight(pile=p, soil=sp), (steel_weight - 10), abs_tol=0.1
+    )
 
 
 def test_half_submerged_effective_pile_weight():
@@ -136,9 +138,9 @@ def test_half_submerged_effective_pile_weight():
         ],
     )
 
-    print(calculate.effective_pile_weight(pile=p,soil=sp))
+    print(calculate.effective_pile_weight(pile=p, soil=sp))
     print((steel_weight - 10) / 10)
 
     # check
     target_weight = 0.5 * ((steel_weight - 10) + steel_weight)
-    assert m.isclose(calculate.effective_pile_weight(pile=p,soil=sp), target_weight, abs_tol=0.1)
+    assert m.isclose(calculate.effective_pile_weight(pile=p, soil=sp), target_weight, abs_tol=0.1)

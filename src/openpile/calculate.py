@@ -12,11 +12,16 @@ import pandas as pd
 import numpy as np
 import math as m
 
-from openpile.core._model_build import get_coordinates, get_tip_sig_v_eff, get_soil_properties, parameter2elements
+from openpile.core._model_build import (
+    get_coordinates,
+    get_tip_sig_v_eff,
+    get_soil_properties,
+    parameter2elements,
+)
+
 
 class CalculateResult:
     _values: tuple
-
 
 
 def _pile_element_surface(pile, soil, coarseness=0.1):
@@ -43,10 +48,13 @@ def _pile_element_surface(pile, soil, coarseness=0.1):
 
     elem_x_top = element_properties["x_top [m]"].values
     elem_x_bottom = element_properties["x_bottom [m]"].values
-    L = (elem_x_top - elem_x_bottom)
-    perimeter_outside = parameter2elements(pile.sections, lambda x: x.outer_perimeter, elem_x_top, elem_x_bottom)
-    perimeter_inside = parameter2elements(pile.sections, lambda x: x.inner_perimeter, elem_x_top, elem_x_bottom)
-
+    L = elem_x_top - elem_x_bottom
+    perimeter_outside = parameter2elements(
+        pile.sections, lambda x: x.outer_perimeter, elem_x_top, elem_x_bottom
+    )
+    perimeter_inside = parameter2elements(
+        pile.sections, lambda x: x.inner_perimeter, elem_x_top, elem_x_bottom
+    )
 
     return perimeter_outside * L, perimeter_inside * L
 
@@ -72,8 +80,10 @@ def _pile_inside_volume(pile, soil, coarseness=0.1):
     element_properties = get_coordinates(pile, soil, None, coarseness)[1]
     elem_x_top = element_properties["x_top [m]"].values
     elem_x_bottom = element_properties["x_bottom [m]"].values
-    L = (elem_x_top - elem_x_bottom)
-    area_inside = parameter2elements(pile.sections, lambda x: x.entrapped_area, elem_x_top, elem_x_bottom)
+    L = elem_x_top - elem_x_bottom
+    area_inside = parameter2elements(
+        pile.sections, lambda x: x.entrapped_area, elem_x_top, elem_x_bottom
+    )
 
     return area_inside * L
 
@@ -105,14 +115,16 @@ def effective_pile_weight(pile, soil, coarseness=0.1):
     `openpile.construct.Pile.weight`
     """
 
-    element_properties = get_coordinates(pile, soil, None,coarseness=0.1)[1]
+    element_properties = get_coordinates(pile, soil, None, coarseness=0.1)[1]
 
     if soil is not None:
         submerged_element = element_properties["x_bottom [m]"].values < soil.water_line
 
         elem_x_top = element_properties["x_top [m]"].values
         elem_x_bottom = element_properties["x_bottom [m]"].values
-        V = (elem_x_top - elem_x_bottom) * parameter2elements(pile.sections, lambda x: x.area, elem_x_top, elem_x_bottom)
+        V = (elem_x_top - elem_x_bottom) * parameter2elements(
+            pile.sections, lambda x: x.area, elem_x_top, elem_x_bottom
+        )
         W = np.zeros(shape=V.shape)
         W[submerged_element] = V[submerged_element] * (pile.material.unitweight - 10)
         W[~submerged_element] = V[~submerged_element] * (pile.material.unitweight)
@@ -124,7 +136,8 @@ def effective_pile_weight(pile, soil, coarseness=0.1):
             "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
         )
 
-def isplugged(pile,soil, method:str, kind:str="compression") -> bool:
+
+def isplugged(pile, soil, method: str, kind: str = "compression") -> bool:
     """_summary_
 
     Parameters
@@ -146,69 +159,76 @@ def isplugged(pile,soil, method:str, kind:str="compression") -> bool:
     Exception
         _description_
     """
-    
+
     if method == "API-87":
         if kind == "compression":
-            answer = unit_end_bearing(pile,soil)*(pile.tip_footprint - pile.tip_area) < shaft_resistance(pile,soil, outer_shaft=False, inner_shaft=True) - entrapped_soil_weight(pile,soil)
+            answer = unit_end_bearing(pile, soil) * (
+                pile.tip_footprint - pile.tip_area
+            ) < shaft_resistance(
+                pile, soil, outer_shaft=False, inner_shaft=True
+            ) - entrapped_soil_weight(
+                pile, soil
+            )
         elif kind == "tension":
-            answer = entrapped_soil_weight(pile,soil) < shaft_resistance(pile,soil, outer_shaft=False, inner_shaft=True) 
+            answer = entrapped_soil_weight(pile, soil) < shaft_resistance(
+                pile, soil, outer_shaft=False, inner_shaft=True
+            )
     elif method == "ICP-05":
         pile_tip_criterion = m.sqrt(4 * pile.tip_footprint / m.pi)
         answer = True if pile_tip_criterion < 1.4 else False
     else:
         raise Exception("Method not implemented")
-    
+
     return answer
 
 
-def compressioncapacity(pile,soil):
+def compressioncapacity(pile, soil):
 
-    if isplugged(pile,soil, kind="compression"):
-        Q = shaft_resistance(pile,soil, outer_shaft=True, inner_shaft=False) 
-        + unit_end_bearing(pile,soil) * pile.tip_footprint - entrapped_soil_weight(pile,soil)
+    if isplugged(pile, soil, kind="compression"):
+        Q = shaft_resistance(pile, soil, outer_shaft=True, inner_shaft=False)
+        +unit_end_bearing(pile, soil) * pile.tip_footprint - entrapped_soil_weight(pile, soil)
     else:
-        Q = shaft_resistance(pile,soil, outer_shaft=True, inner_shaft=True) 
-        + unit_end_bearing(pile,soil) * pile.tip_area
-    
-    return Q
-
-def tensilecapacity(pile,soil):
-
-    if isplugged(pile,soil, kind="tension"):
-        Q = shaft_resistance(pile,soil, outer_shaft=True, inner_shaft=False) + entrapped_soil_weight(pile,soil)
-    else:
-        Q = shaft_resistance(pile,soil, outer_shaft=True, inner_shaft=True)
+        Q = shaft_resistance(pile, soil, outer_shaft=True, inner_shaft=True)
+        +unit_end_bearing(pile, soil) * pile.tip_area
 
     return Q
 
+
+def tensilecapacity(pile, soil):
+
+    if isplugged(pile, soil, kind="tension"):
+        Q = shaft_resistance(
+            pile, soil, outer_shaft=True, inner_shaft=False
+        ) + entrapped_soil_weight(pile, soil)
+    else:
+        Q = shaft_resistance(pile, soil, outer_shaft=True, inner_shaft=True)
+
+    return Q
 
 
 def unit_end_bearing(
-    pile,soil,
+    pile,
+    soil,
 ) -> float:
-
 
     for layer in soil.layers:
         if layer.axial_model is None:
             q = 0.0
         else:
             # check if pile tip is within layer
-            if (
-                layer.top >= pile.bottom_elevation
-                and layer.bottom <= pile.bottom_elevation
-            ):
+            if layer.top >= pile.bottom_elevation and layer.bottom <= pile.bottom_elevation:
                 # vertical effective stress at pile tip
-                sig_v_tip = get_tip_sig_v_eff(tip_elevation=pile.bottom_elevation, 
-                                              layers=soil.layers, 
-                                              water_elevation=soil.water_line,)
+                sig_v_tip = get_tip_sig_v_eff(
+                    tip_elevation=pile.bottom_elevation,
+                    layers=soil.layers,
+                    water_elevation=soil.water_line,
+                )
 
                 # Calculate unit tip resistance with effective area
                 q = (
                     layer.axial_model.unit_tip_resistance(
                         sig=sig_v_tip,
-                        depth_from_top_of_layer=(
-                            soil.top_elevation - soil.bottom_elevation
-                        ),
+                        depth_from_top_of_layer=(soil.top_elevation - soil.bottom_elevation),
                         layer_height=(layer.top - layer.bottom),
                     )
                     * layer.axial_model.Q_multiplier
@@ -217,7 +237,7 @@ def unit_end_bearing(
     return q
 
 
-def entrapped_soil_weight(pile,soil, coarseness=0.1) -> float:
+def entrapped_soil_weight(pile, soil, coarseness=0.1) -> float:
     """calculates total weight of soil inside the pile. (Unit: kN)
 
     Parameters
@@ -242,7 +262,7 @@ def entrapped_soil_weight(pile,soil, coarseness=0.1) -> float:
     uw_water = 10
 
     # soil volume
-    Vi = _pile_inside_volume(pile,soil)
+    Vi = _pile_inside_volume(pile, soil)
     # element mid-point elevation
     elevation = 0.5 * (soil_properties["x_top [m]"] + soil_properties["x_bottom [m]"])
     # soil weight for each element where we have soil and pile
@@ -268,11 +288,7 @@ def entrapped_soil_weight(pile,soil, coarseness=0.1) -> float:
 
 
 def shaft_resistance(
-    pile,
-    soil,
-    outer_shaft:bool,
-    inner_shaft:bool,
-    coarseness:float = 0.1
+    pile, soil, outer_shaft: bool, inner_shaft: bool, coarseness: float = 0.1
 ) -> float:
     """Calculates shaft resistance of the pile based on the axial models assigned to the SoilProfile layers. (Unit: kN)
 
@@ -300,12 +316,10 @@ def shaft_resistance(
     elem_number = int(element_properties.shape[0])
 
     # pile element surfaces
-    So, Si = _pile_element_surface(pile,soil)
+    So, Si = _pile_element_surface(pile, soil)
 
     # get vertical effective stress
-    sigveff = 0.5 * (
-        soil_properties["sigma_v top [kPa]"] + soil_properties["sigma_v bottom [kPa]"]
-    )
+    sigveff = 0.5 * (soil_properties["sigma_v top [kPa]"] + soil_properties["sigma_v bottom [kPa]"])
 
     # depth from ground
     depth_from_ground = (
@@ -355,7 +369,7 @@ def shaft_resistance(
                     * layer.axial_model.t_multiplier
                 )
 
-    # overwrite shaft resistance when it is not called for 
+    # overwrite shaft resistance when it is not called for
     if outer_shaft is False:
         element_fs[0, :] = 0.0
     if inner_shaft is False:

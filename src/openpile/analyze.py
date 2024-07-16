@@ -395,7 +395,7 @@ def beam(model):
     # initiliase prescribed displacement vector
     U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
     # initialise global supports vector
-    supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) |  (U!=0.0)
+    supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) | (U != 0.0)
 
     # initialise displacement vectors
     d = np.zeros(U.shape)
@@ -455,7 +455,9 @@ def winkler(model, max_iter: int = 100):
         # initialise global stiffness matrix
         K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
         # initialise global supports vector
-        supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) | (U!=0.0)
+        supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) | (
+            U != 0.0
+        )
 
         # validate boundary conditions
         # validation.check_boundary_conditions(model)
@@ -508,16 +510,17 @@ def winkler(model, max_iter: int = 100):
 
                 # calculate final reaction forces
                 _, Q = kernel.solve_equations(
-                    K_final, 
-                    kernel.mesh_to_global_force_dof_vector(model.global_forces), 
-                    kernel.mesh_to_global_disp_dof_vector(model.global_disp), 
-                    restraints=supports)
+                    K_final,
+                    kernel.mesh_to_global_force_dof_vector(model.global_forces),
+                    kernel.mesh_to_global_disp_dof_vector(model.global_disp),
+                    restraints=supports,
+                )
 
                 break
 
             if iter_no == 100:
                 print("Not converged after 100 iterations.")
-                
+
                 # dummy output vars
                 Q = np.full(F.shape, np.nan)
                 d = np.full(U.shape, np.nan)
@@ -564,6 +567,7 @@ def simple_winkler_analysis(*args, **kwargs):
     .. versionremoved: 1.0.0
         Use :func:`winkler` instead that keeps the same functional behaviour.
     """
+
 
 def simple_beam_analysis(*args, **kwargs):
     """

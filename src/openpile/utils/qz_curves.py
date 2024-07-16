@@ -53,7 +53,7 @@ def backbone_api(
     add_Q_values = np.zeros((add_values), dtype=np.float32)
 
     for i in range(add_values):
-        add_z_values[i] = (0.1 + random() * 0.1)
+        add_z_values[i] = 0.1 + random() * 0.1
         add_Q_values[i] = 1.0
 
     z = np.append(z, add_z_values)
@@ -99,7 +99,8 @@ def api_clay(
     # call backbone curve
     z, Q = backbone_api(output_length)
 
-    return z*D, Q*f
+    return z * D, Q * f
+
 
 # API sand function
 def api_sand(
@@ -136,4 +137,4 @@ def api_sand(
     # call backbone curve
     z, Q = backbone_api(output_length)
 
-    return z*D, Q*f
+    return z * D, Q * f

@@ -2,15 +2,6 @@
 Getting started
 ---------------
 
-System of units
-^^^^^^^^^^^^^^^
-
-The unit system used in this library is the `International System of Units (SI) <https://en.wikipedia.org/wiki/International_System_of_Units>`_. 
-The primary units used in OpenPile are kN (kilonewton) and m (meter). 
-The documentation should show the units to the user. If there are any ambiguity, 
-please create an issue so that we can solve this.
-
-
 Installation
 ^^^^^^^^^^^^
 

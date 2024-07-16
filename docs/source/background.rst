@@ -6,6 +6,7 @@ Background and Theory
    :maxdepth: 2
    :caption: Contents:
 
+   openpileintro
    introsoilmodels
    lateralsoilmodels
    axialsoilmodels

@@ -7,25 +7,28 @@ import math as m
 from pydantic import ValidationError
 
 
+@pytest.fixture
+def offshore_wind_pile1():
+    # create a steel and circular pile
+    return construct.Pile(
+        name="",
+        material="Steel",
+        sections=[
+            construct.CircularPileSection(top=0, bottom=-10, diameter=7.5, thickness=0.07),
+            construct.CircularPileSection(top=-10, bottom=-40, diameter=7.5, thickness=0.08),
+        ],
+    )
+
 class TestPile:
-    def test_main_constructor(self):
+    def test_main_constructor(self, offshore_wind_pile1):
         """Main constructor of Pile object, check if pile.data
         has even entries and that steel E value is 210GPa
         """
-        # create a steel and circular pile
-        pile = construct.Pile(
-            name="",
-            material="Steel",
-            sections=[
-                construct.CircularPileSection(top=0, bottom=-10, diameter=7.5, thickness=0.07),
-                construct.CircularPileSection(top=-10, bottom=-40, diameter=7.5, thickness=0.08),
-            ],
-        )
 
         # check Young modulus is indeed Steel
-        assert pile.E == 210e6
+        assert offshore_wind_pile1.E == 210e6
         # check even numbers of row for dataframe
-        assert pile.data.values.shape[0] % 2 == 0
+        assert offshore_wind_pile1.data.values.shape[0] % 2 == 0
 
     def test_pile_width(self):
         pile = construct.Pile(

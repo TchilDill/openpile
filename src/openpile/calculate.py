@@ -142,17 +142,19 @@ def isplugged(pile, soil, method: str, kind: str = "compression") -> bool:
 
     Parameters
     ----------
-    model : _type_
-        _description_
+    pile : openpile.construct.Pile
+        pile
+    soil : openpile.construct.SoilProfile
+        soil profile
     method : str
-        _description_, should be one of ("API-87","ICP-05")
+        should be one of ("API-87","ICP-05")
     kind : str, optional
-        _description_, by default "compression"
+        loading direction, by default "compression"
 
     Returns
     -------
     bool
-        _description_
+        True if pile is plugged.
 
     Raises
     ------

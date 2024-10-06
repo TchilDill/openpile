@@ -276,12 +276,11 @@ Example 5 - Run a lateral pile analysis
     >>> M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
     >>> 
     >>> # Run analysis
-    >>> from openpile.analyze import winkler
-    >>> Result = winkler(M)
+    >>> result = M.solve()
     Converged at iteration no. 2
     >>> 
     >>> # plot the results
-    >>> Result.plot()
+    >>> result.plot()
 
 .. _Ex6-check_model:
 

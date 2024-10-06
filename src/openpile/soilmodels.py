@@ -233,7 +233,8 @@ class API_clay_axial(AxialModel):
 
     def tz_spring_fct(
         self,
-        circumference: float, 
+        circumference_in: float,
+        circumference_out:float, 
         sig: float,
         layer_height: float,
         depth_from_top_of_layer: float,
@@ -246,20 +247,34 @@ class API_clay_axial(AxialModel):
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
+        if self.plugging == 'none':
+            tens_fac = self.tension_multiplier
+            circumference_total = circumference_out+circumference_in
+        elif self.plugging == 'tension':
+            circumference_total = circumference_out+circumference_in
+            tens_fac = self.tension_multiplier*circumference_in/(circumference_total)
+        elif self.plugging == 'compression':
+            circumference_total = circumference_out
+            tens_fac = self.tension_multiplier*(circumference_in+circumference_out)/(circumference_total)
+        elif self.plugging == 'both':
+            circumference_total = circumference_out
+            tens_fac = self.tension_multiplier*circumference_in/(circumference_total)
+
         z, t = tz_curves.api_clay(
             sig=sig,
             Su=Su,
             D=D,
             residual=self.t_residual,
-            tensile_factor=self.tension_multiplier,
+            tensile_factor=tens_fac,
             output_length=output_length,
         )
 
-        return z * self.z_multiplier, t * self.t_multiplier*circumference
+        return z * self.z_multiplier, t * self.t_multiplier*circumference_total
 
     def Qz_spring_fct(
         self,
-        area:float,
+        tip_area:float,
+        footprint:float,
         layer_height: float,
         depth_from_top_of_layer: float,
         D: float,
@@ -272,6 +287,11 @@ class API_clay_axial(AxialModel):
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
         w, Q = qz_curves.api_clay(Su=Su, D=D, output_length=output_length)
+
+        if self.plugging == 'both' or self.plugging == 'compression':
+            area = footprint
+        else:
+            area = tip_area
 
         return w * self.w_multiplier, Q * self.Q_multiplier*area
 
@@ -443,7 +463,8 @@ class API_sand_axial(AxialModel):
 
     def Qz_spring_fct(
         self,
-        area:float,
+        tip_area:float,
+        footprint:float,
         sig: float,
         layer_height: float,
         depth_from_top_of_layer: float,
@@ -457,6 +478,11 @@ class API_sand_axial(AxialModel):
         delta = delta_t + (delta_b - delta_t) * depth_from_top_of_layer / layer_height
 
         w, Q = qz_curves.api_sand(sig=sig, delta=delta, D=D, output_length=output_length, **kwargs)
+
+        if self.plugging == 'both' or self.plugging == 'compression':
+            area = footprint
+        else:
+            area = tip_area
 
         return w * self.w_multiplier, Q * self.Q_multiplier*area
 

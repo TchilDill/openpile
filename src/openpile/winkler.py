@@ -1,10 +1,10 @@
 """
-`analyze` module
+`winkler` module
 ==================
 
-The `analyze` module is used to run 1D Finite Element analyses. 
+The `winkler` module is used to run 1D Finite Element analyses. 
 
-Every function from this module returns an `openpile.analyze.AnalyzeResult` object. 
+Every function from this module returns an `openpile.winkler.WinklerResult` object. 
 
 """
 
@@ -128,8 +128,8 @@ def disp_to_df(model, u):
 
 
 @dataclass
-class AnalyzeResult:
-    """The `AnalyzeResult` class is created by any analyses from the :py:mod:`openpile.analyze` module.
+class WinklerResult:
+    """The `WinklerResult` class is created by any analyses from the :py:mod:`openpile.winkler` module.
 
     As such the user can use the following properties and/or methods for any return values of an analysis.
 
@@ -409,7 +409,7 @@ def beam(model):
     q_int = kernel.pile_internal_forces(model, d)
 
     # Final results
-    results = AnalyzeResult(
+    results = WinklerResult(
         _name=f"{model.name} ({model.pile.name})",
         _d=disp_to_df(model, d),
         _f=structural_forces_to_df(model, q_int),
@@ -536,7 +536,7 @@ def winkler(model, max_iter: int = 100):
         q_int = kernel.pile_internal_forces(model, d)
 
         # Final results
-        results = AnalyzeResult(
+        results = WinklerResult(
             _name=f"{model.name} ({model.pile.name}/{model.soil.name})",
             _d=disp_to_df(model, d),
             _f=structural_forces_to_df(model, q_int),

@@ -1658,10 +1658,10 @@ class Model(AbstractModel):
 
         Returns
         -------
-        AnalyzeResult
+        WinklerResult
             objects that stores results of the analysis.
         """
-        from openpile.analyze import beam, winkler
+        from openpile.winkler import beam, winkler
 
         return beam(self) if self.soil is None else winkler(self)
 

@@ -23,6 +23,8 @@ The minimum python version to use with Openpile >= 1.0.0 is python 3.8.
 - `openpile.construct.Model.get_py_springs()` and other related methods to extract springs have been updated to the following naming style: `.get_distributed_lateral_springs()`, see documentation for more details. 
 - The API clay model available until v0.7.1 has been decoupled to form the `API_clay` and the mofidied_Matlock models, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
 - functions found in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
+- module `openpile.analyze` object renamed to `openpile.winkler`.
+- class `AnalyzeResult` object renamed to `WinklerResult`.
 
 ### Deleted
 - The functions `openpile.analyze.simple_beam_analysis()` and `openpile.analyze.simple_winkler_analysis()` are now removed from the code.

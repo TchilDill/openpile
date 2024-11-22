@@ -493,12 +493,13 @@ def frankeRollins2013(
     p_Rollins = np.zeros(shape=len(y), dtype=np.float32)
 
     for i in prange(len(y)):
-        # derive static curve WangReese 1998
+        # derive static curve Wang & Reese 1998
         if y[i] > 8 * y50:
             p_wangReese[i] = Pmax
         else:
             p_wangReese[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
 
+        # derive static curve Rollins 2005
         A = (0.0000003) * ((X + 1) ** 6.05)
         B = 2.80 * ((X + 1) ** 0.11)
         C = 2.85 * ((X + 1) ** -0.41)

@@ -164,13 +164,13 @@ one that is shallow (wedge-type failure) and another that is deep (flow-around f
 
     P_{max} &= min(P_{shallow}, P_{deep})
     \\\\
-    P_{shallow} &= D (3 S_u \cdot \sigma^{\prime}) + J \cdot S_u \cdot X
+    P_{shallow} &= D (3 S_u + \sigma^{\prime}) + J \cdot S_u \cdot X
     \\\\
-    P_{deep} &=  9 \cdot S_u \cdot X
+    P_{deep} &=  9 \cdot S_u \cdot D
 
 where: 
 
-* :math:`S_u` is the undrained shear strength in Unconfined and 
+* :math:`S_u` is the undrained shear strßength in Unconfined and 
   unconsolidated (UU) Trixial tests.
 * :math:`\sigma^{\prime}` is the vertical effective stress.
 * :math:`J` is an empirical factor determined by Matlock to fit results 

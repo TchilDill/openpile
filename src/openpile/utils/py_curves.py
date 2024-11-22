@@ -502,9 +502,17 @@ def frankeRollins2013(
         A = (0.0000003) * ((X + 1) ** 6.05)
         B = 2.80 * ((X + 1) ** 0.11)
         C = 2.85 * ((X + 1) ** -0.41)
-        p_d = 3.81 * np.log(D) + 5.6
+        
+        if D < 0.3:
+            p_d = D / 0.3
+        else:
+            p_d = 3.81 * np.log(D) + 5.6
 
-        p_Rollins[i] = (A * ((B * y[i]*1000) ** C)) * (p_d)
+        p_0pt3m = np.minimum(A * ((150 * B) ** C), 15)
+
+        pmax_rollins = p_d * p_0pt3m
+
+        p_Rollins[i] = np.minimum((A * ((B * y[i]) ** C)) * (p_d), pmax_rollins)
 
         # modification of initial slope of the curve (DNVGL RP-C203 B.2.2.4)
         # if y[i] == 0.1 * y50:

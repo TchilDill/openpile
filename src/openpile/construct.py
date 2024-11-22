@@ -1139,52 +1139,32 @@ class Model(AbstractModel):
                     if layer.axial_model is not None:
 
                         if self.distributed_axial:  # True if tz spring function exist
-
-                            # calculate springs (top and bottom) for each element
-                            for j in [0, 1]:
-                                (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
-                                    sig=sig_v[j],
-                                    X=depth_from_ground[j],
-                                    layer_height=(layer.top - layer.bottom),
-                                    depth_from_top_of_layer=(layer.top - elevation[j]),
-                                    D=pile_width,
-                                    # TODO add wall thickness for CPT methods?
-                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=elevation[j] <= self.soil.water_line,
-                                    output_length=tz_springs_dim,
-                                )
-
-                                if layer.axial_model.method == "API":
-                                    if self.plugging:
-                                        effective_perimeter = (
-                                            perimeter_out
-                                            * layer.axial_model.unit_shaft_signature()["out"]
-                                        )
-                                    else:
-                                        effective_perimeter = (
-                                            perimeter_out
-                                            * layer.axial_model.unit_shaft_signature()["out"]
-                                            + perimeter_in
-                                            * layer.axial_model.unit_shaft_signature()["in"]
-                                        )
-
-                                else:
-                                    # potentially incorrect when we implement CPT methods
-                                    raise NotImplementedError(
-                                        "Axial models that are not based on API are not yet implemented."
+                                # calculate springs (top and bottom) for each element
+                                for j in [0, 1]:
+                                    (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
+                                        sig=sig_v[j],
+                                        X=depth_from_ground[j],
+                                        circumference_out=perimeter_out,
+                                        circumference_in=perimeter_in,
+                                        layer_height=(layer.top - layer.bottom),
+                                        depth_from_top_of_layer=(layer.top - elevation[j]),
+                                        D=pile_width,
+                                        # TODO add wall thickness for CPT methods?
+                                        L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                        below_water_table=elevation[j] <= self.soil.water_line,
+                                        output_length=tz_springs_dim,
                                     )
-
-                                tz[i, j, 0] = tz[i, j, 0] * effective_perimeter
 
                         if (
                             layer.top >= self.pile.bottom_elevation
                             and layer.bottom <= self.pile.bottom_elevation
                             and self.base_axial
-                        ):
-                            # calculate Hb spring
+                        ): 
+                            # calculate Qz spring
                             (qz[0, 0, 1], qz[0, 0, 0]) = layer.axial_model.Qz_spring_fct(
                                 sig=sig_v_tip,
-                                X=(self.soil.top_elevation - self.soil.bottom_elevation),
+                                tip_area=self.pile.tip_area,
+                                footprint=self.pile.tip_footprint,
                                 layer_height=(layer.top - layer.bottom),
                                 depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
                                 D=pile_width,
@@ -1193,19 +1173,6 @@ class Model(AbstractModel):
                                 <= self.soil.water_line,
                                 output_length=qz_spring_dim,
                             )
-
-                            if layer.axial_model.method == "API":
-                                if self.plugging:
-                                    effective_area = self.pile.tip_footprint
-                                else:
-                                    effective_area = self.pile.tip_area
-                            else:
-                                # potentially incorrect when we implement CPT methods
-                                raise NotImplementedError(
-                                    "Axial models that are not based on API are not yet implemented."
-                                )
-
-                            qz[0, 0, 0] = qz[0, 0, 0] * effective_area
 
                     # py curve
                     if layer.lateral_model is not None:

@@ -248,8 +248,8 @@ class API_clay_axial(AxialModel):
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
         if self.plugging == 'none':
-            tens_fac = self.tension_multiplier
             circumference_total = circumference_out+circumference_in
+            tens_fac = self.tension_multiplier
         elif self.plugging == 'tension':
             circumference_total = circumference_out+circumference_in
             tens_fac = self.tension_multiplier*circumference_in/(circumference_total)
@@ -477,7 +477,7 @@ class API_sand_axial(AxialModel):
         delta_t, delta_b = from_list2x_parse_top_bottom(self.delta)
         delta = delta_t + (delta_b - delta_t) * depth_from_top_of_layer / layer_height
 
-        w, Q = qz_curves.api_sand(sig=sig, delta=delta, D=D, output_length=output_length, **kwargs)
+        w, Q = qz_curves.api_sand(sig=sig, delta=delta, D=D, output_length=output_length)
 
         if self.plugging == 'both' or self.plugging == 'compression':
             area = footprint

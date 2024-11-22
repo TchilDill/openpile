@@ -132,7 +132,7 @@ def api_sand(
     """
 
     # max tip resistance
-    f = _Qmax_api_sand(sig, delta, D)
+    f = _Qmax_api_sand(sig, delta)
 
     # call backbone curve
     z, Q = backbone_api(output_length)

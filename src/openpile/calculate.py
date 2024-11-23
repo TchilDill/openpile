@@ -59,83 +59,6 @@ def _pile_element_surface(pile, soil, coarseness=0.1):
     return perimeter_outside * L, perimeter_inside * L
 
 
-def _pile_inside_volume(pile, soil, coarseness=0.1):
-    """calculates the volume of the pile form the model object
-
-    Parameters
-    ----------
-    pile : openpile.construct.Pile
-        pile
-    soil : openpile.construct.SoilProfile
-        soil profile
-    coarseness : float, optional
-        coarseness of the elements, by default 0.1
-
-    Returns
-    -------
-    np.ndarray
-        inside volume of each element
-    """
-
-    element_properties = get_coordinates(pile, soil, None, coarseness)[1]
-    elem_x_top = element_properties["x_top [m]"].values
-    elem_x_bottom = element_properties["x_bottom [m]"].values
-    L = elem_x_top - elem_x_bottom
-    area_inside = parameter2elements(
-        pile.sections, lambda x: x.entrapped_area, elem_x_top, elem_x_bottom
-    )
-
-    return area_inside * L
-
-
-def effective_pile_weight(pile, soil, coarseness=0.1):
-    """Calculates the pile weight in the model with consideration of buoyancy
-
-    Parameters
-    ----------
-    pile : openpile.construct.Pile
-        pile
-    soil : openpile.construct.SoilProfile
-        soil profile
-    coarseness : float, optional
-        coarseness of the elements, by default 0.1
-
-    Returns
-    -------
-    float
-        pile weight in kN
-
-    Raises
-    ------
-    Exception
-        if soil profile does not exist
-
-    See also
-    --------
-    `openpile.construct.Pile.weight`
-    """
-
-    element_properties = get_coordinates(pile, soil, None, coarseness=0.1)[1]
-
-    if soil is not None:
-        submerged_element = element_properties["x_bottom [m]"].values < soil.water_line
-
-        elem_x_top = element_properties["x_top [m]"].values
-        elem_x_bottom = element_properties["x_bottom [m]"].values
-        V = (elem_x_top - elem_x_bottom) * parameter2elements(
-            pile.sections, lambda x: x.area, elem_x_top, elem_x_bottom
-        )
-        W = np.zeros(shape=V.shape)
-        W[submerged_element] = V[submerged_element] * (pile.material.unitweight - 10)
-        W[~submerged_element] = V[~submerged_element] * (pile.material.unitweight)
-
-        return W.sum()
-
-    else:
-        raise Exception(
-            "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
-        )
-
 
 def isplugged(pile, soil, method: str, kind: str = "compression") -> bool:
     """_summary_
@@ -239,54 +162,6 @@ def unit_end_bearing(
     return q
 
 
-def entrapped_soil_weight(pile, soil, coarseness=0.1) -> float:
-    """calculates total weight of soil inside the pile. (Unit: kN)
-
-    Parameters
-    ----------
-    pile : openpile.construct.Pile
-        pile
-    soil : openpile.construct.SoilProfile
-        soil profile
-    coarseness : float, optional
-        coarseness of the elements, by default 0.1
-
-    Returns
-    -------
-    float
-        value of entrapped total  weight of soil inside the pile in unit:kN
-    """
-
-    element_properties = get_coordinates(pile, soil, None, coarseness)[1]
-    soil_properties = get_soil_properties(pile, soil, None, coarseness)
-
-    # weight water in kN/m3
-    uw_water = 10
-
-    # soil volume
-    Vi = _pile_inside_volume(pile, soil)
-    # element mid-point elevation
-    elevation = 0.5 * (soil_properties["x_top [m]"] + soil_properties["x_bottom [m]"])
-    # soil weight for each element where we have soil and pile
-    elem_number = int(element_properties.shape[0])
-    element_sw = np.zeros(elem_number)
-
-    for layer in soil.layers:
-        elements_for_layer = soil_properties.loc[
-            (soil_properties["x_top [m]"] <= layer.top)
-            & (soil_properties["x_bottom [m]"] >= layer.bottom)
-        ].index
-
-        # Set local layer parameters for each element of the layer
-        for i in elements_for_layer:
-            # Calculate inner soil weight
-            element_sw[i] = (
-                layer.weight * Vi[i]
-                if elevation[i] <= soil.water_line
-                else (layer.weight - uw_water) * Vi[i]
-            )
-
-    return element_sw.sum()
 
 
 def shaft_resistance(

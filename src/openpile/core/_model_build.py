@@ -180,7 +180,7 @@ def get_coordinates(pile, soil, x2mesh, coarseness) -> pd.DataFrame:
             "y [m]": y,
         },
         dtype=float,
-    ).round(3)
+    ).round(4)
     nodes.index.name = "Node no."
 
     element = pd.DataFrame(
@@ -191,7 +191,7 @@ def get_coordinates(pile, soil, x2mesh, coarseness) -> pd.DataFrame:
             "y_bottom [m]": y[1:],
         },
         dtype=float,
-    ).round(3)
+    ).round(4)
     element.index.name = "Element no."
 
     return nodes, element

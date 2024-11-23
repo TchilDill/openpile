@@ -38,6 +38,7 @@ from openpile.core._model_build import (
     get_coordinates,
     apply_bc,
     validate_bc,
+    parameter2elements
 )
 
 from abc import ABC, abstractstaticmethod, abstractproperty, abstractmethod
@@ -372,14 +373,14 @@ class Pile(AbstractPile):
         """
         Pile volume [m3].
         """
-        return round(sum([x.area * x.length for x in self.sections]), 2)
+        return sum([x.area * x.length for x in self.sections])
 
     @property
     def weight(self) -> float:
         """
         Pile weight [kN].
         """
-        return round(self.volume * self.material.unitweight, 2)
+        return self.volume * self.material.unitweight
 
     @property
     def G(self) -> float:
@@ -404,6 +405,17 @@ class Pile(AbstractPile):
     def tip_footprint(self) -> float:
         "footprint area at the bottom of the pile [m2]"
         return self.sections[-1].footprint
+    
+    @property
+    def inner_volume(self) -> float:
+        """the inner volume in [m3] of the pile from the model object."""
+
+        x_top = np.array([x.top_elevation for x in self.sections])
+        x_bottom = np.array([x.bottom_elevation for x in self.sections])
+        L = x_top - x_bottom
+        area_inside = np.array([x.entrapped_area for x in self.sections])
+
+        return np.sum(area_inside * L)
 
     @classmethod
     def create_tubular(
@@ -840,6 +852,7 @@ class BoundaryForce(BaseModel):
     z: Optional[float] = None
 
 
+
 class Model(AbstractModel):
     """
     A class to create a Model.
@@ -864,7 +877,7 @@ class Model(AbstractModel):
     x2mesh : List[float], optional
         additional elevations to be included in the mesh, by default none.
     coarseness : float, optional
-        maximum distance in meters between two nodes of the mesh, by default 0.5.
+        maximum distance in meters between two nodes of the mesh, by default 0.5. A value lower than 0.01 is not accepted due to computational purposes.
     distributed_lateral : bool, optional
         include distributed lateral springs, by default True.
     distributed_moment : bool, optional
@@ -943,7 +956,7 @@ class Model(AbstractModel):
     #: x coordinates values to mesh as nodes
     x2mesh: List[float] = Field(default_factory=list)
     #: mesh coarseness, represent the maximum accepted length of elements
-    coarseness: float = 0.5
+    coarseness: Annotated[float, Field(ge=0.01)] = 0.5
     #: whether to include p-y springs in the calculations
     distributed_lateral: bool = True
     #: whether to include m-t springs in the calculations
@@ -958,6 +971,15 @@ class Model(AbstractModel):
     base_axial: bool = True
     #: plugging
     plugging: bool = None
+
+    @model_validator(mode="after")
+    def max_coarseness(self):
+        multiplier = 5
+        if self.pile.length >= multiplier*self.coarseness:
+            return self
+        else:
+            raise ValueError(f"the coarseness factor is too high, please decrease it to at least a value of {np.floor(self.pile.length*100/multiplier)/100}")
+
 
     @model_validator(mode="after")
     def soil_and_pile_bottom_elevation_match(self):
@@ -1341,6 +1363,70 @@ class Model(AbstractModel):
             return self.pile.bottom_elevation
         else:
             return min(self.pile.bottom_elevation, self.soil.bottom_elevation)
+
+    @property
+    def effective_pile_weight(self) -> float:
+        if self.soil is not None:
+            submerged_element = self.element_properties["x_top [m]"].values <= self.soil.water_line
+
+            elem_x_top = self.element_properties["x_top [m]"].values
+            elem_x_bottom = self.element_properties["x_bottom [m]"].values
+            V = (elem_x_top - elem_x_bottom) * parameter2elements(
+                self.pile.sections, lambda x: x.area, elem_x_top, elem_x_bottom
+            )
+            W = np.zeros(shape=V.shape)
+            W[submerged_element] = V[submerged_element] * (self.pile.material.unitweight - 10)
+            W[~submerged_element] = V[~submerged_element] * (self.pile.material.unitweight)
+            return W.sum()
+        
+        else:
+            raise Exception(
+                "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
+            )
+
+    @property
+    def entrapped_soil_weight(self) -> float:
+        """calculates total weight of soil inside the pile. (Unit: kN)
+        """
+
+        if self.soil is not None:
+
+            # weight water in kN/m3
+            uw_water = 10
+
+            # soil volume
+            elem_x_top = self.element_properties["x_top [m]"].values
+            elem_x_bottom = self.element_properties["x_bottom [m]"].values
+            L = elem_x_top - elem_x_bottom
+            area_inside = parameter2elements(
+                self.pile.sections, lambda x: x.entrapped_area, elem_x_top, elem_x_bottom
+            )
+            Vi = area_inside*L
+            # element mid-point elevation
+            elevation = 0.5 * (self.soil_properties["x_top [m]"] + self.soil_properties["x_bottom [m]"])
+            # soil weight for each element where we have soil and pile
+            elem_number = int(self.element_properties.shape[0])
+            element_sw = np.zeros(elem_number)
+
+            for layer in self.soil.layers:
+                elements_for_layer = self.soil_properties.loc[
+                    (self.soil_properties["x_top [m]"] <= layer.top)
+                    & (self.soil_properties["x_bottom [m]"] >= layer.bottom)
+                ].index
+
+                # Set local layer parameters for each element of the layer
+                for i in elements_for_layer:
+                    # Calculate inner soil weight
+                    element_sw[i] = (
+                        layer.weight * Vi[i]
+                        if elem_x_top[i] > self.soil.water_line
+                        else (layer.weight - uw_water) * Vi[i]
+                    )
+            return element_sw.sum()
+        else:
+            raise Exception(
+                "Model must be linked to a soil profile, the argument `soil` must be provided."
+            )
 
     def get_structural_properties(self) -> pd.DataFrame:
         """

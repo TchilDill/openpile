@@ -1119,7 +1119,7 @@ class Model(AbstractModel):
             spring_dim = 15
             # springs dim for axial
             tz_springs_dim = 15
-            qz_spring_dim = 8
+            qz_spring_dim = 15
 
             # Allocate array
             py = np.zeros(shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32)
@@ -1278,8 +1278,8 @@ class Model(AbstractModel):
             # ensure springs are oriented correctly with respect to x-axis
             # going down is compression and should be negative in "z" values
             # TODO change axes names for z and x.
-            tz[:, :, 1] = tz[:, :, 1] * (-1)
-            qz[:, :, 1] = qz[:, :, 1] * (-1)
+            tz[:, :, :] = tz[:, :, :] * (-1)
+            qz[:, :, :] = qz[:, :, :] * (-1)
 
             if check_springs(py):
                 print("py springs have negative or NaN values.")
@@ -1383,6 +1383,38 @@ class Model(AbstractModel):
             raise Exception(
                 "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
             )
+
+    @property
+    def shaft_resistance(self) -> float:
+        "the shaft resistances [kN] in compression and tension respectively calculated from the provided axial models along the pile."
+        
+        if self.soil is None:
+            raise Exception(
+                "Model must be linked to a soil profile with provided axial models."
+            )
+        else:
+            # influence zones
+            influence = np.abs(np.gradient(self.nodes_coordinates["x [m]"].values))
+            influence = influence / 2
+            influence
+
+            #Shaft resistance calc compression
+            comp = np.sum(np.abs(np.min(self._tz_springs[:,0,0,:], axis=1)*influence[:-1] + np.min(self._tz_springs[:,1,0,:], axis=1)*influence[1:]))
+            #Shaft resistance calc tension
+            tens = np.sum(np.abs(np.max(self._tz_springs[:,0,0,:], axis=1)*influence[:-1] + np.max(self._tz_springs[:,1,0,:], axis=1)*influence[1:]))
+
+            return comp, tens
+
+    @property
+    def tip_resistance(self) -> float:
+        "the end bearing resistance [kN] calculated from the provided axial model at tip elevation"
+        if self.soil is not None:
+            return float(np.abs(np.min(self._qz_spring[:,0,0,:], axis=1)))
+        else:
+            raise Exception(
+                "Model must be linked to a soil profile with provided axial models."
+            )
+        
 
     @property
     def entrapped_soil_weight(self) -> float:

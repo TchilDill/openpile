@@ -283,12 +283,12 @@ def backbone_api_sand(
 
     """
     # cannot have less than 7
-    if output_length < 7:
-        output_length = 7
+    if output_length < 15:
+        output_length = 15
 
     # piecewise function
-    zlist = [0.0, 0.0254, 0.03, 0.04]
-    tlist = [0.0, 1.0, 1.0, 1.0]
+    zlist = [0.0, 0.0254, 0.03, 0.032, 0.034, 0.036, 0.038, 0.04]
+    tlist = [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32)
@@ -302,7 +302,7 @@ def backbone_api_sand(
     add_t_values = np.zeros((add_values), dtype=np.float32)
 
     for i in range(add_values):
-        add_z_values[i] = 0.03 + random() * 0.01
+        add_z_values[i] = 0.038 + random() * 0.01
         add_t_values[i] = 1.0
 
     z = np.append(z, add_z_values)

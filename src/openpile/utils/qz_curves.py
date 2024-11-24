@@ -17,7 +17,7 @@ from openpile.utils.misc import _Qmax_api_clay, _Qmax_api_sand
 
 # API clay Q-z function
 def backbone_api(
-    output_length: int = 8,
+    output_length: int = 15,
 ):
     """
     Creates the API Q.z curve backbone from relevant input.
@@ -25,7 +25,7 @@ def backbone_api(
     Parameters
     ----------
     output_length : int, optional
-        Number of discrete point along the springs, cannot be lower than 8, by default 8
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
 
     Returns
     -------
@@ -35,12 +35,12 @@ def backbone_api(
         Q vector [unit: kPa]
     """
     # cannot have less than 8
-    if output_length < 8:
-        output_length = 8
+    if output_length < 15:
+        output_length = 15
 
     # piecewise function
-    zlist = [-0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.200]
-    Qlist = [0.0, 0.0, 0.25, 0.50, 0.75, 0.90, 1.00, 1.00]
+    zlist = [-0.2, -0.15, -0.1, -0.073, -0.042, -0.013, -0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.15, 0.200]
+    Qlist = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.50, 0.75, 0.90, 1.00, 1.00, 1.00]
 
     # determine z vector
     z = np.array(zlist, dtype=np.float32)
@@ -71,7 +71,7 @@ def backbone_api(
 def api_clay(
     Su: float,
     D: float,
-    output_length: int = 8,
+    output_length: int = 15,
 ):
     """
     Creates the API clay Q.z curve from relevant input.
@@ -83,7 +83,7 @@ def api_clay(
     D: float
         Pile diameter [unit: m]
     output_length : int, optional
-        Number of discrete point along the springs, cannot be lower than 8, by default 8
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
 
     Returns
     -------
@@ -107,7 +107,7 @@ def api_sand(
     sig: float,
     delta: float,
     D: float,
-    output_length: int = 7,
+    output_length: int = 15,
 ):
     """
     Creates the API sand Q.z curve from relevant input.
@@ -121,7 +121,7 @@ def api_sand(
     D : float
         Pile diameter [unit: m]
     output_length : int, optional
-        Number of discrete point along the springs, cannot be lower than 8, by default 8
+        Number of discrete point along the springs, cannot be lower than 15, by default 15
 
     Returns
     -------

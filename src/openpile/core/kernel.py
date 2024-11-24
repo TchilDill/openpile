@@ -905,7 +905,7 @@ def calculate_base_axial_spring_stiffness(
 
     # determine place where 0 value of qz-spring is located
     # TODO: make this dynamic
-    spring_0_index = 1
+    spring_0_index = round(spring.shape[-1] / 2) - 1
 
     if np.sum(np.abs(spring[0, 0, 0])) == 0:
         k = 0.0

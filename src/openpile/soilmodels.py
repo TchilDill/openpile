@@ -147,7 +147,7 @@ class API_clay_axial(AxialModel):
     ...                 lateral_model=API_clay(Su=[50, 70], eps50=0.015, kind="cyclic"),
     ...                 axial_model=API_clay_axial(Su=[50, 70])
     ...             )
-    >>> print(clay_layer)
+    >>> print(clay_layer) # doctest: +NORMALIZE_WHITESPACE
     Name: clay
     Elevation: (-20.0) - (-40.0) m
     Weight: 18.0 kN/m3
@@ -159,6 +159,7 @@ class API_clay_axial(AxialModel):
     Axial model: 	API clay (Unplugged)
         Su = 50.0-70.0 kPa
         alpha_limit = 1.0
+
 
     See also
     --------
@@ -341,7 +342,7 @@ class API_sand_axial(AxialModel):
     ...                     delta=25,
     ...                 ),
     ...             )
-    >>> print(sand_layer)
+    >>> print(sand_layer) # doctest: +NORMALIZE_WHITESPACE
     Name: sand
     Elevation: (-20.0) - (-40.0) m
     Weight: 18.0 kN/m3

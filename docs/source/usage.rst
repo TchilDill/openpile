@@ -301,3 +301,55 @@ can be provided by plotting the model with the method: :meth:`openpile.construct
     >>> M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
     >>> # Plot the Model
     >>> M.plot()
+
+Example 7 - Run a simple beam calculation
+=========================================
+
+.. plot::
+
+    #imports
+    from openpile.construct import Pile, Model
+    #create a tubular pile
+    p = Pile.create_tubular(name="Simple tubular pile", top_elevation=10, bottom_elevation=0, diameter=0.1, wt=0.01)
+    # create a model with this pile we just created
+    m = Model(name="Beam calculation", pile=p, coarseness=0.2)
+    # create boundary conditions
+    m.set_support(10, Ty=True )
+    m.set_support(0, Tx=True, Ty=True)
+    m.set_pointload(elevation=5, Py=1)
+    #run solver and plot result
+    result = m.solve()
+    
+    #closed form solution is max_deflection = PL^3/(48EI)
+    normalized_deflection = result.deflection['Deflection [m]']*(48*p.E*p.sections[0].second_moment_of_area)/10**3
+    import matplotlib.pyplot as plt
+    _, axs = plt.subplots(nrows=1, ncols=2, figsize=(8,5))
+    m.plot(ax=axs[0])
+    axs[1].plot(normalized_deflection, result.deflection['Elevation [m]'] )
+    axs[1].set_xlabel("Normzalized Deflection $\delta_n=\dfrac{\delta \cdot 48 EI}{PL^3}$")
+    axs[1].set_ylim(axs[0].get_ylim())
+    axs[1].set_title('Results against\nclosed-form solution')
+    axs[1].grid()
+
+
+Example 8 - A less simple beam calculation
+==========================================
+
+.. plot::
+
+    #imports
+    from openpile.construct import Pile, Model
+    #create a tubular pile
+    p = Pile.create_tubular(name="Simple tubular pile", top_elevation=10, bottom_elevation=0, diameter=1, wt=0.1)
+    print(p)
+    # create a model with this pile we just created
+    m = Model(name="Beam calculation", pile=p)
+    # create boundary conditions with fixed rotation
+    m.set_support(10, Rz=True,Ty=True, )
+    m.set_support(0, Tx=True, Ty=True, Rz=True)
+    m.set_pointload(elevation=5, Py=1)
+    m.set_pointload(elevation=10, Px=-1)
+    m.plot()
+    #run solver and plot result
+    result = m.solve()
+    result.plot()

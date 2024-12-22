@@ -50,7 +50,7 @@ API
 The `Result` class
 ==================
 
-.. autoclass:: openpile.analyze.WinklerResult
+.. autoclass:: openpile.winkler.WinklerResult
     :members:
     :exclude-members: Config, __init__
 

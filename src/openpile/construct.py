@@ -24,6 +24,7 @@ import math as m
 import pandas as pd
 import numpy as np
 import warnings
+import matplotlib.pyplot as plt
 
 import openpile.utils.graphics as graphics
 
@@ -465,18 +466,8 @@ class Pile(AbstractPile):
         )
         return obj
 
-    def plot(self, assign=False):
+    def plot(self):
         """Creates a plot of the pile with the properties.
-
-        Parameters
-        ----------
-        assign : bool, optional
-            this parameter can be set to True to return the figure, by default False
-
-        Returns
-        -------
-        matplotlib.pyplot.figure
-            only return the object if assign=True
 
         Example
         -------
@@ -485,8 +476,10 @@ class Pile(AbstractPile):
            :width: 70%
 
         """
+
         fig = graphics.pile_plot(self)
-        return fig if assign else None
+
+
 
 
 class Layer(AbstractLayer):
@@ -531,10 +524,11 @@ class Layer(AbstractLayer):
     Name: Soft Clay
     Elevation: (0.0) - (-10.0) m
     Weight: 19.0 kN/m3
-    Lateral model:      API clay
+    Lateral model: 	API clay
         Su = 30.0-35.0 kPa
         eps50 = 0.01-0.02
         static curves
+        ext: None
     Axial model: None
     """
 
@@ -629,6 +623,7 @@ class SoilProfile(AbstractSoilProfile):
     Lateral model: 	API sand
         phi = 30.0°
         cyclic curves
+        ext: None
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Layer 2
@@ -640,6 +635,7 @@ class SoilProfile(AbstractSoilProfile):
         Su = 50.0 kPa
         eps50 = 0.01
         static curves
+        ext: None
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
@@ -763,13 +759,13 @@ class SoilProfile(AbstractSoilProfile):
         """
         return self.top_elevation - sum([abs(x.top - x.bottom) for x in self.layers])
 
-    def plot(self, assign=False):
+    def plot(self, ax=None):
         """Creates a plot illustrating the stratigraphy.
 
         Parameters
         ----------
-        assign : bool, optional
-            this parameter can be set to True to return the figure, by default False
+        ax : axis handle from matplotlib figure, optional
+            if None, a new axis handle is created
 
         Returns
         -------
@@ -782,8 +778,7 @@ class SoilProfile(AbstractSoilProfile):
         .. image:: _static/plots/SoilProfile_plot.png
            :scale: 70%
         """
-        fig = graphics.soil_plot(self)
-        return fig if assign is True else None
+        ax = graphics.soil_plot(self, ax=ax)
 
 
 class BoundaryFixation(BaseModel):
@@ -976,25 +971,25 @@ class Model(AbstractModel):
     def max_coarseness(self):
         multiplier = 5
         if self.pile.length >= multiplier*self.coarseness:
-            pass
+            return self
         else:
             raise ValueError(f"the coarseness factor is too high, please decrease it to at least a value of {np.floor(self.pile.length*100/multiplier)/100}")
-        return self
 
     @model_validator(mode="after")
     def soil_and_pile_bottom_elevation_match(self):
         if self.soil is None:
-            return self
+            pass
         else:
             if self.pile.bottom_elevation < self.soil.bottom_elevation:
                 raise ValueError("The pile ends deeper than the soil profile.")
+        return self
 
 
     @model_validator(mode="after")
     def bc_validation(self):
-        validate_bc(self.boundary_conditions, BoundaryDisplacement)
-        validate_bc(self.boundary_conditions, BoundaryForce)
-        validate_bc(self.boundary_conditions, BoundaryFixation)
+        # validate_bc(self.boundary_conditions, BoundaryDisplacement)
+        # validate_bc(self.boundary_conditions, BoundaryForce)
+        # validate_bc(self.boundary_conditions, BoundaryFixation)
         return self
 
     @computed_field
@@ -1707,18 +1702,13 @@ class Model(AbstractModel):
 
             return df
 
-    def plot(self, assign=False):
+    def plot(self, ax=None):
         """Create a plot of the model with the mesh and boundary conditions.
 
         Parameters
         ----------
-        assign : bool, optional
-            this parameter can be set to True to return the figure, by default False.
-
-        Returns
-        -------
-        matplotlib.pyplot.figure
-            only return the object if assign=True.
+        ax : axis handle from matplotlib figure, optional
+            if None, a new axis handle is created
 
         Examples
         --------
@@ -1733,8 +1723,7 @@ class Model(AbstractModel):
         .. image:: _static/plots/Model_with_soil_plot.png
            :scale: 70%
         """
-        fig = graphics.connectivity_plot(self)
-        return fig if assign else None
+        graphics.connectivity_plot(self, ax=ax)
 
     def solve(self):
         """

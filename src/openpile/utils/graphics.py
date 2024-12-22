@@ -61,7 +61,7 @@ def plot_results(result):
     return fig
 
 
-def soil_plot(SoilProfile):
+def soil_plot(SoilProfile, ax=None):
     def add_soil_profile(SoilProfile, ax, pile=None):
 
         ax.set_title(label=f"Soil Profile overview - {SoilProfile.name}")
@@ -126,10 +126,11 @@ def soil_plot(SoilProfile):
 
         return ax
 
-    fig, ax = plt.subplots()
+    if ax is None:
+        _, ax = plt.subplots()
     ax = add_soil_profile(SoilProfile, ax, pile=None)
 
-    return fig
+    return ax
 
 
 def pile_plot(pile):
@@ -171,12 +172,13 @@ def pile_plot(pile):
     return fig
 
 
-def connectivity_plot(model):
+def connectivity_plot(model, ax=None):
     # TODO docstring
 
     support_color = "b"
     # create 4 subplots with (deflectiom, normal force, shear force, bending moment)
-    fig, ax = plt.subplots()
+    if ax is None:
+        fig, ax = plt.subplots()
     ax.set_ylabel("x [m]")
     ax.set_xlabel("y [m]")
     ax.set_title(f"{model.name} - Connectivity plot")
@@ -311,6 +313,8 @@ def connectivity_plot(model):
                         )
                     )
 
+
+
     ax.set_ylim(ylim[0] - 0.11 * total_length, ylim[1] + 0.11 * total_length)
 
     if model.soil is not None:
@@ -354,7 +358,7 @@ def connectivity_plot(model):
     for arrow in arrows:
         ax.add_patch(arrow)
 
-    return fig
+    return ax
 
 
 def U_plot(axis: plt.axis, result):

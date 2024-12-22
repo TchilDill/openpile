@@ -11,7 +11,7 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 *OpenPile's kernel now accounts for axial soil springs when running a Winkler analysis. The axial soil springs are by default turned on (`base_axial` and `distributed_axial` arguments of `openpile.construct.Model`) and considered if an `axial_model` is fed to a `openpile.construct.Layer`*
 
-The minimum python version to use with Openpile >= 1.0.0 is python 3.8.
+The minimum python version to use with Openpile >= 1.0.0 is python 3.8. Please also note that the major version of Numpy (v2.0) does not work with OpenPile since we use Numba, so far imcompatible with this this new major release of Numpy.
 
 ### Added
 - extensions of API-type lateral soil models are now considered in the string output when printing out the model or the entire soil profile, i.e. when running `print(openpile.construct.Layer)`
@@ -20,6 +20,7 @@ The minimum python version to use with Openpile >= 1.0.0 is python 3.8.
 
 ### Modified
 
+- The coordinate system follows now a more traditional approach, which still is a right-hand system however, the x and z components are swapped, this was done in order for soil springs which are called 't-z' and 'Q-z' by convention to be aligned with the coordinate system used in setting the boundary conditions. 
 - `openpile.construct.Model.get_py_springs()` and other related methods to extract springs have been updated to the following naming style: `.get_distributed_lateral_springs()`, see documentation for more details. 
 - The API clay model available until v0.7.1 has been decoupled to form the `API_clay` and the mofidied_Matlock models, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
 - functions found in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.

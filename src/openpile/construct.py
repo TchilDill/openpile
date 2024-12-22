@@ -976,25 +976,26 @@ class Model(AbstractModel):
     def max_coarseness(self):
         multiplier = 5
         if self.pile.length >= multiplier*self.coarseness:
-            return self
+            pass
         else:
             raise ValueError(f"the coarseness factor is too high, please decrease it to at least a value of {np.floor(self.pile.length*100/multiplier)/100}")
-
+        return self
 
     @model_validator(mode="after")
     def soil_and_pile_bottom_elevation_match(self):
         if self.soil is None:
-            pass
+            return self
         else:
             if self.pile.bottom_elevation < self.soil.bottom_elevation:
                 raise ValueError("The pile ends deeper than the soil profile.")
-        return self
+
 
     @model_validator(mode="after")
     def bc_validation(self):
         validate_bc(self.boundary_conditions, BoundaryDisplacement)
         validate_bc(self.boundary_conditions, BoundaryForce)
         validate_bc(self.boundary_conditions, BoundaryFixation)
+        return self
 
     @computed_field
     # @cached_property

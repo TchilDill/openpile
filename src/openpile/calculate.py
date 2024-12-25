@@ -46,14 +46,14 @@ def _pile_element_surface(pile, soil, coarseness=0.1):
 
     element_properties = get_coordinates(pile, soil, None, coarseness)[1]
 
-    elem_x_top = element_properties["x_top [m]"].values
-    elem_x_bottom = element_properties["x_bottom [m]"].values
-    L = elem_x_top - elem_x_bottom
+    elem_z_top = element_properties["z_top [m]"].values
+    elem_z_bottom = element_properties["z_bottom [m]"].values
+    L = elem_z_top - elem_z_bottom
     perimeter_outside = parameter2elements(
-        pile.sections, lambda x: x.outer_perimeter, elem_x_top, elem_x_bottom
+        pile.sections, lambda x: x.outer_perimeter, elem_z_top, elem_z_bottom
     )
     perimeter_inside = parameter2elements(
-        pile.sections, lambda x: x.inner_perimeter, elem_x_top, elem_x_bottom
+        pile.sections, lambda x: x.inner_perimeter, elem_z_top, elem_z_bottom
     )
 
     return perimeter_outside * L, perimeter_inside * L
@@ -200,7 +200,7 @@ def shaft_resistance(
 
     # depth from ground
     depth_from_ground = (
-        0.5 * (soil_properties["xg_top [m]"] + soil_properties["xg_bottom [m]"])
+        0.5 * (soil_properties["zg_top [m]"] + soil_properties["zg_bottom [m]"])
     ).abs()
 
     # shaft resistance for each element where we have soil and pile
@@ -209,8 +209,8 @@ def shaft_resistance(
     # loop over soil layers and assign shaft resistance
     for layer in soil.layers:
         elements_for_layer = soil_properties.loc[
-            (soil_properties["x_top [m]"] <= layer.top)
-            & (soil_properties["x_bottom [m]"] >= layer.bottom)
+            (soil_properties["z_top [m]"] <= layer.top)
+            & (soil_properties["z_bottom [m]"] >= layer.bottom)
         ].index
 
         if layer.axial_model is None:
@@ -220,7 +220,7 @@ def shaft_resistance(
             for i in elements_for_layer:
                 # depth from ground
                 depth_from_ground = (
-                    (soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]).abs().mean()
+                    (soil_properties[["zg_top [m]", "zg_bottom [m]"]].iloc[i]).abs().mean()
                 )
 
                 # Calculate outer shaft resistance

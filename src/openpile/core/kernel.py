@@ -166,8 +166,8 @@ def mesh_to_element_length(model) -> np.ndarray:
     # elememt coordinates along z and y-axes
     ez = np.array(
         [
-            elem_prop["x_top [m]"].to_numpy(dtype=float),
-            elem_prop["x_bottom [m]"].to_numpy(dtype=float),
+            elem_prop["z_top [m]"].to_numpy(dtype=float),
+            elem_prop["z_bottom [m]"].to_numpy(dtype=float),
         ]
     )
     ey = np.array(
@@ -220,14 +220,14 @@ def elem_mechanical_stiffness_matrix(model):
     I = parameter2elements(
         model.pile.sections,
         lambda x: x.second_moment_of_area,
-        elem_prop["x_top [m]"].values,
-        elem_prop["x_bottom [m]"].values,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
     A = parameter2elements(
         model.pile.sections,
         lambda x: x.area,
-        elem_prop["x_top [m]"].values,
-        elem_prop["x_bottom [m]"].values,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
@@ -239,15 +239,15 @@ def elem_mechanical_stiffness_matrix(model):
             d = parameter2elements(
                 model.pile.sections,
                 lambda x: x.width,
-                elem_prop["x_top [m]"].values,
-                elem_prop["x_bottom [m]"].values,
+                elem_prop["z_top [m]"].values,
+                elem_prop["z_bottom [m]"].values,
             ).reshape((-1, 1, 1))
             # wall thickness
             wt = parameter2elements(
                 model.pile.sections,
                 lambda x: x.thickness,
-                elem_prop["x_top [m]"].values,
-                elem_prop["x_bottom [m]"].values,
+                elem_prop["z_top [m]"].values,
+                elem_prop["z_bottom [m]"].values,
             ).reshape((-1, 1, 1))
 
             a = 0.5 * d
@@ -487,14 +487,14 @@ def elem_mt_stiffness_matrix(model, u, kind):
     I = parameter2elements(
         model.pile.sections,
         lambda x: x.second_moment_of_area,
-        elem_prop["x_top [m]"].values,
-        elem_prop["x_bottom [m]"].values,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
     A = parameter2elements(
         model.pile.sections,
         lambda x: x.area,
-        elem_prop["x_top [m]"].values,
-        elem_prop["x_bottom [m]"].values,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
@@ -510,15 +510,15 @@ def elem_mt_stiffness_matrix(model, u, kind):
             d = parameter2elements(
                 model.pile.sections,
                 lambda x: x.width,
-                elem_prop["x_top [m]"].values,
-                elem_prop["x_bottom [m]"].values,
+                elem_prop["z_top [m]"].values,
+                elem_prop["z_bottom [m]"].values,
             ).reshape((-1, 1, 1))
             # wall thickness
             wt = parameter2elements(
                 model.pile.sections,
                 lambda x: x.thickness,
-                elem_prop["x_top [m]"].values,
-                elem_prop["x_bottom [m]"].values,
+                elem_prop["z_top [m]"].values,
+                elem_prop["z_bottom [m]"].values,
             ).reshape((-1, 1, 1))
 
             a = 0.5 * d
@@ -611,14 +611,14 @@ def elem_p_delta_stiffness_matrix(model, u):
     I = parameter2elements(
         model.pile.sections,
         lambda x: x.second_moment_of_area,
-        elem_prop["x_top [m]"].values,
-        elem_prop["x_bottom [m]"].values,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
     A = parameter2elements(
         model.pile.sections,
         lambda x: x.area,
-        elem_prop["x_top [m]"].values,
-        elem_prop["x_bottom [m]"].values,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
 
     # calculate shear component in stiffness matrix (if Timorshenko)
@@ -636,15 +636,15 @@ def elem_p_delta_stiffness_matrix(model, u):
             d = parameter2elements(
                 model.pile.sections,
                 lambda x: x.width,
-                elem_prop["x_top [m]"].values,
-                elem_prop["x_bottom [m]"].values,
+                elem_prop["z_top [m]"].values,
+                elem_prop["z_bottom [m]"].values,
             ).reshape((-1, 1, 1))
             # wall thickness
             wt = parameter2elements(
                 model.pile.sections,
                 lambda x: x.thickness,
-                elem_prop["x_top [m]"].values,
-                elem_prop["x_bottom [m]"].values,
+                elem_prop["z_top [m]"].values,
+                elem_prop["z_bottom [m]"].values,
             ).reshape((-1, 1, 1))
 
             a = 0.5 * d
@@ -789,21 +789,21 @@ def build_stiffness_matrix(model, u=None, kind=None):
 
 def mesh_to_global_force_dof_vector(df: pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
-    force_dof_vector = df[["Px [kN]", "Py [kN]", "Mz [kNm]"]].values.reshape(-1).astype(np.float64)
+    force_dof_vector = df[["Pz [kN]", "Py [kN]", "Mx [kNm]"]].values.reshape(-1).astype(np.float64)
 
     return force_dof_vector
 
 
 def mesh_to_global_disp_dof_vector(df: pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
-    disp_dof_vector = df[["Tx [m]", "Ty [m]", "Rz [rad]"]].values.reshape(-1).astype(np.float64)
+    disp_dof_vector = df[["Tz [m]", "Ty [m]", "Rx [rad]"]].values.reshape(-1).astype(np.float64)
 
     return disp_dof_vector
 
 
 def mesh_to_global_restrained_dof_vector(df: pd.DataFrame) -> np.ndarray:
     # extract each column (one line per node)
-    restrained_dof_vector = df[["Tx", "Ty", "Rz"]].values.reshape(-1)
+    restrained_dof_vector = df[["Tz", "Ty", "Rx"]].values.reshape(-1)
 
     return restrained_dof_vector
 

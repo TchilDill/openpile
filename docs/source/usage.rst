@@ -270,10 +270,10 @@ Example 5 - Run a lateral pile analysis
     >>> # Create Model
     >>> M = Model(name="<model name>", pile=p, soil=sp)
     >>> 
-    >>> # Apply bottom fixity along x-axis
-    >>> M.set_support(elevation=-40, Tx=True)
+    >>> # Apply bottom fixity along z-axis
+    >>> M.set_support(elevation=-40, Tz=True)
     >>> # Apply axial and lateral loads
-    >>> M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
+    >>> M.set_pointload(elevation=0, Pz=-20e3, Py=5e3)
     >>> 
     >>> # Run analysis
     >>> result = M.solve()
@@ -295,10 +295,10 @@ can be provided by plotting the model with the method: :meth:`openpile.construct
 
     >>> # Create Model
     >>> M = Model(name="<model name>", pile=p, soil=sp)
-    >>> # Apply bottom fixity along x-axis
-    >>> M.set_support(elevation=-40, Tx=True)
+    >>> # Apply bottom fixity along z-axis
+    >>> M.set_support(elevation=-40, Tz=True)
     >>> # Apply axial and lateral loads
-    >>> M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
+    >>> M.set_pointload(elevation=0, Pz=-20e3, Py=5e3)
     >>> # Plot the Model
     >>> M.plot()
 
@@ -315,7 +315,7 @@ Example 7 - Run a simple beam calculation
     m = Model(name="Beam calculation", pile=p, coarseness=0.2)
     # create boundary conditions
     m.set_support(10, Ty=True )
-    m.set_support(0, Tx=True, Ty=True)
+    m.set_support(0, Tz=True, Ty=True)
     m.set_pointload(elevation=5, Py=1)
     #run solver and plot result
     result = m.solve()
@@ -345,10 +345,10 @@ Example 8 - A less simple beam calculation
     # create a model with this pile we just created
     m = Model(name="Beam calculation", pile=p)
     # create boundary conditions with fixed rotation
-    m.set_support(10, Rz=True,Ty=True, )
-    m.set_support(0, Tx=True, Ty=True, Rz=True)
+    m.set_support(10, Rx=True,Ty=True, )
+    m.set_support(0, Tz=True, Ty=True, Rx=True)
     m.set_pointload(elevation=5, Py=1)
-    m.set_pointload(elevation=10, Px=-1)
+    m.set_pointload(elevation=10, Pz=-1)
     m.plot()
     #run solver and plot result
     result = m.solve()

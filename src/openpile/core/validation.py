@@ -53,17 +53,17 @@ def check_boundary_conditions(model):
     loaded_dof = model.global_forces
 
     # count BC in [Translation over z-axis,Translation over y-axis,Rotation around x-axis]
-    restrained_count_Rz = np.count_nonzero(restrained_dof["Rz"])
+    restrained_count_Rx = np.count_nonzero(restrained_dof["Rx"])
     restrained_count_Ty = np.count_nonzero(restrained_dof["Ty"])
-    restrained_count_Tx = np.count_nonzero(restrained_dof["Tx"])
-    restrained_count_total = restrained_count_Rz + restrained_count_Ty + restrained_count_Tx
+    restrained_count_Tz = np.count_nonzero(restrained_dof["Tz"])
+    restrained_count_total = restrained_count_Rx + restrained_count_Ty + restrained_count_Tz
 
-    loaded_count_Rz = np.count_nonzero(loaded_dof["Mz [kNm]"])
+    loaded_count_Rx = np.count_nonzero(loaded_dof["Mx [kNm]"])
     loaded_count_Ty = np.count_nonzero(loaded_dof["Py [kN]"])
-    loaded_count_Tx = np.count_nonzero(loaded_dof["Px [kN]"])
-    loaded_count_total = loaded_count_Rz + loaded_count_Ty + loaded_count_Tx
+    loaded_count_Tz = np.count_nonzero(loaded_dof["Pz [kN]"])
+    loaded_count_total = loaded_count_Rx + loaded_count_Ty + loaded_count_Tz
 
-    if restrained_count_total == 0:
+    if restrained_count_total == 0 and model.soil is None:
         raise InvalidBoundaryConditionsError("No support conditions are provided.")
 
     if loaded_count_total == 0:
@@ -71,23 +71,23 @@ def check_boundary_conditions(model):
 
     if model.soil is None:
         # normally loaded beam
-        if loaded_count_Tx > 0 and restrained_count_Tx > 0:
+        if loaded_count_Tz > 0 and restrained_count_Tz > 0:
             # support in x axis is given and load over x is given --> correct BC
             pass
-        elif loaded_count_Tx > 0 and restrained_count_Tx == 0:
+        elif loaded_count_Tz > 0 and restrained_count_Tz == 0:
             # support in x axis is given and load over x is given --> correct BC
             raise InvalidBoundaryConditionsError(
                 "Support conditions in normal direction not provided."
             )
 
         # laterally-loaded beam
-        if (restrained_count_Ty + restrained_count_Rz) >= 2 and loaded_count_Ty > 0:
+        if (restrained_count_Ty + restrained_count_Rx) >= 2 and loaded_count_Ty > 0:
             pass
             # support in y and z axes are given and load over y is given --> correct BC
-        elif (restrained_count_Ty + restrained_count_Rz) >= 2 and loaded_count_Rz > 0:
+        elif (restrained_count_Ty + restrained_count_Rx) >= 2 and loaded_count_Rx > 0:
             pass
             # support in y and z axes are given and load over z is given --> correct BC
-        elif (loaded_count_Rz + loaded_count_Ty) == 0:
+        elif (loaded_count_Rx + loaded_count_Ty) == 0:
             # no trasnverse load --> no need to give any error
             pass
         else:

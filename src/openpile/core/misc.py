@@ -85,7 +85,7 @@ def get_reduced_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) 
     springs : ndarray dim[nelem,2,2,spring_dim]
         Springs at top and bottom of element
     elevations : ndarray
-        self.nodes_coordinates["x [m]"].values
+        self.nodes_coordinates["z [m]"].values
     kind : str
         type of spring to extract. one of ["p-y", "m-t", "Hb-y", "Mb-t", "t-z"]
 
@@ -156,7 +156,7 @@ def get_full_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> 
     springs : ndarray dim[nelem,2,2,spring_dim]
         Springs at top and bottom of element
     elevations : ndarray
-        self.nodes_coordinates["x [m]"].values
+        self.nodes_coordinates["z [m]"].values
     kind : str
         type of spring to extract. one of ["p-y", "m-t", "Hb-y", "Mb-t", "t-z"]
 

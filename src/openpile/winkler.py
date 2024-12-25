@@ -31,7 +31,7 @@ class PydanticConfig:
 def springs_mob_to_df(model, d):
 
     # elevations
-    x = model.nodes_coordinates["x [m]"].values
+    x = model.nodes_coordinates["z [m]"].values
     x = kernel.double_inner_njit(x)
 
     # PY springs
@@ -67,12 +67,12 @@ def springs_mob_to_df(model, d):
 
 
 def reaction_forces_to_df(model, Q):
-    x = model.nodes_coordinates["x [m]"].values
+    z = model.nodes_coordinates["z [m]"].values
     Q = Q.reshape(-1, 3)
 
     df = pd.DataFrame(
         data={
-            "Elevation [m]": x,
+            "Elevation [m]": z,
             "Nr [kN]": Q[:, 0],
             "Vr [kN]": Q[:, 1],
             "Mr [kNm]": Q[:, 2],
@@ -88,8 +88,8 @@ def reaction_forces_to_df(model, Q):
 
 
 def structural_forces_to_df(model, q):
-    x = model.nodes_coordinates["x [m]"].values
-    x = misc.repeat_inner(x)
+    z = model.nodes_coordinates["z [m]"].values
+    z = misc.repeat_inner(z)
     L = kernel.mesh_to_element_length(model).reshape(-1)
 
     N = np.vstack((-q[0::6], q[3::6])).reshape(-1, order="F")
@@ -98,7 +98,7 @@ def structural_forces_to_df(model, q):
 
     structural_forces_to_DataFrame = pd.DataFrame(
         data={
-            "Elevation [m]": x,
+            "Elevation [m]": z,
             "N [kN]": N,
             "V [kN]": V,
             "M [kNm]": M,
@@ -109,16 +109,16 @@ def structural_forces_to_df(model, q):
 
 
 def disp_to_df(model, u):
-    x = model.nodes_coordinates["x [m]"].values
+    z = model.nodes_coordinates["z [m]"].values
 
-    Tx = u[::3].reshape(-1)
+    Tz = u[::3].reshape(-1)
     Ty = u[1::3].reshape(-1)
     Rx = u[2::3].reshape(-1)
 
     disp_to_DataFrame = pd.DataFrame(
         data={
-            "Elevation [m]": x,
-            "Settlement [m]": Tx,
+            "Elevation [m]": z,
+            "Settlement [m]": Tz,
             "Deflection [m]": Ty,
             "Rotation [rad]": Rx,
         }

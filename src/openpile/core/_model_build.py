@@ -30,7 +30,7 @@ def validate_bc(bc_list, bc_cls):
         )
 
 
-def apply_bc(nodes_elevations, xglobal, yglobal, zglobal, bc_list, bc_cls, output_text):
+def apply_bc(nodes_elevations, zglobal, yglobal, xglobal, bc_list, bc_cls, output_text):
     """
     helper function to apply boundary condition
     """
@@ -59,27 +59,27 @@ def apply_bc(nodes_elevations, xglobal, yglobal, zglobal, bc_list, bc_cls, outpu
                     print(
                         f"{output_text} not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
                     )
-    return xglobal, yglobal, zglobal
+    return zglobal, yglobal, xglobal
 
 
-def parameter2elements(objects: list, key: callable, elem_x_top: list, elem_x_bottom: list):
+def parameter2elements(objects: list, key: callable, elem_top: list, elem_bottom: list):
     """converts a list of pile sections into a list of elements
 
     Objects must be either a list of pile sections (openpile.construct.PileSection) or a list of soil layers (openpile.construct.Layer)
 
     """
 
-    elem_x_top = np.array(elem_x_top)
-    elem_x_bottom = np.array(elem_x_bottom)
-    # create a NaN array with same array as elem_x_top
-    elem_x_param = np.full(elem_x_top.size, np.nan)
+    elem_top = np.array(elem_top)
+    elem_bottom = np.array(elem_bottom)
+    # create a NaN array with same array as elem_z_top
+    elem_param = np.full(elem_top.size, np.nan)
 
     for obj in objects:
         top_limit, bottom_limit = obj.top, obj.bottom
-        idx = np.where((elem_x_top <= top_limit) & (elem_x_bottom >= bottom_limit))[0]
-        elem_x_param[idx] = key(obj)
+        idx = np.where((elem_top <= top_limit) & (elem_bottom >= bottom_limit))[0]
+        elem_param[idx] = key(obj)
 
-    return elem_x_param
+    return elem_param
 
 
 def get_tip_sig_v_eff(
@@ -132,10 +132,10 @@ def check_springs(arr):
 
 
 def get_coordinates(pile, soil, x2mesh, coarseness) -> pd.DataFrame:
-    # Primary discretisation over x-axis
-    x = np.array([], dtype=np.float16)
+    # Primary discretisation over z-axis
+    z = np.array([], dtype=np.float16)
     # add get pile relevant sections
-    x = np.append(x, pile.data["Elevation [m]"].values)
+    z = np.append(z, pile.data["Elevation [m]"].values)
     # add soil relevant layers and others
     if soil is not None:
         soil_elevations = np.array(
@@ -145,38 +145,38 @@ def get_coordinates(pile, soil, x2mesh, coarseness) -> pd.DataFrame:
         if any(soil_elevations < pile.bottom_elevation):
             soil_elevations = np.append(pile.bottom_elevation, soil_elevations)
             soil_elevations = soil_elevations[soil_elevations >= pile.bottom_elevation]
-        x = np.append(x, soil_elevations)
+        z = np.append(z, soil_elevations)
     # add user-defined elevation
     if x2mesh is None:
         x2mesh = []
-    x = np.append(x, x2mesh)
+    z = np.append(z, x2mesh)
 
     # get unique values and sort in reverse order
-    x = np.unique(x)[::-1]
+    z = np.unique(z)[::-1]
 
-    # Secondary discretisation over x-axis depending on coarseness factor
-    x_secondary = np.array([], dtype=np.float16)
-    for i in range(len(x) - 1):
-        spacing = x[i] - x[i + 1]
+    # Secondary discretisation over z-axis depending on coarseness factor
+    z_secondary = np.array([], dtype=np.float16)
+    for i in range(len(z) - 1):
+        spacing = z[i] - z[i + 1]
         new_spacing = spacing
         divider = 1
         while new_spacing > coarseness:
             divider += 1
             new_spacing = spacing / divider
-        new_x = x[i] - (np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider - 1)))
-        x_secondary = np.append(x_secondary, new_x)
+        new_z = z[i] - (np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider - 1)))
+        z_secondary = np.append(z_secondary, new_z)
 
     # assemble x- coordinates
-    x = np.append(x, x_secondary)
-    x = np.unique(x)[::-1]
+    z = np.append(z, z_secondary)
+    z = np.unique(z)[::-1]
 
     # dummy y- coordinates
-    y = np.zeros(shape=x.shape)
+    y = np.zeros(shape=z.shape)
 
     # create dataframe coordinates
     nodes = pd.DataFrame(
         data={
-            "x [m]": x,
+            "z [m]": z,
             "y [m]": y,
         },
         dtype=float,
@@ -185,8 +185,8 @@ def get_coordinates(pile, soil, x2mesh, coarseness) -> pd.DataFrame:
 
     element = pd.DataFrame(
         data={
-            "x_top [m]": x[:-1],
-            "x_bottom [m]": x[1:],
+            "z_top [m]": z[:-1],
+            "z_bottom [m]": z[1:],
             "y_top [m]": y[:-1],
             "y_bottom [m]": y[1:],
         },
@@ -224,26 +224,26 @@ def get_soil_properties(pile, soil, x2mesh, coarseness):
     if soil is not None:
         element_coordinates = get_coordinates(pile, soil, x2mesh, coarseness)[1]
         soil_properties = pd.merge_asof(
-            left=element_coordinates[["x_top [m]", "x_bottom [m]"]].sort_values(by=["x_top [m]"]),
+            left=element_coordinates[["z_top [m]", "z_bottom [m]"]].sort_values(by=["z_top [m]"]),
             right=get_soil_profile(soil).sort_values(by=["Top soil layer [m]"]),
-            left_on="x_top [m]",
+            left_on="z_top [m]",
             right_on="Top soil layer [m]",
             direction="forward",
-        ).sort_values(by=["x_top [m]"], ascending=False)
+        ).sort_values(by=["z_top [m]"], ascending=False)
         # add elevation of element w.r.t. ground level
-        soil_properties["xg_top [m]"] = soil_properties["x_top [m]"] - soil.top_elevation
-        soil_properties["xg_bottom [m]"] = soil_properties["x_bottom [m]"] - soil.top_elevation
+        soil_properties["zg_top [m]"] = soil_properties["z_top [m]"] - soil.top_elevation
+        soil_properties["zg_bottom [m]"] = soil_properties["z_bottom [m]"] - soil.top_elevation
         # add vertical stress at top and bottom of each element
-        condition_below_water_table = soil_properties["x_top [m]"] <= soil.water_line
+        condition_below_water_table = soil_properties["z_top [m]"] <= soil.water_line
         soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
             soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
         )
-        s = (soil_properties["x_top [m]"] - soil_properties["x_bottom [m]"]) * soil_properties[
+        s = (soil_properties["z_top [m]"] - soil_properties["z_bottom [m]"]) * soil_properties[
             "Unit Weight [kN/m3]"
         ]
         soil_properties["sigma_v top [kPa]"] = np.insert(
             s.cumsum().values[:-1],
-            np.where(soil_properties["x_top [m]"].values == soil.top_elevation)[0],
+            np.where(soil_properties["z_top [m]"].values == soil.top_elevation)[0],
             0.0,
         )
         soil_properties["sigma_v bottom [kPa]"] = s.cumsum()

@@ -81,17 +81,17 @@ def test_APIcylic_equals_durkhop_ra_03(
     # Create Model 1
     M1 = Model(name="<model name>", pile=create_pile, soil=create_cyclic_soilprofile)
     # Apply bottom fixity along x-axis
-    M1.set_support(elevation=-40, Tx=True)
+    M1.set_support(elevation=-40, Tz=True)
     # Apply axial and lateral loads
-    M1.set_pointload(elevation=0, Mz=-300e3, Py=30e3)
+    M1.set_pointload(elevation=0, Mx=-300e3, Py=10e3)
     R1 = winkler(M1)
 
     # Create Model 2
     M2 = Model(name="<model name>", pile=create_pile, soil=create_duhrkop_soilprofile)
     # Apply bottom fixity along x-axis
-    M2.set_support(elevation=-40, Tx=True)
+    M2.set_support(elevation=-40, Tz=True)
     # Apply axial and lateral loads
-    M2.set_pointload(elevation=0, Mz=-300e3, Py=30e3)
+    M2.set_pointload(elevation=0, Mx=-300e3, Py=10e3)
     R2 = winkler(M2)
 
     assert m.isclose(

@@ -411,9 +411,9 @@ class Pile(AbstractPile):
     def inner_volume(self) -> float:
         """the inner volume in [m3] of the pile from the model object."""
 
-        x_top = np.array([x.top_elevation for x in self.sections])
-        x_bottom = np.array([x.bottom_elevation for x in self.sections])
-        L = x_top - x_bottom
+        z_top = np.array([x.top_elevation for x in self.sections])
+        z_bottom = np.array([x.bottom_elevation for x in self.sections])
+        L = z_top - z_bottom
         area_inside = np.array([x.entrapped_area for x in self.sections])
 
         return np.sum(area_inside * L)
@@ -1003,12 +1003,12 @@ class Model(AbstractModel):
         # creates element structural properties
         # merge Pile.data and coordinates
         element_properties = pd.merge_asof(
-            left=self.element_coordinates.sort_values(by=["x_top [m]"]),
+            left=self.element_coordinates.sort_values(by=["z_top [m]"]),
             right=self.pile.data.sort_values(by=["Elevation [m]"]),
-            left_on="x_top [m]",
+            left_on="z_top [m]",
             right_on="Elevation [m]",
             direction="forward",
-        ).sort_values(by=["x_top [m]"], ascending=False)
+        ).sort_values(by=["z_top [m]"], ascending=False)
         # add young modulus to data
         element_properties["E [kPa]"] = self.pile.material.young_modulus
         # delete Elevation [m] column
@@ -1036,17 +1036,17 @@ class Model(AbstractModel):
 
         # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
         df = self.nodes_coordinates.copy()
-        df["Px [kN]"] = 0
+        df["Pz [kN]"] = 0
         df["Py [kN]"] = 0
-        df["Mz [kNm]"] = 0
+        df["Mx [kNm]"] = 0
 
-        nodes_elevations = df["x [m]"].values
+        nodes_elevations = df["z [m]"].values
 
-        df["Px [kN]"], df["Py [kN]"], df["Mz [kNm]"] = apply_bc(
+        df["Pz [kN]"], df["Py [kN]"], df["Mx [kNm]"] = apply_bc(
             nodes_elevations,
-            df["Px [kN]"].values,
+            df["Pz [kN]"].values,
             df["Py [kN]"].values,
-            df["Mz [kNm]"].values,
+            df["Mx [kNm]"].values,
             self.boundary_conditions,
             BoundaryForce,
             "Load",
@@ -1062,17 +1062,17 @@ class Model(AbstractModel):
 
         # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
         df = self.nodes_coordinates.copy()
-        df["Tx [m]"] = 0.0
+        df["Tz [m]"] = 0.0
         df["Ty [m]"] = 0.0
-        df["Rz [rad]"] = 0.0
+        df["Rx [rad]"] = 0.0
 
-        nodes_elevations = df["x [m]"].values
+        nodes_elevations = df["z [m]"].values
 
-        df["Tx [m]"], df["Ty [m]"], df["Rz [rad]"] = apply_bc(
+        df["Tz [m]"], df["Ty [m]"], df["Rx [rad]"] = apply_bc(
             nodes_elevations,
-            df["Tx [m]"].values,
+            df["Tz [m]"].values,
             df["Ty [m]"].values,
-            df["Rz [rad]"].values,
+            df["Rx [rad]"].values,
             self.boundary_conditions,
             BoundaryDisplacement,
             "Displacement",
@@ -1088,17 +1088,17 @@ class Model(AbstractModel):
 
         # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
         df = self.nodes_coordinates.copy()
-        df["Tx"] = False
+        df["Tz"] = False
         df["Ty"] = False
-        df["Rz"] = False
+        df["Rx"] = False
 
-        nodes_elevations = df["x [m]"].values
+        nodes_elevations = df["z [m]"].values
 
-        df["Tx"], df["Ty"], df["Rz"] = apply_bc(
+        df["Tz"], df["Ty"], df["Rx"] = apply_bc(
             nodes_elevations,
-            df["Tx"].values,
+            df["Tz"].values,
             df["Ty"].values,
-            df["Rz"].values,
+            df["Rx"].values,
             self.boundary_conditions,
             BoundaryFixation,
             "Fixity",
@@ -1134,8 +1134,8 @@ class Model(AbstractModel):
             # fill in spring for each element
             for layer in self.soil.layers:
                 elements_for_layer = soil_prop.loc[
-                    (soil_prop["x_top [m]"] <= layer.top)
-                    & (soil_prop["x_bottom [m]"] >= layer.bottom)
+                    (soil_prop["z_top [m]"] <= layer.top)
+                    & (soil_prop["z_bottom [m]"] >= layer.bottom)
                 ].index
 
                 for i in elements_for_layer:
@@ -1143,9 +1143,9 @@ class Model(AbstractModel):
                     # vertical effective stress
                     sig_v = soil_prop[["sigma_v top [kPa]", "sigma_v bottom [kPa]"]].iloc[i]
                     # elevation
-                    elevation = soil_prop[["x_top [m]", "x_bottom [m]"]].iloc[i]
+                    elevation = soil_prop[["z_top [m]", "z_bottom [m]"]].iloc[i]
                     # depth from ground
-                    depth_from_ground = (soil_prop[["xg_top [m]", "xg_bottom [m]"]].iloc[i]).abs()
+                    depth_from_ground = (soil_prop[["zg_top [m]", "zg_bottom [m]"]].iloc[i]).abs()
                     # pile width
                     pile_width = self.element_properties["Width [m]"].iloc[i]
                     perimeter_out = self.element_properties["Outer Perimeter [m]"].iloc[i]
@@ -1363,12 +1363,12 @@ class Model(AbstractModel):
     @property
     def effective_pile_weight(self) -> float:
         if self.soil is not None:
-            submerged_element = self.element_properties["x_top [m]"].values <= self.soil.water_line
+            submerged_element = self.element_properties["z_top [m]"].values <= self.soil.water_line
 
-            elem_x_top = self.element_properties["x_top [m]"].values
-            elem_x_bottom = self.element_properties["x_bottom [m]"].values
-            V = (elem_x_top - elem_x_bottom) * parameter2elements(
-                self.pile.sections, lambda x: x.area, elem_x_top, elem_x_bottom
+            elem_z_top = self.element_properties["z_top [m]"].values
+            elem_z_bottom = self.element_properties["z_bottom [m]"].values
+            V = (elem_z_top - elem_z_bottom) * parameter2elements(
+                self.pile.sections, lambda x: x.area, elem_z_top, elem_z_bottom
             )
             W = np.zeros(shape=V.shape)
             W[submerged_element] = V[submerged_element] * (self.pile.material.unitweight - 10)
@@ -1390,7 +1390,7 @@ class Model(AbstractModel):
             )
         else:
             # influence zones
-            influence = np.abs(np.gradient(self.nodes_coordinates["x [m]"].values))
+            influence = np.abs(np.gradient(self.nodes_coordinates["z [m]"].values))
             influence = influence / 2
             influence
 
@@ -1423,23 +1423,23 @@ class Model(AbstractModel):
             uw_water = 10
 
             # soil volume
-            elem_x_top = self.element_properties["x_top [m]"].values
-            elem_x_bottom = self.element_properties["x_bottom [m]"].values
-            L = elem_x_top - elem_x_bottom
+            elem_z_top = self.element_properties["z_top [m]"].values
+            elem_z_bottom = self.element_properties["z_bottom [m]"].values
+            L = elem_z_top - elem_z_bottom
             area_inside = parameter2elements(
-                self.pile.sections, lambda x: x.entrapped_area, elem_x_top, elem_x_bottom
+                self.pile.sections, lambda x: x.entrapped_area, elem_z_top, elem_z_bottom
             )
             Vi = area_inside*L
             # element mid-point elevation
-            elevation = 0.5 * (self.soil_properties["x_top [m]"] + self.soil_properties["x_bottom [m]"])
+            elevation = 0.5 * (self.soil_properties["z_top [m]"] + self.soil_properties["z_bottom [m]"])
             # soil weight for each element where we have soil and pile
             elem_number = int(self.element_properties.shape[0])
             element_sw = np.zeros(elem_number)
 
             for layer in self.soil.layers:
                 elements_for_layer = self.soil_properties.loc[
-                    (self.soil_properties["x_top [m]"] <= layer.top)
-                    & (self.soil_properties["x_bottom [m]"] >= layer.bottom)
+                    (self.soil_properties["z_top [m]"] <= layer.top)
+                    & (self.soil_properties["z_bottom [m]"] >= layer.bottom)
                 ].index
 
                 # Set local layer parameters for each element of the layer
@@ -1447,7 +1447,7 @@ class Model(AbstractModel):
                     # Calculate inner soil weight
                     element_sw[i] = (
                         layer.weight * Vi[i]
-                        if elem_x_top[i] > self.soil.water_line
+                        if elem_z_top[i] > self.soil.water_line
                         else (layer.weight - uw_water) * Vi[i]
                     )
             return element_sw.sum()
@@ -1503,8 +1503,8 @@ class Model(AbstractModel):
         *,
         elevation: float = 0.0,
         Py: float = None,
-        Px: float = None,
-        Mz: float = None,
+        Pz: float = None,
+        Mx: float = None,
     ):
         """
         Defines the point load(s) at a given elevation.
@@ -1518,19 +1518,19 @@ class Model(AbstractModel):
             the elevation must match the elevation of a node, by default 0.0.
         Py : float, optional
             Shear force in kN, by default None.
-        Px : float, optional
+        Pz : float, optional
             Normal force in kN, by default None.
-        Mz : float, optional
+        Mx : float, optional
             Bending moment in kNm, by default None.
         """
-        self._update_bc(elevation, x=Px, y=Py, z=Mz, BC_class=BoundaryForce)
+        self._update_bc(elevation, z=Pz, y=Py, x=Mx, BC_class=BoundaryForce)
 
     def set_pointdisplacement(
         self,
         elevation: float = 0.0,
         Ty: float = None,
-        Tx: float = None,
-        Rz: float = None,
+        Tz: float = None,
+        Rx: float = None,
     ):
         """
         Defines the displacement at a given elevation.
@@ -1547,19 +1547,19 @@ class Model(AbstractModel):
             the elevation must match the elevation of a node, by default 0.0.
         Ty : float, optional
             Translation along y-axis, by default None.
-        Tx : float, optional
-            Translation along x-axis, by default None.
-        Rz : float, optional
-            Rotation around z-axis, by default None.
+        Tz : float, optional
+            Translation along z-axis, by default None.
+        Rx : float, optional
+            Rotation around x-axis, by default None.
         """
-        self._update_bc(elevation, x=Tx, y=Ty, z=Rz, BC_class=BoundaryDisplacement)
+        self._update_bc(elevation, z=Tz, y=Ty, x=Rx, BC_class=BoundaryDisplacement)
 
     def set_support(
         self,
         elevation: float = 0.0,
         Ty: bool = None,
-        Tx: bool = None,
-        Rz: bool = None,
+        Tz: bool = None,
+        Rx: bool = None,
     ):
         """
         Defines the supports at a given elevation. If True, the relevant degree of freedom is restrained.
@@ -1574,12 +1574,12 @@ class Model(AbstractModel):
             the elevation must match the elevation of a node, by default 0.0.
         Ty : bool, optional
             Translation along y-axis, by default None.
-        Tx : bool, optional
-            Translation along x-axis, by default None.
-        Rz : bool, optional
-            Rotation around z-axis, by default None.
+        Tz : bool, optional
+            Translation along z-axis, by default None.
+        Rx : bool, optional
+            Rotation around x-axis, by default None.
         """
-        self._update_bc(elevation, x=Tx, y=Ty, z=Rz, BC_class=BoundaryFixation)
+        self._update_bc(elevation, z=Tz, y=Ty, x=Rx, BC_class=BoundaryFixation)
 
     def get_distributed_lateral_springs(self, kind: str = "node") -> pd.DataFrame:
         """Table with p-y springs computed for the given Model with p-value [kN/m] and y-value [m].
@@ -1603,13 +1603,13 @@ class Model(AbstractModel):
             if kind == "element":
                 return misc.get_full_springs(
                     springs=self._py_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
+                    elevations=self.nodes_coordinates["z [m]"].values,
                     kind="p-y",
                 )
             elif kind == "node":
                 return misc.get_reduced_springs(
                     springs=self._py_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
+                    elevations=self.nodes_coordinates["z [m]"].values,
                     kind="p-y",
                 )
             else:
@@ -1637,13 +1637,13 @@ class Model(AbstractModel):
             if kind == "element":
                 return misc.get_full_springs(
                     springs=self._mt_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
+                    elevations=self.nodes_coordinates["z [m]"].values,
                     kind="m-t",
                 )
             elif kind == "node":
                 return misc.get_reduced_springs(
                     springs=self._mt_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
+                    elevations=self.nodes_coordinates["z [m]"].values,
                     kind="m-t",
                 )
             else:

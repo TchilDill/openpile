@@ -32,22 +32,19 @@ from openpile.materials import PileMaterial
 from openpile.core import misc, _model_build
 from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
-from openpile.calculate import isplugged
 from openpile.core._model_build import (
     check_springs,
     get_soil_properties,
-    get_coordinates,
     apply_bc,
     validate_bc,
     parameter2elements
 )
 
-from abc import ABC, abstractstaticmethod, abstractproperty, abstractmethod
+from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
 from pydantic import (
     BaseModel,
-    AfterValidator,
     ConfigDict,
     InstanceOf,
     Field,
@@ -81,44 +78,53 @@ class AbstractModel(BaseModel, ABC):
 
 class PileSection(BaseModel, ABC):
     """
-    A Pile Segment is a section of a pile.
+    An abstract Pile Segment is a section of a pile.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def top_elevation(self) -> float:
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def bottom_elevation(self) -> float:
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def footprint(self) -> float:
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def length(self) -> float:
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def area(self) -> float:
         pass
 
     @property
+    @abstractmethod
     def entrapped_area(self) -> float:
         pass
 
     @property
+    @abstractmethod
     def footprint(self) -> float:
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def outer_perimeter(self) -> float:
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def inner_perimeter(self) -> float:
         pass
 
@@ -135,7 +141,8 @@ class PileSection(BaseModel, ABC):
     def width(self) -> float:
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def second_moment_of_area(self) -> float:
         pass
 
@@ -1581,16 +1588,16 @@ class Model(AbstractModel):
         """
         self._update_bc(elevation, z=Tz, y=Ty, x=Rx, BC_class=BoundaryFixation)
 
-    def get_distributed_lateral_springs(self, kind: str = "node") -> pd.DataFrame:
+    def get_distributed_lateral_springs(self, kind: str = "lumped") -> pd.DataFrame:
         """Table with p-y springs computed for the given Model with p-value [kN/m] and y-value [m].
 
-        Posible to extract the springs at the node level (i.e. spring at each node)
-        or element level (i.e. top and bottom springs at each element)
+        Posible to extract the springs as typical structural springs (which are also the raw
+        springs used in the model) or element level (i.e. top and bottom springs at each element)
 
         Parameters
         ----------
         kind : str
-            can be of ("node", "element").
+            can be of ("lumped", "distributed").
 
         Returns
         -------
@@ -1600,14 +1607,14 @@ class Model(AbstractModel):
         if self.soil is None:
             return None
         else:
-            if kind == "element":
-                return misc.get_full_springs(
+            if kind == "distributed":
+                return misc.get_distributed_soil_springs(
                     springs=self._py_springs,
                     elevations=self.nodes_coordinates["z [m]"].values,
                     kind="p-y",
                 )
-            elif kind == "node":
-                return misc.get_reduced_springs(
+            elif kind == "lumped":
+                return misc.get_lumped_soil_springs(
                     springs=self._py_springs,
                     elevations=self.nodes_coordinates["z [m]"].values,
                     kind="p-y",
@@ -1615,16 +1622,16 @@ class Model(AbstractModel):
             else:
                 return None
 
-    def get_distributed_rotational_springs(self, kind: str = "node") -> pd.DataFrame:
+    def get_distributed_rotational_springs(self, kind: str = "lumped") -> pd.DataFrame:
         """Table with m-t (rotational) springs computed for the given Model with m-value [kNm] and t-value [radians]
 
-        Possible to extract the springs at the node level (i.e. spring at each node)
-        or element level (i.e. top and bottom springs at each element)
+        Posible to extract the springs as typical structural springs (which are also the raw
+        springs used in the model) or element level (i.e. top and bottom springs at each element)
 
         Parameters
         ----------
         kind : str
-            can be of ("node", "element").
+            can be of ("lumped", "distributed").
 
         Returns
         -------
@@ -1634,14 +1641,14 @@ class Model(AbstractModel):
         if self.soil is None:
             return None
         else:
-            if kind == "element":
-                return misc.get_full_springs(
+            if kind == "distributed":
+                return misc.get_soil_springs(
                     springs=self._mt_springs,
                     elevations=self.nodes_coordinates["z [m]"].values,
                     kind="m-t",
                 )
-            elif kind == "node":
-                return misc.get_reduced_springs(
+            elif kind == "lumped":
+                return misc.get_lumped_soil_springs(
                     springs=self._mt_springs,
                     elevations=self.nodes_coordinates["z [m]"].values,
                     kind="m-t",

@@ -19,7 +19,7 @@ from pydantic import (
 from pydantic.dataclasses import dataclass
 
 
-from abc import ABC, abstractproperty
+from abc import ABC
 from typing import List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
 from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validator

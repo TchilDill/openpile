@@ -19,6 +19,20 @@ def offshore_wind_pile1():
         ],
     )
 
+
+@pytest.fixture
+def circular_slender_pile():
+    # create a steel and circular pile
+    return construct.Pile(
+        name="",
+        material="Steel",
+        sections=[
+            construct.CircularPileSection(top=0, bottom=-10, diameter=0.7, thickness=0.02),
+            construct.CircularPileSection(top=-10, bottom=-40, diameter=0.7, thickness=0.02),
+        ],
+    )
+
+
 class TestPile:
     def test_main_constructor(self, offshore_wind_pile1):
         """Main constructor of Pile object, check if pile.data
@@ -268,4 +282,14 @@ class TestModel:
         )
 
         # # check that m_t springs are all zero
-        # assert not np.all( model.get_mt_springs()[['VAL 0','VAL 1','VAL 2']].values )
+        assert not np.all( 
+            model.get_distributed_rotational_springs()[['VAL 0','VAL 1','VAL 2']].values 
+        )
+
+        assert not np.all(
+            model.get_base_rotational_spring()[['VAL 0','VAL 1','VAL 2']].values 
+        )
+
+        assert not np.all(
+            model.get_base_shear_spring()[['VAL 0','VAL 1','VAL 2']].values 
+        )

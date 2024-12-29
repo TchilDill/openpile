@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: pip install pytest pytest-cov
 
+      - name: Install OpenPile
+        run: pip install .
+
       - name: Run tests
         run: pytest --cov-branch --cov-report=xml
 

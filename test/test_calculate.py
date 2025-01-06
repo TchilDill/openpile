@@ -7,8 +7,8 @@ from pydantic import ValidationError
 from openpile.construct import Pile, SoilProfile, Layer, Model
 from openpile.soilmodels import API_sand
 
-def test_entrapped_soil_weight():
-    """calculate the weight of the soil inside the pile"""
+def test_entrapped_soil_weight_above_water_table():
+    """calculate the weight of the soil inside a pile that is above water table"""
 
     # the special diameter and wall thickness is calculated and applied such that
     # a metre long of pile with this diameter ie quivalent
@@ -51,8 +51,8 @@ def test_entrapped_soil_weight():
     assert m.isclose(model.entrapped_soil_weight, soil_weight * p.length)
 
 
-def test_entrapped_soil_weight():
-    """calculate the weight of the soil inside the pile"""
+def test_entrapped_soil_weight_below_water_table():
+    """calculate the weight of the soil inside a pile that is submerged in water"""
 
     # the special diameter and wall thickness is calculated and applied such that
     # a metre long of pile with this diameter ie quivalent

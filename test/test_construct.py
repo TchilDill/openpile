@@ -32,6 +32,17 @@ def circular_slender_pile():
         ],
     )
 
+@pytest.fixture
+def circular_slender_pile():
+    # create a steel and circular pile
+    return construct.Pile(
+        name="",
+        material="Steel",
+        sections=[
+            construct.CircularPileSection(top=0, bottom=-10, diameter=0.7, thickness=0.02),
+            construct.CircularPileSection(top=-10, bottom=-40, diameter=0.7, thickness=0.02),
+        ],
+    )
 
 class TestPile:
     def test_main_constructor(self, offshore_wind_pile1):
@@ -239,6 +250,57 @@ class TestSoilProfile:
 
 
 class TestModel:
+    def test_boundary_conditions_simple_beam(self, circular_slender_pile):
+        """this test should show that specific nodes are created where x2mesh is used."""
+        model = construct.Model(
+            name="", 
+            pile=circular_slender_pile, 
+            boundary_conditions=[
+                construct.BoundaryFixation(
+                    elevation=circular_slender_pile.top_elevation,
+                    y=True, z=True),
+                construct.BoundaryFixation(
+                    elevation=circular_slender_pile.bottom_elevation,
+                    y=True),
+                construct.BoundaryDisplacement(
+                    elevation=0.5*(circular_slender_pile.top_elevation+circular_slender_pile.bottom_elevation),
+                    y=0.1)
+            ])
+
+        results = model.solve()
+        assert results.deflection['Deflection [m]'].max() == 0.1
+    
+
+    def test_boundary_conditions_fixed_end_beam(self, circular_slender_pile):
+        """this test checks that the beam calculation with one end fixed and 
+        the other end loaded by a transverse force results in the correct known solution"""
+        model = construct.Model(
+            name="", 
+            pile=circular_slender_pile, 
+            boundary_conditions=[
+                construct.BoundaryFixation(
+                    elevation=circular_slender_pile.bottom_elevation,
+                    x=True, y=True, z=True),
+                construct.BoundaryForce(
+                    elevation=circular_slender_pile.top_elevation,
+                    y=1.0
+                )
+            ])
+
+        results = model.solve()
+        assert m.isclose(
+            results.deflection['Deflection [m]'][0],
+            circular_slender_pile.length**3/(3*circular_slender_pile.E*circular_slender_pile.sections[0].second_moment_of_area),
+            abs_tol=1e-5
+        )
+
+    def test_constructor_with_x2mesh(self, circular_slender_pile):
+        """this test should show that specific nodes are created where x2mesh is used."""
+        model = construct.Model(name="", pile=circular_slender_pile, x2mesh=[-10.38, -10.918])
+
+        assert any(model.nodes_coordinates['z [m]'] == -10.38) 
+        assert any(model.nodes_coordinates['z [m]'] == -10.918) 
+    
     def test_constructor_wo_soil_models(self):
         """
         check that model can still be created with no lateral or axial models"""

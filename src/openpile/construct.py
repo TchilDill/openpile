@@ -1148,11 +1148,11 @@ class Model(AbstractModel):
                 for i in elements_for_layer:
                     # Set local layer parameters for each element of the layer
                     # vertical effective stress
-                    sig_v = soil_prop[["sigma_v top [kPa]", "sigma_v bottom [kPa]"]].iloc[i]
+                    sig_v = soil_prop[["sigma_v top [kPa]", "sigma_v bottom [kPa]"]].iloc[i].values
                     # elevation
-                    elevation = soil_prop[["z_top [m]", "z_bottom [m]"]].iloc[i]
+                    elevation = soil_prop[["z_top [m]", "z_bottom [m]"]].iloc[i].values
                     # depth from ground
-                    depth_from_ground = (soil_prop[["zg_top [m]", "zg_bottom [m]"]].iloc[i]).abs()
+                    depth_from_ground = (soil_prop[["zg_top [m]", "zg_bottom [m]"]].iloc[i]).abs().values
                     # pile width
                     pile_width = self.element_properties["Width [m]"].iloc[i]
                     perimeter_out = self.element_properties["Outer Perimeter [m]"].iloc[i]
@@ -1216,7 +1216,7 @@ class Model(AbstractModel):
                                     depth_from_top_of_layer=(layer.top - elevation[j]),
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table=elevation[j] <= self.soil.water_line,
+                                    below_water_table= elevation[j] <= self.soil.water_line,
                                     output_length=spring_dim,
                                 )
 
@@ -1278,9 +1278,8 @@ class Model(AbstractModel):
                                     output_length=spring_dim,
                                 )
 
-            # ensure springs are oriented correctly with respect to x-axis
+            # ensure springs are oriented correctly with respect to z-axis
             # going down is compression and should be negative in "z" values
-            # TODO change axes names for z and x.
             tz[:, :, :] = tz[:, :, :] * (-1)
             qz[:, :, :] = qz[:, :, :] * (-1)
 

@@ -42,7 +42,7 @@ def apply_bc(nodes_elevations, zglobal, yglobal, xglobal, bc_list, bc_cls, outpu
             )
             if any(check):
                 # one node correspond, extract node
-                node_idx = int(np.where(check == True)[0])
+                node_idx = next((i for i, x in enumerate(check) if x == True), None)
                 # apply loads at this node
                 if bc.x:
                     xglobal[node_idx] = bc.x
@@ -235,7 +235,7 @@ def get_soil_properties(pile, soil, x2mesh, coarseness):
         soil_properties["zg_bottom [m]"] = soil_properties["z_bottom [m]"] - soil.top_elevation
         # add vertical stress at top and bottom of each element
         condition_below_water_table = soil_properties["z_top [m]"] <= soil.water_line
-        soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
+        soil_properties.loc[condition_below_water_table, "Unit Weight [kN/m3]"] = (
             soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
         )
         s = (soil_properties["z_top [m]"] - soil_properties["z_bottom [m]"]) * soil_properties[

@@ -2,7 +2,7 @@
 Philosophy
 ==========
 
-The idea behind this package is to give an overview of the philosophy behind the library, which is to provide a toolbox to academics and engineers to perform bean and pile calculations, these calculations can be as simple/generic as it gets, e.g. calculating the weight of a beam, its volume, or perform more advanced calculations with 1D Finite Element Method.
+these calculations can be as simple/generic as it gets, e.g. calculating the weight of a beam, its volume, or perform more advanced calculations with 1D Finite Element Method.
 
 Overall structure/principle
 ===========================
@@ -26,6 +26,12 @@ please create an issue so that we can solve this.
 Coordinates System
 ==================
 
-*pending...* 
+The coordinate system in OpenPile follows right hand system as shown below:
+
+.. figure:: _static/coordinates_system.png
+    :width: 80%
+
+    Coordinates system followed in OpenPile.
+
 
 

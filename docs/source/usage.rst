@@ -302,6 +302,9 @@ can be provided by plotting the model with the method: :meth:`openpile.construct
     >>> # Plot the Model
     >>> M.plot()
 
+
+.. _Ex7-simple_beam_calculation:
+
 Example 7 - Run a simple beam calculation
 =========================================
 
@@ -331,6 +334,7 @@ Example 7 - Run a simple beam calculation
     axs[1].set_title('Results against\nclosed-form solution')
     axs[1].grid()
 
+.. _Ex8-beam_calculation:
 
 Example 8 - A less simple beam calculation
 ==========================================

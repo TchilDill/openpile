@@ -4,23 +4,25 @@
    contain the root `toctree` directive.
 
 ------------------------------------
-Welcome to openpile's documentation!
+Welcome to OpenPile's documentation!
 ------------------------------------
 
 This package is an open source python library that provides users a toolbox for beam/pile calculations.
 
-This package allows the user to:
+This package allows the user to perform various pile calculations with more in-depth control:
 
-* Use basic Euler-Bernoulli beam theory (as well as Timoshenko's variation) to compute 
-  forces, deflection of a beam (or a pile) under adequate loading and 
-  support conditions.
+* Use basic Euler-Bernoulli beam theory to compute forces, deflection of a beam (or a pile) 
+  under adequate loading and support conditions.
 * Use Winkler's approach of a beam (or a pile) supported by linear or non-linear lateral and/or 
   rotational springs to compute forces and deflection of the pile based on recognised 
   soil models such as the widely used traditional API models for sand and clay or more recent models that stem from 
   the PISA joint-industry project.
 
-This library supports the following versions of python: 3.8-3.10. 
-Python 3.11 is not supported!
+More details on how to use the library can be found in :ref:`usage`
+
+.. important::
+  This library supports the following versions of python: 3.8-3.10. 
+  Python 3.11+ is not supported as one dependency of OpenPile (namely Numba) does not support Python 3.11+. 
 
 .. raw:: html
 
@@ -36,7 +38,6 @@ You can refer to OpenPile in your research paper by citing the following:
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.10116667.svg
   :target: https://doi.org/10.5281/zenodo.10116667
-
 
 
 .. toctree::

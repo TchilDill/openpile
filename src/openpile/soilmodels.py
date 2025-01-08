@@ -870,6 +870,10 @@ class API_sand(LateralModel):
     y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
+    #: georgiadis
+    georgiadis: Optional[bool] = False
+    #: d_adj
+    d_adj: Union[Callable[[float], float], float] = 0.0
 
     # define class variables needed for all soil models
     m_multiplier = 1.0
@@ -915,6 +919,8 @@ class API_sand(LateralModel):
             below_water_table=below_water_table,
             ymax=ymax,
             output_length=output_length,
+            georgiadis=self.georgiadis,
+            d_adj=self.d_adj,
         )
 
         # parse multipliers and apply results
@@ -1036,6 +1042,10 @@ class API_clay(LateralModel):
     y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
+    #: georgiadis
+    georgiadis: Optional[bool] = False
+    #: d_adj
+    d_adj: Union[Callable[[float], float], float] = 0.0
 
     # define class variables needed for all soil models
     m_multiplier = 1.0
@@ -1062,7 +1072,7 @@ class API_clay(LateralModel):
         L: float = None,
         below_water_table: bool = True,
         ymax: float = 0.0,
-        output_length: int = 15,
+        output_length: int = 15
     ):
         # validation
         if depth_from_top_of_layer > layer_height:
@@ -1087,6 +1097,8 @@ class API_clay(LateralModel):
             kind=self.kind,
             ymax=ymax,
             output_length=output_length,
+            georgiadis=self.georgiadis,
+            d_adj=self.d_adj,
         )
 
         # parse multipliers and apply results

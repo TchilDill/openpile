@@ -1037,6 +1037,7 @@ class Model:
                         ).abs()
                         # pile width
                         pile_width = self.element_properties["Diameter [m]"].iloc[i]
+                        unit_wt = self.soil_properties[["Unit Weight [kN/m3]"]].iloc[i]
 
                         # p-y curves
                         if (
@@ -1053,7 +1054,7 @@ class Model:
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                     below_water_table=elevation[j] <= self.soil.water_line,
-                                    output_length=spring_dim,
+                                    output_length=spring_dim
                                 )
 
                         if (

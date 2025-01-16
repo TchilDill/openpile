@@ -73,9 +73,9 @@ class Pile:
         argument that stores the relevant data of each pile segment.
         Below are the needed keys for the available piles:
         - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
-    kind : Literal["Circular",]
+    kind : Literal["Circular", "Solid-Circle",]
         type of pile or type of cross-section. by default "Circular"
-    material : Literal["Steel",]
+    material : Literal["Steel", "Concrete",]
         material the pile is made of. by default "Steel"
 
 
@@ -99,9 +99,9 @@ class Pile:
     #: name of the pile
     name: str
     #: select the type of pile, can be of ('Circular', )
-    kind: Literal["Circular"]
+    kind: Literal["Circular", "Solid-Circle"]
     #: select the type of material the pile is made of, can be of ('Steel', )
-    material: Literal["Steel"]
+    material: Literal["Steel", "Concrete"]
     #: top elevation of the pile according to general vertical reference set by user
     top_elevation: float
     #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
@@ -121,6 +121,15 @@ class Pile:
             self._young_modulus = 210.0e6  # kPa
             # Poisson's ratio
             self._nu = 0.3
+                      
+        elif self.material == "Concrete":
+            # unit weight
+            self._uw = 22.78  # kN/m3 ~145lb/ft3
+            # young modulus
+            self._young_modulus = 24_870_062.324  # kPa ~4700*sqrt(f'c = 28 MPa)
+            # Poisson's ratio
+            self._nu = 0.15
+
         else:
             raise UserWarning
 
@@ -169,6 +178,15 @@ class Pile:
                 area.append(area[-1])
                 second_moment_of_area.append(I)
                 second_moment_of_area.append(second_moment_of_area[-1])
+            
+            elif self.kind == "Solid-Circle":
+                A = m.pi / 4 * (d**2)
+                I = m.pi / 64 * (d**4)
+                area.append(A)
+                area.append(area[-1])
+                second_moment_of_area.append(I)
+                second_moment_of_area.append(second_moment_of_area[-1])
+
             else:
                 # not yet supporting other kind
                 raise ValueError()
@@ -181,6 +199,8 @@ class Pile:
                 "Wall thickness [m]": thickness,
                 "Area [m2]": area,
                 "I [m4]": second_moment_of_area,
+                # "E (kPa)": self._young_modulus,
+                # "G (kPa)": self._shear_modulus
             }
         )
 
@@ -980,7 +1000,7 @@ class Model:
 
         def create_springs() -> np.ndarray:
             # dim of springs
-            spring_dim = 15
+            spring_dim = 1000
 
             # Allocate array
             py = np.zeros(shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32)
@@ -1017,6 +1037,7 @@ class Model:
                         ).abs()
                         # pile width
                         pile_width = self.element_properties["Diameter [m]"].iloc[i]
+                        unit_wt = self.soil_properties[["Unit Weight [kN/m3]"]].iloc[i]
 
                         # p-y curves
                         if (
@@ -1033,7 +1054,7 @@ class Model:
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
                                     below_water_table=elevation[j] <= self.soil.water_line,
-                                    output_length=spring_dim,
+                                    output_length=spring_dim
                                 )
 
                         if (

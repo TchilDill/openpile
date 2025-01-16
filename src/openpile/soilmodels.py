@@ -108,6 +108,115 @@ class API_clay_axial(AxialModel):
     def Qz_spring_fct():
         pass
 
+@dataclass(config=PydanticConfigFrozen)
+class frankeRollins2013(LateralModel):
+    """A class to establish the Franke and Rollins hybrid-model for liquefied soils.
+
+    Parameters
+    ----------
+    Sr: float or list[top_value, bottom_value]
+        Residual shear strength in kPa
+    eps50: float or list[top_value, bottom_value]
+        strain at 50% failure load [-]
+    J: float
+        empirical factor varying depending on clay stiffness, varies between 0.25 and 0.50
+    stiff_clay_threshold: float # not used
+        undrained shear strength [kPa] at which stiff clay curve is computed
+    G0: float or list[top_value, bottom_value] or None # not used
+        Small-strain shear modulus [unit: kPa], by default None
+    kind: str, by default "static"
+        types of curves, can be of ("static","cyclic"). # not needed
+    p_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for p-values
+    y_multiplier: float or function taking the depth as argument and returns the multiplier
+        multiplier for y-values
+    extension: str, by default None
+        turn on extensions by calling them in this variable
+        for API_clay, rotational springs can be added to the model with the extension "mt_curves" # not implemented
+
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.frankeRollins2013`
+
+    """
+
+    #: undrained shear strength [kPa], if a variation in values, two values can be given.
+    Sr: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: strain at 50% failure load [-], if a variation in values, two values can be given.
+    eps50: Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]
+    #: types of curves, can be of ("static","cyclic")
+    kind: Literal["static", "cyclic"] = "static"
+    #: small-strain stiffness [kPa], if a variation in values, two values can be given.
+    G0: Optional[Union[PositiveFloat, conlist(PositiveFloat, min_items=1, max_items=2)]] = None
+    #: empirical factor varying depending on clay stiffness
+    J: confloat(ge=0.25, le=0.5) = 0.5
+    #: undrained shear strength [kPa] at which stiff clay curve is computed
+    stiff_clay_threshold: PositiveFloat = 96
+    #: p-multiplier
+    p_multiplier: Union[Callable[[float], float], confloat(ge=0.0)] = 1.0
+    #: y-multiplier
+    y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
+    #: extensions available for soil model
+    extension: Optional[Literal["mt_curves"]] = None
+
+    # define class variables needed for all soil models
+    m_multiplier = 1.0
+    t_multiplier = 1.0
+
+    def __post_init__(self):
+        # spring signature which tells that API clay only has p-y curves in normal conditions
+        # signature if e.g. of the form [p-y:True, Hb:False, m-t:False, Mb:False]
+        if self.extension == "mt_curves":
+            self.spring_signature = np.array([True, False, True, False], dtype=bool)
+        else:
+            self.spring_signature = np.array([True, False, False, False], dtype=bool)
+
+    def __str__(self):
+        return f"\tFranke and Rollins (2013) Liquefied Soil\n\tSr = {var_to_str(self.Sr)} kPa\n\teps50 = {var_to_str(self.eps50)}\n\t{self.kind} curves"
+
+    def py_spring_fct(
+        self,
+        sig: float,
+        X: float,
+        layer_height: float,
+        depth_from_top_of_layer: float,
+        D: float,
+        L: float = None,
+        below_water_table: bool = True,
+        ymax: float = 0.0,
+        output_length: int = 15,
+    ):
+        # validation
+        if depth_from_top_of_layer > layer_height:
+            raise ValueError("Spring elevation outside layer")
+
+        # define Sru
+        Sr_t, Sr_b = from_list2x_parse_top_bottom(self.Sr)
+        Sr = Sr_t + (Sr_b - Sr_t) * depth_from_top_of_layer / layer_height
+
+        # define eps50
+        eps50_t, eps50_b = from_list2x_parse_top_bottom(self.eps50)
+        eps50 = eps50_t + (eps50_b - eps50_t) * depth_from_top_of_layer / layer_height
+
+        y, p = py_curves.frankeRollins2013(
+            sig=sig,
+            X=X,
+            Sr=Sr,
+            eps50=eps50,
+            D=D,
+            J=self.J,
+            stiff_clay_threshold=self.stiff_clay_threshold,
+            kind=self.kind,
+            ymax=ymax,
+            output_length=output_length,
+        )
+
+        # parse multipliers and apply results
+        y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
+        p_mult = self.p_multiplier if isinstance(self.p_multiplier, float) else self.p_multiplier(X)
+
+        return y * y_mult, p * p_mult
 
 @dataclass(config=PydanticConfigFrozen)
 class Bothkennar_clay(LateralModel):
@@ -761,6 +870,10 @@ class API_sand(LateralModel):
     y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
+    #: georgiadis
+    georgiadis: Optional[bool] = False
+    #: d_adj
+    d_adj: Union[Callable[[float], float], float] = 0.0
 
     # define class variables needed for all soil models
     m_multiplier = 1.0
@@ -806,6 +919,8 @@ class API_sand(LateralModel):
             below_water_table=below_water_table,
             ymax=ymax,
             output_length=output_length,
+            georgiadis=self.georgiadis,
+            d_adj=self.d_adj,
         )
 
         # parse multipliers and apply results
@@ -927,6 +1042,10 @@ class API_clay(LateralModel):
     y_multiplier: Union[Callable[[float], float], confloat(gt=0.0)] = 1.0
     #: extensions available for soil model
     extension: Optional[Literal["mt_curves"]] = None
+    #: georgiadis
+    georgiadis: Optional[bool] = False
+    #: d_adj
+    d_adj: Union[Callable[[float], float], float] = 0.0
 
     # define class variables needed for all soil models
     m_multiplier = 1.0
@@ -953,7 +1072,7 @@ class API_clay(LateralModel):
         L: float = None,
         below_water_table: bool = True,
         ymax: float = 0.0,
-        output_length: int = 15,
+        output_length: int = 15
     ):
         # validation
         if depth_from_top_of_layer > layer_height:
@@ -978,6 +1097,8 @@ class API_clay(LateralModel):
             kind=self.kind,
             ymax=ymax,
             output_length=output_length,
+            georgiadis=self.georgiadis,
+            d_adj=self.d_adj,
         )
 
         # parse multipliers and apply results

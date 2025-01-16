@@ -200,7 +200,9 @@ def api_sand(
     kind: str = "static",
     below_water_table: bool = True,
     ymax: float = 0.0,
-    output_length: int = 20,
+    output_length: int = 1000,
+    georgiadis = False,
+    d_adj = 0,
 ):
     """
     Creates the API sand p-y curve from relevant input.
@@ -260,7 +262,11 @@ def api_sand(
     )
 
     ## Pmax for shallow and deep zones (regular API)
-    Pmax = min(C3 * sig * D, C1 * sig * X + C2 * sig * D)
+    if georgiadis == True:
+        Pmax = min(C3 * sig * D, (C1 * sig * (X + d_adj)) + C2 * sig * D)
+    else:
+        Pmax = min(C3 * sig * D, C1 * sig * X + C2 * sig * D)
+
 
     # creation of 'y' array
     if ymax == 0.0:
@@ -300,7 +306,9 @@ def api_clay(
     stiff_clay_threshold=96,
     kind: str = "static",
     ymax: float = 0.0,
-    output_length: int = 20,
+    output_length: int = 1000,
+    georgiadis = False,
+    d_adj = 0
 ):
     """
     Creates the API clay p-y curve from relevant input.
@@ -348,11 +356,18 @@ def api_clay(
 
     # Calculate Pmax (regular API)
     ## Pmax for shallow and deep zones (regular API)
-    Pmax_shallow = (3 * Su + sig) * D + J * Su * X
+
+    if georgiadis == True:
+        Pmax_shallow = (3 * Su + sig) * D + J * Su * (X + d_adj)
+        # Pmax_shallow = (3 + (georg_unit_wt * (X + d_adj) / Su) + (J / D)*(X + d_adj)) * Su * D
+    else:
+        Pmax_shallow = (3 * Su + sig) * D + J * Su * X
+
+
     Pmax_deep = 9 * Su * D
     Pmax = min(Pmax_deep, Pmax_shallow)
 
-    ylist_in = [0.0, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    ylist_in = [0.0, 0.001 * y50, 0.005 * y50, 0.008 * y50, 0.01 * y50, 0.02 * y50, 0.05 * y50, 0.08 * y50, 0.09 * y50, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
     ylist_out = []
     for i in range(len(ylist_in)):
         if ylist_in[i] <= ymax:
@@ -413,6 +428,121 @@ def api_clay(
 
     return y, p
 
+# frankeRollins2013 liquefied soil function
+@njit(parallel=True, cache=True)
+def frankeRollins2013(
+    sig: float,
+    X: float,
+    Sr: float,
+    eps50: float,
+    D: float,
+    J: float = 0.5,
+    stiff_clay_threshold=96,
+    kind: str = "static",
+    ymax: float = 0.0,
+    output_length: int = 20,
+):
+    """
+    Creates the Franke and Rollins (2013) liquefied soil p-y curve from relevant input.
+
+    Parameters
+    ----------
+    sig: float
+        Vertical effective stress [unit: kPa]
+    X: float
+        Depth of the curve w.r.t. mudline [unit: m]
+    Sr : float
+        residual shear strength [unit: kPa]
+    eps50: float
+        strain at 50% ultimate resistance [-]
+    D: float
+        Pile width [unit: m]
+    J: float, by default 0.5
+        empirical factor varying depending on clay stiffness
+    stiff_clay_threshold: float, by default 96.0
+        undrained shear strength at which stiff clay curve is computed [unit: kPa]. not needed
+    kind: str, by default "static"
+        types of curves, can be of ("static","cyclic") not needed
+    ymax: float, by default 0.0
+        maximum value of y, if null the maximum is calculated such that the whole curve is computed
+    output_length: int, by default 20
+        Number of discrete point along the springs
+
+    Returns
+    -------
+    1darray
+        y vector [unit: m]
+    1darray
+        p vector [unit: kN/m]
+    """
+    # important variables
+    y50 = 2.5 * eps50 * D
+
+    # creation of 'y' array
+    if ymax == 0.0:
+        ymax = 16 * y50
+
+    # Calculate Pmax from Matlock (1970)
+    Pmax_shallow = (3 + (sig/Sr) + (J/D)*X) * Sr * D
+    Pmax_deep = 9 * Sr * D
+    Pmax = min(Pmax_deep, Pmax_shallow)
+
+    # ylist_in = [0.0, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    ylist_in = [0.0, 0.001 * y50, 0.005 * y50, 0.008 * y50, 0.01 * y50, 0.02 * y50, 0.05 * y50, 0.08 * y50, 0.09 * y50, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    ylist_out = []
+    for i in range(len(ylist_in)):
+        if ylist_in[i] <= ymax:
+            ylist_out.append(ylist_in[i])
+
+    # determine y vector from 0 to ymax
+    y = np.array(ylist_out, dtype=np.float32)
+    add_values = output_length - len(y)
+    add_y_values = []
+    for _ in range(add_values):
+        add_y_values.append(0.1 * y50 + random() * (ymax - 0.1 * y50))
+    y = np.append(y, add_y_values)
+    y = np.sort(y)
+
+    # define p vector
+    # define p vector
+    p_wangReese = np.zeros(shape=len(y), dtype=np.float32)
+    p_Rollins = np.zeros(shape=len(y), dtype=np.float32)
+
+    for i in prange(len(y)):
+        # derive static curve Wang & Reese 1998
+        if y[i] > 8 * y50:
+            p_wangReese[i] = Pmax
+        else:
+            p_wangReese[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
+        
+        if (sig/10.0) > 6.0:
+            z_depth = 6.0
+        else:
+            z_depth = sig/10.0
+
+        # derive static curve Rollins 2005
+        A = (0.0000003) * ((z_depth + 1) ** 6.05)
+        B = 2.80 * ((z_depth + 1) ** 0.11)
+        C = 2.85 * ((z_depth + 1) ** -0.41)
+        
+        if D > 2.6:
+            p_d = 9.24
+        elif D > 0.3:
+            p_d = 3.81 * np.log(D) + 5.6
+        else:
+            p_d = (D / 0.3) * 3.81 * np.log(0.3) + 5.6
+
+        p_Rollins[i] = np.minimum((A * ((B * np.minimum(y[i] * 1000, 150)) ** C)), 15) * (p_d)
+
+        # modification of initial slope of the curve (DNVGL RP-C203 B.2.2.4)
+        # if y[i] == 0.1 * y50:
+        #     p[i] = 0.23 * Pmax
+
+        ## TODO: find the intersecting point and add to the p-y arrays
+
+    p = np.minimum(p_Rollins, p_wangReese)
+
+    return y, p
 
 @njit(parallel=True, cache=True)
 def reese_weakrock(

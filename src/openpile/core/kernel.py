@@ -228,6 +228,12 @@ def elem_mechanical_stiffness_matrix(model):
                 + nu**2 * (4 * a**4 + 16 * a**2 * b**2 + 4 * b**4)
             )
             kappa = nom / denom
+                        
+        elif model.pile.kind == "Solid-Circle":
+            nom = 6 * (1 + nu)
+            denom =  7 + 12*nu + 4*(nu**2)
+            kappa = nom / denom
+
         else:
             raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
     else:
@@ -408,12 +414,16 @@ def elem_mt_stiffness_matrix(model, u, kind):
                 + nu**2 * (4 * a**4 + 16 * a**2 * b**2 + 4 * b**4)
             )
             kappa = nom / denom
-
-            omega = E * I * kappa / (A * G * L**2)
+        
+        elif model.pile.kind == "Solid-Circle":
+            nom = 6 * (1 + nu)
+            denom =  7 + 12*nu + 4*(nu**2)
+            kappa = nom / denom
 
         else:
             raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
-
+        
+        omega = E * I * kappa / (A * G * L**2)
         phi = (12 * omega + 1) ** 2
 
         N = 0 * L
@@ -508,12 +518,16 @@ def elem_p_delta_stiffness_matrix(model, u):
                 + nu**2 * (4 * a**4 + 16 * a**2 * b**2 + 4 * b**4)
             )
             kappa = nom / denom
-
-            omega = E * I * kappa / (A * G * L**2)
+        
+        elif model.pile.kind == "Solid-Circle":
+            nom = 6 * (1 + nu)
+            denom =  7 + 12*nu + 4*(nu**2)
+            kappa = nom / denom
 
         else:
             raise ValueError("Timoshenko beams cannot be used yet for non-circular pile types")
-
+        
+        omega = E * I * kappa / (A * G * L**2)
         phi = (12 * omega + 1) ** 2
 
         N = 0 * L

@@ -1000,7 +1000,7 @@ class Model:
 
         def create_springs() -> np.ndarray:
             # dim of springs
-            spring_dim = 15
+            spring_dim = 1000
 
             # Allocate array
             py = np.zeros(shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32)

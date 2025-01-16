@@ -200,7 +200,7 @@ def api_sand(
     kind: str = "static",
     below_water_table: bool = True,
     ymax: float = 0.0,
-    output_length: int = 20,
+    output_length: int = 1000,
     georgiadis = False,
     d_adj = 0,
 ):
@@ -306,7 +306,7 @@ def api_clay(
     stiff_clay_threshold=96,
     kind: str = "static",
     ymax: float = 0.0,
-    output_length: int = 20,
+    output_length: int = 1000,
     georgiadis = False,
     d_adj = 0
 ):
@@ -367,7 +367,7 @@ def api_clay(
     Pmax_deep = 9 * Su * D
     Pmax = min(Pmax_deep, Pmax_shallow)
 
-    ylist_in = [0.0, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    ylist_in = [0.0, 0.001 * y50, 0.005 * y50, 0.008 * y50, 0.01 * y50, 0.02 * y50, 0.05 * y50, 0.08 * y50, 0.09 * y50, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
     ylist_out = []
     for i in range(len(ylist_in)):
         if ylist_in[i] <= ymax:
@@ -487,7 +487,8 @@ def frankeRollins2013(
     Pmax_deep = 9 * Sr * D
     Pmax = min(Pmax_deep, Pmax_shallow)
 
-    ylist_in = [0.0, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    # ylist_in = [0.0, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    ylist_in = [0.0, 0.001 * y50, 0.005 * y50, 0.008 * y50, 0.01 * y50, 0.02 * y50, 0.05 * y50, 0.08 * y50, 0.09 * y50, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
     ylist_out = []
     for i in range(len(ylist_in)):
         if ylist_in[i] <= ymax:

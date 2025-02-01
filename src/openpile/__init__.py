@@ -1,3 +1,1 @@
-from .globals import VERSION
-
-__version__ = VERSION
+__version__ = "0.8.0"

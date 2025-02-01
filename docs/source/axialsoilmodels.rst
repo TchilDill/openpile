@@ -10,7 +10,7 @@ The following axial models are included in openpile.
 API model
 ---------
 
-The axial  model calculates skin friction along the pile and end-bearing at pile tip.
+The axial model calculates skin friction along the pile and end-bearing at pile tip.
 
 OpenPile's use of this model is done by calling the following class in a layer:
 

@@ -7,16 +7,15 @@
 Welcome to OpenPile's documentation!
 ------------------------------------
 
-This package is an open source python library that provides users a toolbox for beam/pile calculations.
+This package is an open source python library that provides a toolbox for beam/pile calculations.
 
-This package allows the user to perform various pile calculations with more in-depth control:
+This package allows various pile calculations like:
 
-* Use basic Euler-Bernoulli beam theory to compute forces, deflection of a beam (or a pile) 
+* Finite Element calculations with 1D Beam elements (following Euler-Bernoulli or Timishenko beam theories) to compute forces, deformations 
   under adequate loading and support conditions.
-* Use Winkler's approach of a beam (or a pile) supported by linear or non-linear lateral and/or 
-  rotational springs to compute forces and deflection of the pile based on recognised 
-  soil models such as the widely used traditional API models for sand and clay or more recent models that stem from 
-  the PISA joint-industry project.
+* Winkler's approach of a beam supported by linear or non-linear springs
+* Supports springs over axial, lateral and roational degrees of freedoms
+* Common soil spring formulations to model soil structure interaction with the structure (a beam or pile)
 
 More details on how to use the library can be found in :ref:`usage`
 

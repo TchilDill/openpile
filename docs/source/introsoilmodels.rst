@@ -1,6 +1,6 @@
 
-Usage
-=====
+Introduction to soil models
+===========================
 
 The function :py:func:`openpile.utils.py_curves.[<py spring>]` generates the lateral springs (or p-y curve/spring) 
 for the relevant soil model. Similar modules exist for other types of springs:

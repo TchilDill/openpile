@@ -115,11 +115,6 @@ class PileSection(BaseModel, ABC):
 
     @property
     @abstractmethod
-    def footprint(self) -> float:
-        pass
-
-    @property
-    @abstractmethod
     def outer_perimeter(self) -> float:
         pass
 

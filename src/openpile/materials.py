@@ -7,22 +7,13 @@
 
 # Import libraries
 
-from typing import List, Dict, Optional, Union, Callable, Tuple, ClassVar
-from typing_extensions import Literal
 from pydantic import (
     BaseModel,
     Field,
-    PositiveFloat,
-    confloat,
-    conlist,
 )
-from pydantic.dataclasses import dataclass
-
 
 from abc import ABC
-from typing import List, Dict, Optional, Union
-from typing_extensions import Literal, Annotated, Optional
-from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AbstractPileMaterial(BaseModel, ABC):

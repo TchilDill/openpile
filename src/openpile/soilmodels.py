@@ -4,11 +4,6 @@
 
 """
 
-# Guide to create soil models
-# ---------------------------
-#
-#
-
 
 # Import libraries
 import math as m
@@ -2218,7 +2213,6 @@ class Custom_pisa_clay(LateralModel):
             raise ValueError("Spring elevation outside layer")
 
         y, p = py_curves.custom_pisa_clay(
-            sig=sig,
             Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
             G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
@@ -2252,7 +2246,6 @@ class Custom_pisa_clay(LateralModel):
             raise ValueError("Spring elevation outside layer")
 
         y, Hb = Hb_curves.custom_pisa_clay(
-            sig=sig,
             Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
             G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
@@ -2282,7 +2275,6 @@ class Custom_pisa_clay(LateralModel):
             raise ValueError("Spring elevation outside layer")
 
         _, p_array = py_curves.custom_pisa_clay(
-            sig=sig,
             Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
             G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,
@@ -2298,7 +2290,6 @@ class Custom_pisa_clay(LateralModel):
 
         for count, _ in enumerate(p_array):
             t[count, :], m[count] = mt_curves.custom_pisa_clay(
-                sig=sig,
                 Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
                 G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
                 D=D,
@@ -2336,7 +2327,6 @@ class Custom_pisa_clay(LateralModel):
             raise ValueError("Spring elevation outside layer")
 
         y, Mb = Mb_curves.custom_pisa_clay(
-            sig=sig,
             Su=get_value_at_current_depth(self.Su, depth_from_top_of_layer, layer_height, X),
             G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
             D=D,

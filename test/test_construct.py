@@ -1,5 +1,6 @@
 from openpile import construct
 from openpile.soilmodels import API_clay, API_sand
+from openpile.materials import PileMaterial
 
 import pytest
 import numpy as np
@@ -45,6 +46,25 @@ def circular_slender_pile():
         ],
     )
 
+
+class TestPileSection:
+
+    def test_pile_section(self):
+        section = construct.CircularPileSection(top=10, bottom=5, diameter=9.4, thickness=0.31)
+        assert section.width == 9.4
+        assert section.top == 10
+        assert section.bottom == 5
+        assert section.length == 5
+        
+    def test_elevations(self):
+        with pytest.raises(ValueError):
+            construct.CircularPileSection(top=-10, bottom=5, diameter=9.4, thickness=0.31)
+
+    def test_default_thickness(self):
+        section = construct.CircularPileSection(top=10, bottom=5, diameter=9)
+        assert section.thickness == 4.5
+        
+
 class TestPile:
     def test_main_constructor(self, offshore_wind_pile1):
         """Main constructor of Pile object, check if pile.data
@@ -55,6 +75,18 @@ class TestPile:
         assert offshore_wind_pile1.E == 210e6
         # check even numbers of row for dataframe
         assert offshore_wind_pile1.data.values.shape[0] % 2 == 0
+
+    def test_custom_material(self):
+        pile = construct.Pile(
+            name="",
+            material="Steel",
+            sections=[
+                construct.CircularPileSection(top=0.1, bottom=-9.9, diameter=8.0, thickness=0.07),
+            ],
+        )
+
+        assert pile.material.name == "Steel" 
+        assert isinstance(pile.material, PileMaterial) 
 
     def test_pile_width(self):
         pile = construct.Pile(

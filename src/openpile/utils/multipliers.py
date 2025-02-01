@@ -99,7 +99,7 @@ def durkhop_normalized(D: float, ra: float = 0.3) -> object:
     return func
 
 
-def get_cowden_clay_py_norm_param(D: float):
+def cowden_clay_py_pisa_norm_param(D: float):
     """function that returns the depth variation functions for the 4 normalized parameters
     of the cowden_clay p-y conic formulation as per [BHBG20]_.
 
@@ -117,7 +117,7 @@ def get_cowden_clay_py_norm_param(D: float):
     # normalized initial stiffness
     k_p1 = 10.6
     k_p2 = -1.650
-    k_func = lambda x: max(0.001, k_p1 + k_p2 * x / D)
+    k_func = lambda x: max(0.0001, k_p1 + k_p2 * x / D)
 
     # normalized curvature
     n_p1 = 0.9390
@@ -130,12 +130,12 @@ def get_cowden_clay_py_norm_param(D: float):
     # normalized peak resistance
     p_u1 = 10.7
     p_u2 = -7.101
-    Y_func = lambda x: max(0.001, p_u1 + p_u2 * m.exp(-0.3085 * x / D))
+    Y_func = lambda x: max(0.0001, p_u1 + p_u2 * m.exp(-0.3085 * x / D))
 
     return {"py_k": k_func, "py_n": n_func, "py_X": X_func, "py_Y": Y_func}
 
 
-def get_cowden_clay_mt_norm_param(D: float):
+def cowden_clay_mt_pisa_norm_param(D: float):
     """function that returns the depth variation functions for the 4 normalized parameters
     of the cowden_clay rotational spring conic formulation as per [BHBG20]_.
 
@@ -153,7 +153,7 @@ def get_cowden_clay_mt_norm_param(D: float):
     # normalized initial stiffness
     k_m1 = 1.420
     k_m2 = -0.09643
-    k_func = lambda x: max(0.001, k_m1 + k_m2 * x / D)
+    k_func = lambda x: max(0.0001, k_m1 + k_m2 * x / D)
 
     # normalized curvature
     n_func = lambda x: 0.0
@@ -161,15 +161,15 @@ def get_cowden_clay_mt_norm_param(D: float):
     # normalized peak resistance
     m_m1 = 0.2899
     m_m2 = -0.04775
-    Y_func = lambda x: max(0.001, m_m1 + m_m2 * x / D)
+    Y_func = lambda x: max(0.0001, m_m1 + m_m2 * x / D)
 
     # normalized displacement at peak resistance
-    X_func = lambda x: max(0.001, m_m1 + m_m2 * x / D) / max(0.001, k_m1 + k_m2 * x / D)
+    X_func = lambda x: max(0.0001, m_m1 + m_m2 * x / D) / max(0.0001, k_m1 + k_m2 * x / D)
 
     return {"mt_k": k_func, "mt_n": n_func, "mt_X": X_func, "mt_Y": Y_func}
 
 
-def get_cowden_clay_Hb_norm_param(D: float, L: float):
+def cowden_clay_Hb_pisa_norm_param(D: float, L: float):
     """function that returns the depth variation functions for the 4 normalized parameters
     of the cowden_clay base shear spring conic formulation as per [BHBG20]_.
 
@@ -189,7 +189,7 @@ def get_cowden_clay_Hb_norm_param(D: float, L: float):
     # normalized initial stiffness
     k_h1 = 2.717
     k_h2 = -0.3575
-    k_func = lambda x: max(0.001, k_h1 + k_h2 * L / D)
+    k_func = lambda x: max(0.0001, k_h1 + k_h2 * L / D)
 
     # normalized curvature
     n_h1 = 0.8793
@@ -199,7 +199,7 @@ def get_cowden_clay_Hb_norm_param(D: float, L: float):
     # normalized peak resistance
     p_u1 = 0.4038
     p_u2 = 0.04812
-    Y_func = lambda x: max(0.001, p_u1 + p_u2 * L / D)
+    Y_func = lambda x: max(0.0001, p_u1 + p_u2 * L / D)
 
     # normalized displacement at peak resistance
     X_func = lambda x: 235.7
@@ -207,7 +207,7 @@ def get_cowden_clay_Hb_norm_param(D: float, L: float):
     return {"Hb_k": k_func, "Hb_n": n_func, "Hb_X": X_func, "Hb_Y": Y_func}
 
 
-def get_cowden_clay_Mb_norm_param(D: float, L: float):
+def cowden_clay_Mb_pisa_norm_param(D: float, L: float):
     """function that returns the depth variation functions for the 4 normalized parameters
     of the cowden_clay base moment spring conic formulation as per [BHBG20]_.
 
@@ -227,7 +227,7 @@ def get_cowden_clay_Mb_norm_param(D: float, L: float):
     # normalized initial stiffness
     k_m1 = 0.2146
     k_m2 = -0.002132
-    k_func = lambda x: max(0.001, k_m1 + k_m2 * L / D)
+    k_func = lambda x: max(0.0001, k_m1 + k_m2 * L / D)
 
     # normalized curvature
     n_m1 = 1.079
@@ -237,7 +237,7 @@ def get_cowden_clay_Mb_norm_param(D: float, L: float):
     # normalized peak resistance
     m_m1 = 0.8192
     m_m2 = -0.08588
-    Y_func = lambda x: max(0.001, m_m1 + m_m2 * L / D)
+    Y_func = lambda x: max(0.0001, m_m1 + m_m2 * L / D)
 
     # normalized displacement at peak resistance
     X_func = lambda x: 173.1
@@ -245,7 +245,7 @@ def get_cowden_clay_Mb_norm_param(D: float, L: float):
     return {"Mb_k": k_func, "Mb_n": n_func, "Mb_X": X_func, "Mb_Y": Y_func}
 
 
-def get_dunkirk_sand_py_norm_param(D: float, L: float, Dr: float):
+def dunkirk_sand_py_pisa_norm_param(D: float, L: float, Dr: float):
     """function that returns the depth variation functions for the 4 normalized parameters
     of the dunkirk_sand p-y conic formulation as per [BTZA20]_.
 
@@ -285,7 +285,7 @@ def get_dunkirk_sand_py_norm_param(D: float, L: float, Dr: float):
     return {"py_k": k_func, "py_n": n_func, "py_X": X_func, "py_Y": Y_func}
 
 
-def get_dunkirk_sand_mt_norm_param(L: float, Dr: float):
+def dunkirk_sand_mt_pisa_norm_param(L: float, Dr: float):
     """function that returns the depth variation functions for the 4 normalized parameters
     of the dunkirk_sand rotational spring conic formulation as per [BTZA20]_.
 
@@ -321,7 +321,7 @@ def get_dunkirk_sand_mt_norm_param(L: float, Dr: float):
     return {"mt_k": k_func, "mt_n": n_func, "mt_X": X_func, "mt_Y": Y_func}
 
 
-def get_dunkirk_sand_Hb_norm_param(D: float, L: float, Dr: float):
+def dunkirk_sand_Hb_pisa_norm_param(D: float, L: float, Dr: float):
     """function that returns the depth variation functions for the 4 normalized parameters
     of the dunkirk_sand base shear spring conic formulation as per [BTZA20]_.
 
@@ -363,7 +363,7 @@ def get_dunkirk_sand_Hb_norm_param(D: float, L: float, Dr: float):
     return {"Hb_k": k_func, "Hb_n": n_func, "Hb_X": X_func, "Hb_Y": Y_func}
 
 
-def get_dunkirk_sand_Mb_norm_param(D: float, L: float, Dr: float):
+def dunkirk_sand_Mb_pisa_norm_param(D: float, L: float, Dr: float):
     """function that returns the depth variation functions for the 4 normalized parameters
     of the dunkirk_sand base moment spring conic formulation as per [BTZA20]_.
 

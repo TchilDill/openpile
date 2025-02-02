@@ -98,6 +98,44 @@ def durkhop_normalized(D: float, ra: float = 0.3) -> object:
 
     return func
 
+def dunkirk_sand_pisa_norm_param(D:float, L:float):
+    """function that returns the depth variation functions for all normalized parameters
+    of the dunkirk sand conic formulations as per [BTZA20]_.
+
+    Parameters
+    ----------
+    D : float
+        pile diameter [m]
+    L : float
+        pile embedment [m]
+    """
+
+    py = dunkirk_sand_py_pisa_norm_param(D=D)
+    mt = dunkirk_sand_mt_pisa_norm_param(D=D)
+    Hb = dunkirk_sand_Hb_pisa_norm_param(D=D,L=L)
+    Mb = dunkirk_sand_Mb_pisa_norm_param(D=D,L=L)
+    
+    return {**py, **mt, **Hb, **Mb}
+
+def cowden_clay_pisa_norm_param(D:float, L:float):
+    """function that returns the depth variation functions for all normalized parameters
+    of the cowden_clay conic formulations as per [BHBG20]_.
+
+    Parameters
+    ----------
+    D : float
+        pile diameter [m]
+    L : float
+        pile embedment [m]
+    """
+
+    py = cowden_clay_py_pisa_norm_param(D=D)
+    mt = cowden_clay_mt_pisa_norm_param(D=D)
+    Hb = cowden_clay_Hb_pisa_norm_param(D=D,L=L)
+    Mb = cowden_clay_Mb_pisa_norm_param(D=D,L=L)
+    
+    return {**py, **mt, **Hb, **Mb}
+
 
 def cowden_clay_py_pisa_norm_param(D: float):
     """function that returns the depth variation functions for the 4 normalized parameters

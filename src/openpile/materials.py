@@ -2,6 +2,36 @@
 `Materials` module
 ===================
 
+This module can be used to create new materials for structure components, e.g. a Pile object.
+
+Example
+-------
+
+.. doctest:
+
+    >>> from openpile.construct import Pile, CircularPileSection
+    >>> from openpile.materials import PileMaterial
+    >>> 
+    >>> # Create a Pile
+    ... pile = Pile(
+    ...     name = "",
+    ...     material=PileMaterial.custom(
+    ...         name="concrete",unitweight=25, young_modulus=30e6, poisson_ratio=0.15
+    ...         ),
+    ...     sections=[
+    ...         CircularPileSection(
+    ...             top=0, 
+    ...             bottom=-10, 
+    ...             diameter=1.0, 
+    ...             thickness=0.05
+    ...         ),
+    ...     ]
+    ... )
+    >>> pile.weight
+    37.30641276137878
+
+
+
 """
 
 
@@ -47,11 +77,7 @@ class PileMaterial(AbstractPileMaterial):
         cls, unitweight: float, young_modulus: float, poisson_ratio: float, name: str = "Custom"
     ):
         return cls(name=name, uw=unitweight, E=young_modulus, nu=poisson_ratio)
+    
 
-    @classmethod
-    def steel(cls):
-        return cls(name="Steel", uw=78.0, E=210e6, nu=0.3)
-
-    @classmethod
-    def concrete(cls):
-        return cls(name="Concrete", uw=24.0, E=30e6, nu=0.2)
+steel = PileMaterial(name="Steel", uw=78.0, E=210e6, nu=0.3)
+concrete = PileMaterial(name="Concrete", uw=24.0, E=30e6, nu=0.2)

@@ -34,35 +34,34 @@ def durkhop(D: float, ra: float = 0.3) -> object:
     Example
     -------
 
-    .. plot::    
+    .. plot::  
 
-        >>> import matplotlib.pyplot as plt
-        >>> from openpile.construct import Layer
-        >>> from openpile.utils import multipliers
-        >>> from openpile.soilmodels import API_sand 
-        >>> # settings for py curve generation
-        >>> kw = {'sig':50, 'X':5, 'layer_height':10, 'depth_from_top_of_layer':5, 'D':5, 'L':30}
-        >>> # a, b soil models are traditional cyclic and static API sand models
-        >>> a = API_sand(
-        ...     phi=33,
-        ...     kind="static",
-        ... )
-        >>> b = API_sand(
-        ...     phi=33,
-        ...     kind="cyclic",
-        ... )
-        >>> plt.plot(*a.py_spring_fct(**kw), label='static')
-        >>> plt.plot(*b.py_spring_fct(**kw), label='cyclic')
-        >>> # soil model c is the API sand model with `durkhop` multipliers
-        >>> for ra in [0.3,0.45,0.6,0.75,0.9]:
-        >>>     c = API_sand(
-        ...         phi=33,
-        ...         kind="cyclic",
-        ...         p_multiplier=multipliers.durkhop(D=7.0, ra=ra)
-        ...     )
-        >>>     plt.plot(*c.py_spring_fct(**kw), ':',label=f'Durkhop multipliers, ra={ra}') 
-        >>> plt.legend()
-
+        import matplotlib.pyplot as plt
+        from openpile.construct import Layer
+        from openpile.utils import multipliers
+        from openpile.soilmodels import API_sand 
+        # settings for py curve generation
+        kw = {'sig':50, 'X':5, 'layer_height':10, 'depth_from_top_of_layer':5, 'D':5, 'L':30}
+        # a, b soil models are traditional cyclic and static API sand models
+        a = API_sand(
+            phi=33,
+            kind="static",
+        )
+        b = API_sand(
+            phi=33,
+            kind="cyclic",
+        )
+        plt.plot(*a.py_spring_fct(**kw), label='static')
+        plt.plot(*b.py_spring_fct(**kw), label='cyclic')
+        # soil model c is the API sand model with `durkhop` multipliers
+        for ra in [0.3,0.45,0.6,0.75,0.9]:
+            c = API_sand(
+                phi=33,
+                kind="cyclic",
+                p_multiplier=multipliers.durkhop(D=7.0, ra=ra)
+            )
+            plt.plot(*c.py_spring_fct(**kw), ':',label=f'Durkhop multipliers, ra={ra}') 
+        plt.legend()
 
     Reference
     ---------

@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import openpile.utils.graphics as graphics
 
 from openpile.materials import PileMaterial
+import openpile.materials as materials
 from openpile.core import misc, _model_build
 from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
@@ -305,9 +306,9 @@ class Pile(AbstractPile):
     @model_validator(mode="after")
     def check_materials(self):
         if self.material == "Steel":
-            self.material = PileMaterial.steel()
+            self.material = materials.steel
         elif self.material == "Concrete":
-            self.material = PileMaterial.concrete()
+            self.material = materials.concrete
         return self
 
     @property

@@ -23,6 +23,7 @@ The minimum python version to use with Openpile >= 1.0.0 is python 3.8. Please a
 - The coordinate system follows now a more traditional approach, which still is a right-hand system however, the x and z components are swapped, this was done in order for soil springs which are called 't-z' and 'Q-z' by convention to be aligned with the coordinate system used in setting the boundary conditions. 
 - `openpile.construct.Model.get_py_springs()` and other related methods to extract springs have been updated to the following naming style: `.get_distributed_lateral_springs()`, see documentation for more details. 
 - The API clay model available until v0.7.1 has been decoupled to form the `API_clay` and the mofidied_Matlock models, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
+- The API sand model as well as API sand py curves now accepts a user-defined inital subgrade modulus value. If not provided, it reverts to the API definition based on friction angle.
 - functions found in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
 - module `openpile.analyze` object renamed to `openpile.winkler`.
 - class `AnalyzeResult` object renamed to `WinklerResult`.

@@ -1208,7 +1208,7 @@ class API_sand(LateralModel):
 
         #initial k
         if self.initial_subgrade_modulus is None:
-            subgrade_modulus = None
+            subgrade_modulus = 0.0
         else:
             subgrade_modulus_t, subgrade_modulus_b = from_list2x_parse_top_bottom(self.initial_subgrade_modulus)
             subgrade_modulus = subgrade_modulus_t + (subgrade_modulus_b - subgrade_modulus_t) * depth_from_top_of_layer / layer_height

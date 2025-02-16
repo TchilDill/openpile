@@ -199,6 +199,7 @@ def api_sand(
     D: float,
     kind: str = "static",
     below_water_table: bool = True,
+    initial_subgrade_modulus: float = None,
     ymax: float = 0.0,
     output_length: int = 20,
 ):
@@ -219,6 +220,8 @@ def api_sand(
         types of curves, can be of ("static","cyclic")
     below_water_table: bool, by default False
         switch to calculate initial subgrade modulus below/above water table
+    initial_subgrade_modulus: float, by default None
+        user-defined subgrade modulus [kN/m^3], if not stipulated, it is calculated as per API guidelines
     ymax: float, by default 0.0
         maximum value of y, default goes to 99.9% of ultimate resistance
     output_length: int, by default 20
@@ -238,10 +241,15 @@ def api_sand(
         A = 0.9
 
     # initial subgrade modulus in kpa from fit with API (2014)
-    if below_water_table:
-        k_phi = max((0.1978 * phi**2 - 10.232 * phi + 136.82) * 1000, 5400)
+    if initial_subgrade_modulus:
+        if not initial_subgrade_modulus > 0:
+            raise ValueError("'initial_subgrade_modulus' must be stricly positive.")
+        k_phi = initial_subgrade_modulus
     else:
-        k_phi = max((0.2153 * phi**2 - 8.232 * phi + 63.657) * 1000, 5400)
+        if below_water_table:
+            k_phi = max((0.1978 * phi**2 - 10.232 * phi + 136.82) * 1000, 5400)
+        else:
+            k_phi = max((0.2153 * phi**2 - 8.232 * phi + 63.657) * 1000, 5400)
 
     # Calculate Pmax (regular API)
     ## Factors according to Mosher and Dawkins 2008.(regular API)

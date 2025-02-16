@@ -1126,6 +1126,8 @@ class API_sand(LateralModel):
         types of curves, can be of ("static","cyclic")
     G0: float or list[top_value, bottom_value] or None
         Small-strain shear modulus [unit: kPa], by default None
+    initial_subgrade_modulus: float or list[top_value, bottom_value] or None
+        user-defined initial subgrade modulus  [unit: kN/m^3], by default None which default to API definition based on friction angle
     p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
@@ -1149,6 +1151,13 @@ class API_sand(LateralModel):
     kind: Literal["static", "cyclic"] = "static"
     #: small-strain stiffness [kPa], if a variation in values, two values can be given.
     G0: Optional[
+        Union[
+            Annotated[float, Field(gt=0.0)],
+            Annotated[List[PositiveFloat], Field(min_length=1, max_length=2)],
+        ]
+    ] = None
+    #: user-defined initial subgrade modulus [kN/m^3], if a variation in values, two values can be given.
+    initial_subgrade_modulus: Optional[
         Union[
             Annotated[float, Field(gt=0.0)],
             Annotated[List[PositiveFloat], Field(min_length=1, max_length=2)],
@@ -1197,6 +1206,13 @@ class API_sand(LateralModel):
         phi_t, phi_b = from_list2x_parse_top_bottom(self.phi)
         phi = phi_t + (phi_b - phi_t) * depth_from_top_of_layer / layer_height
 
+        #initial k
+        if self.initial_subgrade_modulus is None:
+            subgrade_modulus = None
+        else:
+            subgrade_modulus_t, subgrade_modulus_b = from_list2x_parse_top_bottom(self.initial_subgrade_modulus)
+            subgrade_modulus = subgrade_modulus_t + (subgrade_modulus_b - subgrade_modulus_t) * depth_from_top_of_layer / layer_height
+
         y, p = py_curves.api_sand(
             sig=sig,
             X=X,
@@ -1204,6 +1220,7 @@ class API_sand(LateralModel):
             D=D,
             kind=self.kind,
             below_water_table=below_water_table,
+            initial_subgrade_modulus=subgrade_modulus,
             ymax=ymax,
             output_length=output_length,
         )

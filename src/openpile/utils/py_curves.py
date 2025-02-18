@@ -331,8 +331,7 @@ def api_clay(
     output_length: int = 20,
 ):
     r"""
-    Creates the API clay p-y curve from relevant input.
-    The initil slope of the curve is taken as :math:`k_{initial} = \dfrac{0.23 P_{max}}{0.25*eps50*D}`
+    Creates the API clay p-y curve from API RP2GEO (2014) from relevant input.
 
     Parameters
     ----------
@@ -421,8 +420,9 @@ def api_clay(
                     p[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
 
         # modification of initial slope of the curve (DNVGL RP-C203 B.2.2.4)
-        if y[i] == 0.1 * y50:
-            p[i] = 0.23 * Pmax
+        if y[i] <= 0.1 * y50:
+            k = 0.23 * Pmax / (0.1 * y50)
+            p[i] = k * y[i]
 
     return y, p
 
@@ -488,7 +488,7 @@ def matlock_1970(
     Pmax_deep = 9 * Su * D
     Pmax = min(Pmax_deep, Pmax_shallow)
 
-    ylist_in = [0.0, 0.02 * y50, 0.10 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    ylist_in = [0.0, 0.01 * y50, 0.10 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
     ylist_out = []
     for i in range(len(ylist_in)):
         if ylist_in[i] <= ymax:
@@ -499,7 +499,7 @@ def matlock_1970(
     add_values = output_length - len(y)
     add_y_values = []
     for _ in range(add_values):
-        add_y_values.append(0.02 * y50 + random() * (8 - 0.02) * y50)
+        add_y_values.append(0.01 * y50 + random() * (8 - 0.01) * y50)
     y = np.append(y, add_y_values)
     y = np.sort(y)
 
@@ -594,7 +594,7 @@ def modified_Matlock(
     Pmax_deep = 9 * Su * D
     Pmax = min(Pmax_deep, Pmax_shallow)
 
-    ylist_in = [0.0, 0.02 * y50, 0.10 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    ylist_in = [0.0, 0.01 * y50, 0.10 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
     ylist_out = []
     for i in range(len(ylist_in)):
         if ylist_in[i] <= ymax:
@@ -605,7 +605,7 @@ def modified_Matlock(
     add_values = output_length - len(y)
     add_y_values = []
     for _ in range(add_values):
-        add_y_values.append(0.02 * y50 + random() * (8 - 0.02) * y50)
+        add_y_values.append(0.01 * y50 + random() * (8 - 0.01) * y50)
     y = np.append(y, add_y_values)
     y = np.sort(y)
 

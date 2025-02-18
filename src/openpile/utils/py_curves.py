@@ -190,6 +190,27 @@ def dunkirk_sand(
     return y * (sig * D / G0), p * (sig * D)
 
 
+def get_initial_subgrade_modulus_api_sand(phi:float, below_water_table:bool):
+    """Calculates the initial subgrade modulus 'k' in the API sand p-y curve.
+    The value calculated here is based on a visual fit. 
+
+    Parameters
+    ----------
+    phi : float
+        internal angle of friction in degrees
+    below_water_table : bool
+        whether the curve is below or above the water table
+
+    Returns
+    -------
+    float
+    """
+    if below_water_table:
+        return max((0.1978 * phi**2 - 10.232 * phi + 136.82) * 1000, 5400)
+    else:
+        return max((0.2153 * phi**2 - 8.232 * phi + 63.657) * 1000, 5400)
+
+
 # API sand function
 @njit(parallel=True, cache=True)
 def api_sand(

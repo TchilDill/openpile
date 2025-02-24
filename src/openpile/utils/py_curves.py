@@ -454,6 +454,113 @@ def api_clay(
     1darray
         p vector [unit: kN/m]
 
+    See also
+    --------
+    
+    :py:class:`openpile.soilmodels.API_clay`
+
+    Notes
+    -----
+
+    The p-y clay formulation is presented in both the API and DNVGL standards,
+    see [DNV-RP-C212]_ and [API2000]_. 
+
+    The **ultimate resistance** is calculated via the capacity of two failure mechanisms,
+    one that is shallow (wedge-type failure) and another that is deep (flow-around failure).
+
+    .. math::
+
+        P_{max} &= min(P_{shallow}, P_{deep})
+        \\\\
+        P_{shallow} &= D (3 S_u + \sigma^{\prime}) + J \cdot S_u \cdot X
+        \\\\
+        P_{deep} &=  9 \cdot S_u \cdot D
+
+    where: 
+
+    * :math:`S_u` is the undrained shear strßength in Unconfined and 
+      unconsolidated (UU) Trixial tests.
+    * :math:`\sigma^{\prime}` is the vertical effective stress.
+    * :math:`J` is an empirical factor determined by Matlock to fit results 
+      to pile load tests. This value can vary from 0.25 to 0.50 depending on 
+      the clay characteristics
+    * :math:`X` is the depth below ground level
+
+
+    **Strain normalization** is performed with a parameter :math:`y_{50}` that is used to scale the curve with respect
+    to the structure's scale.
+
+    .. math::
+
+        y_{50} = 2.5 \cdot \varepsilon_{50} \cdot D
+
+    where: 
+
+    * :math:`D` is the pile width or diameter
+    * :math:`\varepsilon_{50}` is the strain at 50% ultimate resistance
+      in Unconfined and unconsolidated (UU) Trixial tests.
+
+
+    A **transition zone** is defined which corresponds to the depth at which the failure 
+    around the pile is not governed by the free-field boundary, i.e. the ground level.
+    Below the transition zone, a flow-around type of failure.
+
+    The transition zone is defined by the following formula:
+
+    .. math::
+
+        X_R = \left( \frac{6 \cdot D}{\gamma^{\prime} \cdot \frac{D}{S_u} + J} \right) \ge  2.5 \cdot D
+
+    
+
+    The **initial stiffness** :math:`k_{ini}` is here capped from the Matlock original equation by:  
+
+    .. math::
+
+        k_{ini} = \dfrac{0.23 P_{max}}{0.1 y_{50}}
+
+
+    **p-y formulation (static loading, Neq = 1)**: 
+
+    .. math::
+
+        p = 
+        \begin{cases} 
+        \begin{split}
+        0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right)^{0.33} & \text{  for } y \le 8 y_{50} \\ 
+        \\
+        P_{max} & \text{  for } y \gt 8 y_{50}
+        \end{split}
+        \end{cases}  
+
+    **p-y formulation (cyclic loading, Neq > 1)** sveevd
+
+    .. math::
+
+        p = 
+        \begin{cases} 
+        \begin{split}
+        0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right)^{0.33} & \text{  for } y \le 3 y_{50} \\ 
+        \\
+        0.72 \cdot P_{max} & \text{  for } y \gt 3 y_{50}
+        \end{split}
+        \end{cases}  
+
+    For cyclic loading and curves above the transition zone ( i.e. :math:`X \le Xr`), 
+    the p-y curve can be generated according to: 
+
+    .. math::
+
+        p = 
+        \begin{cases} 
+        \begin{split}
+        0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right) & \text{  for } y \le 3 y_{50} \\ 
+        \\
+        0.72 \cdot P_{max} \left[ 1 - \left( 1 - \frac{X}{X_R} \right) \left( \frac{y - 3 y_{50}}{12 y_{50}} \right)  \right] & \text{  for } 3 y_{50} \lt y \le 15 y_{50} \\
+        \\
+        0.72 \cdot P_{max} \left( \frac{X}{X_R} \right) & \text{  for } y \gt 15 y_{50} \\
+        \end{split}
+        \end{cases}  
     """
     # important variables
     y50 = 2.5 * eps50 * D
@@ -535,7 +642,7 @@ def matlock_1970(
     output_length: int = 20,
 ):
     r"""
-    Creates the original clay p-y curve from the work performed by Matlock in 1970.
+    Creates the original clay p-y curve from the work performed by [Matl70]_.
 
     Parameters
     ----------
@@ -565,6 +672,13 @@ def matlock_1970(
     1darray
         p vector [unit: kN/m]
 
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.api_clay`
+
+    Notes
+    -----
+    See notes in :py:func:`openpile.utils.py_curves.api_clay`
     """
     # important variables
     y50 = 2.5 * eps50 * D
@@ -672,6 +786,22 @@ def modified_Matlock(
     1darray
         p vector [unit: kN/m]
 
+    
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.api_clay`
+
+    Notes
+    -----
+    
+    For an undrained shear strength of 96 kPa (assumed as the threshold at which a clay is considered stiff), 
+    this formulation may be deemed more relevant to account for a more brittle fracture and degradation 
+    of the soil, see [BaCA06]_.
+
+    .. figure:: _static/schematic_curves.png
+        :width: 80%
+
+        Schematic of soft and stiff clay response, after [BaCA06]_.
     """
     # important variables
     y50 = 2.5 * eps50 * D

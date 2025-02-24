@@ -2,6 +2,11 @@
 `SoilModels` module
 ===================
 
+This module comprises of the SOil Models available in OpenPile. 
+`openpile.soilmodels.LateralModel` and `openpile.soilmodels.AxialModel` are defined  here in this module and can be called to
+a :class:`openpile.construct.Layer` with the `lateral_model` or `axial_model` argument.
+
+
 Lateral soil models
 -------------------
 

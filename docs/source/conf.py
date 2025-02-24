@@ -24,12 +24,11 @@ release = __version__
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "sphinx.ext.napoleon",  # support for numpy and google docstrings
     "sphinx.ext.autodoc",
     "sphinx.ext.githubpages",
-    "sphinx.ext.napoleon",  # support for numpy and google docstrings
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
-    "sphinx.ext.autodoc",
     "sphinx.ext.todo",
     "sphinx_copybutton",
     "sphinx.ext.doctest",
@@ -44,6 +43,9 @@ autodoc_default_options = {
     "exclude-members": "__weakref__",
     "show-inheritance": False,
 }
+
+napoleon_numpy_docstring = True
+napoleon_custom_sections = ['Theory']
 
 auoclass_content = "class"
 # Automatically extract typehints when specified and place them in

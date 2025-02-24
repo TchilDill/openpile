@@ -2,6 +2,19 @@
 `SoilModels` module
 ===================
 
+Lateral soil models
+-------------------
+
+The following lateral models are included in openpile. 
+
+* :class:`openpile.soilmodels.API_sand`
+* :class:`openpile.soilmodels.API_clay`
+* :class:`openpile.soilmodels.Modified_Matlock_clay`
+* :class:`openpile.soilmodels.Reese_weakrock`
+* :class:`openpile.soilmodels.Dunkirk_sand`
+* :class:`openpile.soilmodels.Cowden_clay`
+* :class:`openpile.soilmodels.Custom_pisa_sand`
+* :class:`openpile.soilmodels.Custom_pisa_clay`
 """
 
 
@@ -1117,6 +1130,15 @@ class Dunkirk_sand(LateralModel):
 
 class API_sand(LateralModel):
     """A class to establish the API sand model.
+
+
+    The API sand soil model is based on the publication by 
+    O'neill and Murchison, preceded by work from Reese, L.C. and others (
+    see [MuOn83]_ and [MuOn84]_). 
+
+    This soil model provides soil springs as given by the function(s):
+
+    * :py:func:`openpile.utils.py_curves.api_sand`
 
     Parameters
     ----------

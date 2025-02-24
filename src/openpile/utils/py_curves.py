@@ -45,7 +45,6 @@ def bothkennar_clay(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
-
     """
 
     # # Bothkennar clay parameters
@@ -102,7 +101,7 @@ def cowden_clay(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
-
+    
     """
 
     # # Cowden clay parameters
@@ -204,6 +203,7 @@ def get_initial_subgrade_modulus_api_sand(phi:float, below_water_table:bool):
     Returns
     -------
     float
+        initial subgrade modulus [kN/m^3]
     """
     if below_water_table:
         return max((0.1978 * phi**2 - 10.232 * phi + 136.82) * 1000, 5400)
@@ -220,13 +220,13 @@ def api_sand(
     D: float,
     kind: str = "static",
     below_water_table: bool = True,
-    initial_subgrade_modulus: float = 0.0,
+    k: float = 0.0,
     ymax: float = 0.0,
     output_length: int = 20,
 ):
-    """
-    Creates the API sand p-y curve from relevant input.
+    r"""Creates the API sand p-y curve from relevant input.
 
+    
     Parameters
     ----------
     sig: float
@@ -241,8 +241,8 @@ def api_sand(
         types of curves, can be of ("static","cyclic")
     below_water_table: bool, by default False
         switch to calculate initial subgrade modulus below/above water table
-    initial_subgrade_modulus: float, by default 0.0
-        user-defined subgrade modulus [kN/m^3], if kept as zero, it is calculated as per API guidelines
+    k: float, by default 0.0
+        user-defined initial subgrade modulus [kN/m^3], if kept as zero, it is calculated as per API guidelines, see Notes below
     ymax: float, by default 0.0
         maximum value of y, default goes to 99.9% of ultimate resistance
     output_length: int, by default 20
@@ -254,6 +254,99 @@ def api_sand(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
+
+        
+    Notes
+    -----
+
+    **p-y formulation**
+
+    The API sand formulation is presented in both the API and DNVGL standards,
+    see, [DNV-RP-C212]_ and [API2000]_.
+
+    Granular soils are modelled by the sand p-y model as described 
+    with the following backbone formula:
+    
+    .. math::
+
+        p = A \cdot P_{max} \cdot \tanh \left( \frac{k \cdot X}{A \cdot P_{max} }  y \right) 
+
+    where:
+
+    * :math:`A` is a factor to account for static of cyclic loading 
+    * :math:`P_{max}` is the ultimate resistance of the p-y curve 
+    * :math:`k` is the initial modulus of subgrade reaction
+    * :math:`X` is the depth below mudline of the p-y curve.
+
+    
+    **Factor A**
+
+    The factor A takes into account whether the curve represent 
+    static(also called monotonic) or cycling loading and is equal to:
+
+    .. math::
+
+        A = 
+        \begin{cases} 
+        \begin{split}
+        0.9 & \text{  for cyclic loading} \\ 
+        \\
+        3 - 0.8 \frac{X}{D} \ge 0.9 & \text{  for static loading}
+            \end{split}
+        \end{cases}
+
+    where:
+
+    * :math:`D` is the pile diameter. 
+    
+    **Initial subgrade reaction**
+
+    The factor k is the initial modulus of subgrade reaction, which is 
+    approximated by the following equation in which the output is given in kN/m³ 
+    and where :math:`\phi` is inserted in degrees: 
+
+    .. math::
+
+        k = 
+        \begin{cases} 
+        \begin{split}
+        197.8 \cdot \phi^2 - 10232 \cdot \phi + 136820 \ge 5400 & \text{ ,  below water table} \\ 
+        \\
+        215.3 \cdot \phi^2 - 8232 \cdot \phi + 63657 \ge 5400  & \text{ ,  above water table}
+        \end{split}
+        \end{cases}
+
+    The equation is a fit to the recommended values in [API2000]_.  The correspondence 
+    of this fit is illustrated in below figure:
+
+    .. figure:: /_static/py_API_sand/k_vs_phi.jpg
+        :width: 80%
+
+        Subgrade reaction moduli fits calculated by openpile.
+
+
+    **Ultimate resistance**
+
+    The ultimate resistance :math:`P_{max}` is calculated via the coefficients C1, C2 and C3 found 
+    in the below figure. 
+
+    .. figure:: _static/py_API_sand/C_coeffs_graph.jpg
+        :width: 80%
+
+        Coefficients to calculate the maximum resistance. (as given in [MuOn84]_) 
+
+    The Ultimate resistance is found via the below equation:
+
+    .. math::
+
+        P_{max} = \left( 
+            C1 \cdot \sigma^{\prime} \cdot X + C2 \cdot \sigma^{\prime} \cdot D \right) \lt
+            C3 \cdot \sigma^{\prime} \cdot D 
+
+    where:
+
+    * :math:`\sigma^{\prime}` is the vertical effective stress
+
     """
     # A value - only thing that changes between cyclic or static
     if kind == "static":
@@ -262,10 +355,10 @@ def api_sand(
         A = 0.9
 
     # initial subgrade modulus in kpa from fit with API (2014)
-    if initial_subgrade_modulus != 0:
-        if initial_subgrade_modulus < 0:
+    if k != 0:
+        if k < 0:
             raise ValueError("'initial_subgrade_modulus' must be stricly positive.")
-        k_phi = initial_subgrade_modulus
+        k_phi = k
     else:
         if below_water_table:
             k_phi = max((0.1978 * phi**2 - 10.232 * phi + 136.82) * 1000, 5400)
@@ -360,6 +453,7 @@ def api_clay(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
+
     """
     # important variables
     y50 = 2.5 * eps50 * D
@@ -470,6 +564,7 @@ def matlock_1970(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
+
     """
     # important variables
     y50 = 2.5 * eps50 * D
@@ -576,6 +671,7 @@ def modified_Matlock(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
+
     """
     # important variables
     y50 = 2.5 * eps50 * D

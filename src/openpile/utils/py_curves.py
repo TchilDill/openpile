@@ -136,7 +136,7 @@ def dunkirk_sand(
     L: float,
     output_length: int = 20,
 ):
-    """
+    r"""
     Creates a lateral spring from the PISA sand formulation
     published  by Burd et al (2020) (see [BTZA20]_).
     Also called the General Dunkirk Sand Model (GDSM).
@@ -164,6 +164,17 @@ def dunkirk_sand(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
+
+    Notes
+    -----
+
+    The curve backbone is defined as a conic function, see below.
+
+    .. figure:: _static/PISA_conic_function.png 
+        :width: 80%
+
+        PISA Conic function: (a) conic form; (b) bilinear form, after [BHBG20]_.
+
     """
     # correct relative density for decimal value
     Dr = Dr / 100
@@ -258,94 +269,88 @@ def api_sand(
         
     Notes
     -----
-
-    **p-y formulation**
-
-    The API sand formulation is presented in both the API and DNVGL standards,
-    see, [DNV-RP-C212]_ and [API2000]_.
-
-    Granular soils are modelled by the sand p-y model as described 
-    with the following backbone formula:
     
-    .. math::
+    p-y formulation
+        The API sand **p-y formulation** is presented in both the API and DNVGL standards,
+        see, [DNV-RP-C212]_ and [API2000]_.
 
-        p = A \cdot P_{max} \cdot \tanh \left( \frac{k \cdot X}{A \cdot P_{max} }  y \right) 
+        Granular soils are modelled by the sand p-y model as described 
+        with the following backbone formula:
+        
+        .. math::
 
-    where:
+            p = A \cdot P_{max} \cdot \tanh \left( \frac{k \cdot X}{A \cdot P_{max} }  y \right) 
 
-    * :math:`A` is a factor to account for static of cyclic loading 
-    * :math:`P_{max}` is the ultimate resistance of the p-y curve 
-    * :math:`k` is the initial modulus of subgrade reaction
-    * :math:`X` is the depth below mudline of the p-y curve.
+        where:
 
+        * :math:`A` is a factor to account for static of cyclic loading 
+        * :math:`P_{max}` is the ultimate resistance of the p-y curve 
+        * :math:`k` is the initial modulus of subgrade reaction
+        * :math:`X` is the depth below mudline of the p-y curve.
+
+    Factor A
+        The factor A takes into account whether the curve represent 
+        static(also called monotonic) or cycling loading and is equal to:
+
+        .. math::
+
+            A = 
+            \begin{cases} 
+            \begin{split}
+            0.9 & \text{  for cyclic loading} \\ 
+            \\
+            3 - 0.8 \frac{X}{D} \ge 0.9 & \text{  for static loading}
+                \end{split}
+            \end{cases}
+
+        where:
+
+        * :math:`D` is the pile diameter. 
     
-    **Factor A**
+    Initial subgrade reaction modulus
+        The initial subgrade reaction, represented by the factor k is
+        approximated by the following equation in which the output is given in kN/m³ 
+        and where :math:`\phi` is inserted in degrees: 
 
-    The factor A takes into account whether the curve represent 
-    static(also called monotonic) or cycling loading and is equal to:
+        .. math::
 
-    .. math::
-
-        A = 
-        \begin{cases} 
-        \begin{split}
-        0.9 & \text{  for cyclic loading} \\ 
-        \\
-        3 - 0.8 \frac{X}{D} \ge 0.9 & \text{  for static loading}
+            k = 
+            \begin{cases} 
+            \begin{split}
+            197.8 \cdot \phi^2 - 10232 \cdot \phi + 136820 \ge 5400 & \text{ ,  below water table} \\ 
+            \\
+            215.3 \cdot \phi^2 - 8232 \cdot \phi + 63657 \ge 5400  & \text{ ,  above water table}
             \end{split}
-        \end{cases}
+            \end{cases}
 
-    where:
+        The equation is a fit to the recommended values in [API2000]_.  The correspondence 
+        of this fit is illustrated in below figure:
 
-    * :math:`D` is the pile diameter. 
-    
-    **Initial subgrade reaction**
+        .. figure:: /_static/py_API_sand/k_vs_phi.jpg
+            :width: 80%
 
-    The factor k is the initial modulus of subgrade reaction, which is 
-    approximated by the following equation in which the output is given in kN/m³ 
-    and where :math:`\phi` is inserted in degrees: 
+            Subgrade reaction moduli fits calculated by openpile.
 
-    .. math::
+    Ultimate resistance
+        The ultimate resistance :math:`P_{max}` is calculated via the coefficients C1, C2 and C3 found 
+        in the below figure. 
 
-        k = 
-        \begin{cases} 
-        \begin{split}
-        197.8 \cdot \phi^2 - 10232 \cdot \phi + 136820 \ge 5400 & \text{ ,  below water table} \\ 
-        \\
-        215.3 \cdot \phi^2 - 8232 \cdot \phi + 63657 \ge 5400  & \text{ ,  above water table}
-        \end{split}
-        \end{cases}
+        .. figure:: _static/py_API_sand/C_coeffs_graph.jpg
+            :width: 80%
 
-    The equation is a fit to the recommended values in [API2000]_.  The correspondence 
-    of this fit is illustrated in below figure:
+            Coefficients to calculate the maximum resistance. (as given in [MuOn84]_) 
 
-    .. figure:: /_static/py_API_sand/k_vs_phi.jpg
-        :width: 80%
+        The ultimate resistance is found via the below equation:
 
-        Subgrade reaction moduli fits calculated by openpile.
+        .. math::
 
+            P_{max} = \left( 
+                C1 \cdot \sigma^{\prime} \cdot X + C2 \cdot \sigma^{\prime} \cdot D \right) \lt
+                C3 \cdot \sigma^{\prime} \cdot D 
 
-    **Ultimate resistance**
+        where:
 
-    The ultimate resistance :math:`P_{max}` is calculated via the coefficients C1, C2 and C3 found 
-    in the below figure. 
-
-    .. figure:: _static/py_API_sand/C_coeffs_graph.jpg
-        :width: 80%
-
-        Coefficients to calculate the maximum resistance. (as given in [MuOn84]_) 
-
-    The Ultimate resistance is found via the below equation:
-
-    .. math::
-
-        P_{max} = \left( 
-            C1 \cdot \sigma^{\prime} \cdot X + C2 \cdot \sigma^{\prime} \cdot D \right) \lt
-            C3 \cdot \sigma^{\prime} \cdot D 
-
-    where:
-
-    * :math:`\sigma^{\prime}` is the vertical effective stress
+        * :math:`\sigma^{\prime}` is the vertical effective stress
 
     """
     # A value - only thing that changes between cyclic or static
@@ -462,105 +467,106 @@ def api_clay(
     Notes
     -----
 
-    The p-y clay formulation is presented in both the API and DNVGL standards,
-    see [DNV-RP-C212]_ and [API2000]_. 
+    p-y formulation
+        The p-y clay formulation is presented in both the API and DNVGL standards,
+        see [DNV-RP-C212]_ and [API2000]_. 
 
-    The **ultimate resistance** is calculated via the capacity of two failure mechanisms,
-    one that is shallow (wedge-type failure) and another that is deep (flow-around failure).
+        The **ultimate resistance** is calculated via the capacity of two failure mechanisms,
+        one that is shallow (wedge-type failure) and another that is deep (flow-around failure).
 
-    .. math::
+        .. math::
 
-        P_{max} &= min(P_{shallow}, P_{deep})
-        \\\\
-        P_{shallow} &= D (3 S_u + \sigma^{\prime}) + J \cdot S_u \cdot X
-        \\\\
-        P_{deep} &=  9 \cdot S_u \cdot D
+            P_{max} &= min(P_{shallow}, P_{deep})
+            \\\\
+            P_{shallow} &= D (3 S_u + \sigma^{\prime}) + J \cdot S_u \cdot X
+            \\\\
+            P_{deep} &=  9 \cdot S_u \cdot D
 
-    where: 
+        where: 
 
-    * :math:`S_u` is the undrained shear strßength in Unconfined and 
-      unconsolidated (UU) Trixial tests.
-    * :math:`\sigma^{\prime}` is the vertical effective stress.
-    * :math:`J` is an empirical factor determined by Matlock to fit results 
-      to pile load tests. This value can vary from 0.25 to 0.50 depending on 
-      the clay characteristics
-    * :math:`X` is the depth below ground level
+        * :math:`S_u` is the undrained shear strßength in Unconfined and 
+        unconsolidated (UU) Trixial tests.
+        * :math:`\sigma^{\prime}` is the vertical effective stress.
+        * :math:`J` is an empirical factor determined by Matlock to fit results 
+        to pile load tests. This value can vary from 0.25 to 0.50 depending on 
+        the clay characteristics
+        * :math:`X` is the depth below ground level
 
+    Strain normalization
+        Strain normalization is performed with a parameter :math:`y_{50}` that is used to scale the curve with respect
+        to the structure's scale.
 
-    **Strain normalization** is performed with a parameter :math:`y_{50}` that is used to scale the curve with respect
-    to the structure's scale.
+        .. math::
 
-    .. math::
+            y_{50} = 2.5 \cdot \varepsilon_{50} \cdot D
 
-        y_{50} = 2.5 \cdot \varepsilon_{50} \cdot D
+        where: 
 
-    where: 
+        * :math:`D` is the pile width or diameter
+        * :math:`\varepsilon_{50}` is the strain at 50% ultimate resistance
+          in Unconfined and unconsolidated (UU) Triaxial tests.
 
-    * :math:`D` is the pile width or diameter
-    * :math:`\varepsilon_{50}` is the strain at 50% ultimate resistance
-      in Unconfined and unconsolidated (UU) Trixial tests.
+    Transition zone
+        A transition zone is defined which corresponds to the depth at which the failure 
+        around the pile is not governed by the free-field boundary, i.e. the ground level.
+        Below the transition zone, a flow-around type of failure.
 
+        The transition zone is defined by the following formula:
 
-    A **transition zone** is defined which corresponds to the depth at which the failure 
-    around the pile is not governed by the free-field boundary, i.e. the ground level.
-    Below the transition zone, a flow-around type of failure.
+        .. math::
 
-    The transition zone is defined by the following formula:
-
-    .. math::
-
-        X_R = \left( \frac{6 \cdot D}{\gamma^{\prime} \cdot \frac{D}{S_u} + J} \right) \ge  2.5 \cdot D
+            X_R = \left( \frac{6 \cdot D}{\gamma^{\prime} \cdot \frac{D}{S_u} + J} \right) \ge  2.5 \cdot D
 
     
+    Initial stiffness of p-y curve
+        The initial stiffness :math:`k_{ini}` is here capped from the Matlock original equation by:  
 
-    The **initial stiffness** :math:`k_{ini}` is here capped from the Matlock original equation by:  
+        .. math::
 
-    .. math::
-
-        k_{ini} = \dfrac{0.23 P_{max}}{0.1 y_{50}}
+            k_{ini} = \dfrac{0.23 P_{max}}{0.1 y_{50}}
 
 
-    **p-y formulation (static loading, Neq = 1)**: 
+    p-y formulation (static loading, Neq = 1) 
 
-    .. math::
+        .. math::
 
-        p = 
-        \begin{cases} 
-        \begin{split}
-        0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right)^{0.33} & \text{  for } y \le 8 y_{50} \\ 
-        \\
-        P_{max} & \text{  for } y \gt 8 y_{50}
-        \end{split}
-        \end{cases}  
+            p = 
+            \begin{cases} 
+            \begin{split}
+            0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right)^{0.33} & \text{  for } y \le 8 y_{50} \\ 
+            \\
+            P_{max} & \text{  for } y \gt 8 y_{50}
+            \end{split}
+            \end{cases}  
 
-    **p-y formulation (cyclic loading, Neq > 1)** sveevd
+    p-y formulation (cyclic loading, Neq > 1)
 
-    .. math::
+        .. math::
 
-        p = 
-        \begin{cases} 
-        \begin{split}
-        0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right)^{0.33} & \text{  for } y \le 3 y_{50} \\ 
-        \\
-        0.72 \cdot P_{max} & \text{  for } y \gt 3 y_{50}
-        \end{split}
-        \end{cases}  
+            p = 
+            \begin{cases} 
+            \begin{split}
+            0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right)^{0.33} & \text{  for } y \le 3 y_{50} \\ 
+            \\
+            0.72 \cdot P_{max} & \text{  for } y \gt 3 y_{50}
+            \end{split}
+            \end{cases}  
 
-    For cyclic loading and curves above the transition zone ( i.e. :math:`X \le Xr`), 
-    the p-y curve can be generated according to: 
+        For cyclic loading and curves above the transition zone ( i.e. :math:`X \le Xr`), 
+        the p-y curve can be generated according to: 
 
-    .. math::
+        .. math::
 
-        p = 
-        \begin{cases} 
-        \begin{split}
-        0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right) & \text{  for } y \le 3 y_{50} \\ 
-        \\
-        0.72 \cdot P_{max} \left[ 1 - \left( 1 - \frac{X}{X_R} \right) \left( \frac{y - 3 y_{50}}{12 y_{50}} \right)  \right] & \text{  for } 3 y_{50} \lt y \le 15 y_{50} \\
-        \\
-        0.72 \cdot P_{max} \left( \frac{X}{X_R} \right) & \text{  for } y \gt 15 y_{50} \\
-        \end{split}
-        \end{cases}  
+            p = 
+            \begin{cases} 
+            \begin{split}
+            0.5 \cdot P_{max} \left( \frac{y}{y_{50}} \right) & \text{  for } y \le 3 y_{50} \\ 
+            \\
+            0.72 \cdot P_{max} \left[ 1 - \left( 1 - \frac{X}{X_R} \right) \left( \frac{y - 3 y_{50}}{12 y_{50}} \right)  \right] & \text{  for } 3 y_{50} \lt y \le 15 y_{50} \\
+            \\
+            0.72 \cdot P_{max} \left( \frac{X}{X_R} \right) & \text{  for } y \gt 15 y_{50} \\
+            \end{split}
+            \end{cases}  
     """
     # important variables
     y50 = 2.5 * eps50 * D
@@ -789,19 +795,21 @@ def modified_Matlock(
     
     See also
     --------
-    :py:func:`openpile.utils.py_curves.api_clay`
+    :py:func:`openpile.utils.py_curves.api_clay`, :py:func:`openpile.utils.py_curves.matlock_1970` 
 
     Notes
     -----
     
-    For an undrained shear strength of 96 kPa (assumed as the threshold at which a clay is considered stiff), 
-    this formulation may be deemed more relevant to account for a more brittle fracture and degradation 
-    of the soil, see [BaCA06]_.
 
-    .. figure:: _static/schematic_curves.png
-        :width: 80%
+    Differences with standard Matlock (1970) formula
+        For an undrained shear strength of 96 kPa (assumed as the threshold at which a clay is considered stiff), 
+        this formulation may be deemed more relevant to account for a more brittle fracture and degradation 
+        of the soil, see [BaCA06]_.
 
-        Schematic of soft and stiff clay response, after [BaCA06]_.
+        .. figure:: _static/schematic_curves.png
+            :width: 80%
+
+            Schematic of original (soft clay response) and modified (stiff clay response), after [BaCA06]_.
     """
     # important variables
     y50 = 2.5 * eps50 * D

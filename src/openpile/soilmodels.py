@@ -1247,7 +1247,7 @@ class API_sand(LateralModel):
             D=D,
             kind=self.kind,
             below_water_table=below_water_table,
-            initial_subgrade_modulus=subgrade_modulus,
+            k=subgrade_modulus,
             ymax=ymax,
             output_length=output_length,
         )

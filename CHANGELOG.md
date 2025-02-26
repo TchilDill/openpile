@@ -27,6 +27,7 @@ The minimum python version to use with Openpile >= 1.0.0 is python 3.8. Please a
 - functions found in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
 - module `openpile.analyze` object renamed to `openpile.winkler`.
 - class `AnalyzeResult` object renamed to `WinklerResult`.
+- module `openpile.multipliers` object renamed to `openpile.hooks`.
 
 ### Deleted
 - The functions `openpile.analyze.simple_beam_analysis()` and `openpile.analyze.simple_winkler_analysis()` are now removed from the code.

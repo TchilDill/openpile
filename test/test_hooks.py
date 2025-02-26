@@ -2,7 +2,7 @@ import pytest
 from openpile.construct import Pile, SoilProfile, Layer, Model
 from openpile.soilmodels import API_sand
 from openpile.winkler import winkler
-from openpile.utils.multipliers import durkhop
+from openpile.utils.hooks import durkhop
 
 import math as m
 

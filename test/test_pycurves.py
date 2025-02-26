@@ -141,11 +141,11 @@ def test_get_initial_subgrade_modulus():
     for phi in [28,30,35,40,42]:
         
         y, p = py.api_sand(50,5,phi,4)
-        y1, p1 = py.api_sand(50,5,phi,4, initial_subgrade_modulus=py.get_initial_subgrade_modulus_api_sand(phi,True))
+        y1, p1 = py.api_sand(50,5,phi,4, k=py.get_initial_subgrade_modulus_api_sand(phi,True))
         assert y1[1] == y[1]
         assert p1[1] == p[1]
         
         y, p = py.api_sand(50,5,phi,4, below_water_table=False)
-        y1, p1 = py.api_sand(50,5,phi,4, initial_subgrade_modulus=py.get_initial_subgrade_modulus_api_sand(phi,False))
+        y1, p1 = py.api_sand(50,5,phi,4, k=py.get_initial_subgrade_modulus_api_sand(phi,False))
         assert y1[1] == y[1]
         assert p1[1] == p[1]

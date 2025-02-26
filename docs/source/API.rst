@@ -43,7 +43,7 @@ API
     :exclude-members: random
 
 
-.. automodule:: openpile.utils.multipliers
+.. automodule:: openpile.utils.hooks
     :members:
     :exclude-members: 
 

@@ -1,5 +1,5 @@
 """
-`multipliers` module
+`hooks` module
 ====================
 
 
@@ -38,7 +38,7 @@ def durkhop(D: float, ra: float = 0.3) -> object:
 
         import matplotlib.pyplot as plt
         from openpile.construct import Layer
-        from openpile.utils import multipliers
+        from openpile.utils import hooks
         from openpile.soilmodels import API_sand 
         # settings for py curve generation
         kw = {'sig':50, 'X':5, 'layer_height':10, 'depth_from_top_of_layer':5, 'D':5, 'L':30}
@@ -58,7 +58,7 @@ def durkhop(D: float, ra: float = 0.3) -> object:
             c = API_sand(
                 phi=33,
                 kind="cyclic",
-                p_multiplier=multipliers.durkhop(D=7.0, ra=ra)
+                p_multiplier=hooks.durkhop(D=7.0, ra=ra)
             )
             plt.plot(*c.py_spring_fct(**kw), ':',label=f'Durkhop multipliers, ra={ra}') 
         plt.legend()
@@ -103,7 +103,7 @@ def durkhop_normalized(D: float, ra: float = 0.3) -> object:
 
     See also
     --------
-    `openpile.utils.multipliers.durkhop`
+    `openpile.utils.hooks.durkhop`
     """
 
     func = lambda x: 0.9 / max(0.9, ra * (3 - 1.143 * x / D) + 0.343 * x / D)

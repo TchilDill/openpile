@@ -451,3 +451,34 @@ def dunkirk_sand_Mb_pisa_norm_param(D: float, L: float, Dr: float):
     X_func = lambda x: 44.89
 
     return {"Mb_k": k_func, "Mb_n": n_func, "Mb_X": X_func, "Mb_Y": Y_func}
+
+
+class InitialSubgradeReaction:
+    """This class stores functions that calculate the initial 
+    subgrade modulus of soil reaction curves.
+
+    This class includes functions to calculate the initial subgrade reaction of py curves for sand.
+
+
+    """
+    @staticmethod
+    def api_sand(phi:float, below_water_table:bool):
+        """Calculates the initial subgrade modulus 'k' in the API sand p-y curve.
+        The value calculated here is based on a visual fit. 
+
+        Parameters
+        ----------
+        phi : float
+            internal angle of friction in degrees
+        below_water_table : bool
+            whether the curve is below or above the water table
+
+        Returns
+        -------
+        float
+            initial subgrade modulus [kN/m^3]
+        """
+        if below_water_table:
+            return max((0.1978 * phi**2 - 10.232 * phi + 136.82) * 1000, 5400)
+        else:
+            return max((0.2153 * phi**2 - 8.232 * phi + 63.657) * 1000, 5400)

@@ -45,6 +45,10 @@ def bothkennar_clay(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.cowden_clay`, :py:func:`openpile.utils.py_curves.custom_clay`
     """
 
     # # Bothkennar clay parameters
@@ -101,7 +105,10 @@ def cowden_clay(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
-    
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.bothkennar_clay`, :py:func:`openpile.utils.py_curves.custom_clay`
     """
 
     # # Cowden clay parameters
@@ -176,6 +183,8 @@ def dunkirk_sand(
         PISA Conic function: (a) conic form; (b) bilinear form, after [BHBG20]_.
 
     """
+    output_length = max(8, output_length)
+
     # correct relative density for decimal value
     Dr = Dr / 100
 
@@ -236,7 +245,7 @@ def api_sand(
     ymax: float, by default 0.0
         maximum value of y, default goes to 99.9% of ultimate resistance
     output_length: int, by default 20
-        Number of discrete point along the springs
+        Number of discrete point along the springs, cannot be less than 8
 
     Returns
     -------
@@ -313,7 +322,7 @@ def api_sand(
         .. note::
 
             The initial subgrade modulus can be user-defined by setting the parameter 'k' to a value greater than zero.
-            Furthermore, many researchers have proposed different values for the initial subgrade modulus, see :py:module:`openpile.soilmodels.hooks.InitialSubgradeReaction`.
+            Furthermore, many researchers have proposed different values for the initial subgrade modulus, see :py:class:`openpile.soilmodels.hooks.InitialSubgradeReaction`.
 
     Ultimate resistance
         The ultimate resistance :math:`P_{max}` is calculated via the coefficients C1, C2 and C3 found 
@@ -337,6 +346,8 @@ def api_sand(
         * :math:`\sigma^{\prime}` is the vertical effective stress
 
     """
+    output_length = max(8, output_length)
+
     # A value - only thing that changes between cyclic or static
     if kind == "static":
         A = max(0.9, 3 - 0.8 * X / D)
@@ -434,7 +445,7 @@ def api_clay(
     ymax: float, by default 0.0
         maximum value of y, if null the maximum is calculated such that the whole curve is computed
     output_length: int, by default 20
-        Number of discrete point along the springs
+        Number of discrete point along the springs, cannot be less than 8
 
     Returns
     -------
@@ -501,6 +512,9 @@ def api_clay(
         * :math:`y_{50}` is the equivalent displacement for deformation at 50% ultimate resistance
         * :math:`P_{max}` is the ultimate resistance of the p-y curve
     """
+
+    output_length = max(8, output_length)
+
     # important variables
     y50 = 2.5 * eps50 * D
     if X == 0.0 or Su == 0:
@@ -518,7 +532,7 @@ def api_clay(
     Pmax_deep = 9 * Su * D
     Pmax = min(Pmax_deep, Pmax_shallow)
 
-    ylist_in = [0.0, 0.1 * y50, 0.21 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
+    ylist_in = [0.0, 0.1 * y50, 0.3 * y50, 1 * y50, 3 * y50, 8 * y50, 15 * y50, ymax]
     ylist_out = []
     for i in range(len(ylist_in)):
         if ylist_in[i] <= ymax:
@@ -529,7 +543,7 @@ def api_clay(
     add_values = output_length - len(y)
     add_y_values = []
     for _ in range(add_values):
-        add_y_values.append(0.1 * y50 + random() * (ymax - 0.1 * y50))
+        add_y_values.append(15 * y50 + random() * (ymax - 15 * y50))
     y = np.append(y, add_y_values)
     y = np.sort(y)
 
@@ -558,11 +572,6 @@ def api_clay(
                     p[i] = 0.7185 * Pmax
                 else:
                     p[i] = 0.5 * Pmax * (y[i] / y50) ** 0.33
-
-        # modification of initial slope of the curve (DNVGL RP-C203 B.2.2.4)
-        if y[i] <= 0.1 * y50:
-            k = 0.23 * Pmax / (0.1 * y50)
-            p[i] = k * y[i]
 
     return y, p
 
@@ -602,7 +611,7 @@ def matlock_1970(
     ymax: float, by default 0.0
         maximum value of y, if null the maximum is calculated such that the whole curve is computed
     output_length: int, by default 20
-        Number of discrete point along the springs
+        Number of discrete point along the springs, cannot be less than 9
 
     Returns
     -------
@@ -714,6 +723,8 @@ def matlock_1970(
             \end{split}
             \end{cases}  
     """
+    output_length = max(9, output_length)
+
     # important variables
     y50 = 2.5 * eps50 * D
     if X == 0.0 or Su == 0:
@@ -811,7 +822,7 @@ def modified_Matlock(
     ymax: float, by default 0.0
         maximum value of y, if null the maximum is calculated such that the whole curve is computed
     output_length: int, by default 20
-        Number of discrete point along the springs
+        Number of discrete point along the springs, cannot be less than 8
 
     Returns
     -------
@@ -838,6 +849,9 @@ def modified_Matlock(
 
             Schematic of original (soft clay response) and modified (stiff clay response), after [BaCA06]_.
     """
+
+    output_length = max(8, output_length)
+
     # important variables
     y50 = 2.5 * eps50 * D
     if X == 0.0 or Su == 0:
@@ -909,15 +923,14 @@ def reese_weakrock(
     k: float = 0.0005,
     output_length=20,
 ):
-    """creates the Reese weakrock p-y curve based on the work of Reese (1997), see reference [Rees97]_.
-
+    r"""creates the Reese weakrock p-y curve based on the work of Reese (1997), see reference [Rees97]_.
 
     Parameters
     ----------
     Ei : float
-        initial modulus of rock [kPa]
+        initial rock mass modulus of rock [kPa]
     qu : float
-        compressive strength of rock [kPa]
+        unconfined compressive strength of rock [kPa]
     RQD : float
         Rock Quality Designation [%]
     xr : float
@@ -927,7 +940,7 @@ def reese_weakrock(
     k : float, optional
         dimensional constant, randing from 0.0005 to 0.00005, by default 0.0005
     output_length : int, optional
-        length of output arrays, by default 20
+        length of output arrays, by default 20, cannot be less than 8
 
     Returns
     -------
@@ -936,9 +949,47 @@ def reese_weakrock(
     1darray
         p vector [unit: kN/m]
 
+        
+    Notes
+    -----
+    This formulation was derived for weak rocks. The curve is characterized by a maximum resistance value that can be mobilized,
+    a linear initial portion and a non-linear response for the remaining part of the curve. 
+
+    Ultimate resistance of rock
+        .. math::
+            P_{max} = \alpha \cdot q_u \cdot D \left(1 + 1.4 \dfrac{x_r}{D}\right) \le 5.2 \alpha \cdot q_u \cdot D
+
+        where:
+
+        * :math:`\alpha = 1 - \dfrac{2}{3} \dfrac{\text{RQD}}{100}`
+        * :math:`\text{RQD}` is the rock quality designation in percentage
+        * :math:`q_u` is the unconfined compressive strength of rock
+        * :math:`D` is the pile diameter
+        * :math:`x_r` is the depth from rock surface
+
+    Initial portion of p-y curve
+        The initial part of the curve is defined for :math:`y \le yA`, with a linear p-y curve stiffness of :math:`E_{py_i}`.
+
+        .. math::
+            y_A &= \left(\dfrac{P_{max}}{2 \cdot y_{rm}^{0.25} \cdot E_{py_i}}\right)^{4/3} \\
+            \\
+            E_{py_i} &= \left(100 + 400 \dfrac{x_r}{3D} \right) E_i \le 500 E_i 
+
+
+        where:
+
+        * :math:`E_rm` is the rock mass modulus of rock
+        * :math:`y_{rm} = k \cdot D`
+        * :math:`k` is a dimensional constant ranging from 0.0005 to 0.00005
+
+    Remaining non-linear response
+        The remaining portion of the curve is defined with the following equation:
+
+        .. math::
+            p = \dfrac{P_{max}}{2} \left(\dfrac{y}{y_{rm}}\right)^{1/4} \le P_{max}
     """
 
-    output_length = max(10, output_length)
+    output_length = max(8, output_length)
 
     # Rqd forced to be within 0 and 100
     rqd = max(min(100, RQD), 0)
@@ -973,7 +1024,6 @@ def reese_weakrock(
     return y, p
 
 
-@njit(cache=True)
 def custom_pisa_sand(
     sig: float,
     G0: float,
@@ -1009,6 +1059,20 @@ def custom_pisa_sand(
         y vector [unit: m]
     1darray
         p vector [unit: kN/m]
+
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.dunkirk_sand`, :py:func:`openpile.utils.hooks.dunkirk_sand_pisa_norm_param`
+    
+    Example
+    -------
+
+    .. plot::
+
+        import matplotlib.pyplot as plt
+        from openpile.utils.py_curves import custom_pisa_sand, dunkirk_sand
+
+
     """
     # calculate normsalised conic function
     y, p = conic(X_ult, n, k, Y_ult, output_length)
@@ -1059,6 +1123,10 @@ def custom_pisa_clay(
     1darray
         p vector [unit: kN/m]
 
+    See also
+    --------
+    :py:func:`openpile.utils.py_curves.cowden_clay`, :py:func:`openpile.utils.py_curves.bothkennar_clay`,
+    :py:func:`openpile.utils.hooks.cowden_clay_pisa_norm_param` 
     """
     # calculate normsalised conic function
     y, p = conic(X_ult, n, k, Y_ult, output_length)

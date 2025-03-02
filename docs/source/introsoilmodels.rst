@@ -53,3 +53,8 @@ Please refer to the :ref:`ApplicationProgrammingInterface` for more details and 
     Géotechnique 70(11): 1-55. https://doi.org/10.1680/jgeot.20.PISA.009
 .. [Rees97] Reese, L.C. (1997), Analysis of Laterally Loaded Piles in Weak Rock, Journal of Geotechnical
     and Geoenvironmental Engineering, ASCE, vol. 123 (11) Nov., ASCE, pp. 1010-1017.
+.. [SøIA10] Sorensen, S.P.H. & Ibsen, L.B. & Augustesen, A.H. (2010), Effects of diameter on 
+    initial stiffness of p-y curves for large-diameter piles in sand, Numerical Methods in 
+    Geotechnical Engineering, CRC Press, pp. 907-912.
+.. [Søre12] Sorensen, S.P.H. (2012), Soil-Structure Interaction For Nonslender, Large-Diameter 
+    Offshore Monopiles. PhD Thesis, Department of Civil Engineering, Aalborg University, Denmark.

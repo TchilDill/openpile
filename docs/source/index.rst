@@ -7,21 +7,22 @@
 Welcome to OpenPile's documentation!
 ------------------------------------
 
-This package is an open source python library that provides a toolbox for beam/pile calculations.
+This package is an open source python library that provides a toolbox for beam/pile calculations. It is a
+Python library that provides users with various objects to represent structural and geotechnical problems (such as piles, soil profiles, soil layers), 
+and an assortment of routines for fast operations, including solving 1D FE beam models with or without Winkler approach.
 
-This package allows various pile calculations like:
+Few features at a glance:
 
-* Finite Element calculations with 1D Beam elements (following Euler-Bernoulli or Timishenko beam theories) to compute forces, deformations 
-  under adequate loading and support conditions.
+* Finite Element calculations with 1D Beam elements (following Euler-Bernoulli or Timishenko beam theories) to compute forces, deformations
 * Winkler's approach of a beam supported by linear or non-linear springs
-* Supports springs over axial, lateral and roational degrees of freedoms
+* Soil springs over axial, lateral and rotational degrees of freedoms
 * Common soil spring formulations to model soil structure interaction with the structure (a beam or pile)
 
 More details on how to use the library can be found in :ref:`usage`
 
 .. important::
   This library supports the following versions of python: 3.8-3.10. 
-  Python 3.11+ is not supported as one dependency of OpenPile (namely Numba) does not support Python 3.11+. 
+  Python 3.11+ is not supported as one dependency of OpenPile (namely Numba) does not currently support Python 3.11+. 
 
 .. raw:: html
 

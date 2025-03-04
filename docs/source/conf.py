@@ -81,3 +81,8 @@ html_static_path = ["_static"]
 # pydantic autodoc
 autodoc_pydantic_model_show_json = False
 autodoc_pydantic_settings_show_json = False
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_validator_summary = False
+autodoc_pydantic_model_show_field_summary = False
+autodoc_pydantic_model_undoc_members = False
+autodoc_pydantic_model_signature_prefix = "Class"

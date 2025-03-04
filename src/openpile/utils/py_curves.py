@@ -260,7 +260,7 @@ def api_sand(
     
     p-y formulation
         The API sand **p-y formulation** is presented in both the API and DNVGL standards,
-        see, [DNV-RP-C212]_ and [API2000]_.
+        see, [DNV-RP-C212]_, [API2000]_ or [API2014]_.
 
         Granular soils are modelled by the sand p-y model as described 
         with the following backbone formula:
@@ -463,7 +463,7 @@ def api_clay(
     -----
 
     The p-y clay formulation is presented in both the API and DNVGL standards,
-    see [DNV-RP-C212]_ and [API2000]_. 
+    see [DNV-RP-C212]_ and [API2014]_. 
 
     The p-y curve is defined as per Matlock original equations (see notes in :py:func:`openpile.utils.py_curves.matlock_1970`) but defined at specific points, in a piece-wise manner.
 
@@ -801,7 +801,7 @@ def modified_Matlock(
     """
     Creates the Modified Matlock for stiff clay p-y curve as defined in Bathacharya et al 2006 (see [BaCA06]).
 
-    The modification takes places in the cyclic version of the curves. Static curves are kept the same as the regular API curves (see [API2000]_), see :func:`Openpile.utils.py_curves.api_clay`.
+    The modification takes places in the cyclic version of the curves. Static curves are kept the same as the original curves (see [Matl70]_), see :func:`Openpile.utils.py_curves.matlock_1970`.
 
     Parameters
     ----------
@@ -952,8 +952,13 @@ def reese_weakrock(
         
     Notes
     -----
-    This formulation was derived for weak rocks. The curve is characterized by a maximum resistance value that can be mobilized,
-    a linear initial portion and a non-linear response for the remaining part of the curve. 
+    This formulation was derived for weak rocks and based on [Rees97]_.
+    This empirical model is mostly based on experimental data of pile load tests near San Francisco 
+    where the rock unconfined compressive strength varies from 1.86 MPa near the surface to 16.0 MPa.
+    Pressuremeter tests results were used by Reese in this formulation as the initial modulus of the rock.     
+
+    The curve is characterized by a linear initial portion, a non-linear response for the remaining 
+    part of the curve, and a maximum resistance value that can be mobilized
 
     Ultimate resistance of rock
         .. math::

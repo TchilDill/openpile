@@ -2,13 +2,57 @@
 `SoilModels` module
 ===================
 
-This module comprises of the SOil Models available in OpenPile. 
+This module comprises of the Soil Models available in OpenPile. 
 `openpile.soilmodels.LateralModel` and `openpile.soilmodels.AxialModel` are defined  here in this module and can be called to
 a :class:`openpile.construct.Layer` with the `lateral_model` or `axial_model` argument.
 
 
+.. rubric:: References 
+
+.. [MuOn83] Murchison, J.M., and O'Neill, M.,W., 1983. *An Evaluation of p-y Relationships 
+    in Sands.* Rserach Report No. GT.DF02-83, Department of Civil Engineering, 
+    University of Houston, Houston, Texas, May, 1983.
+.. [MuOn84] Murchison, J.M., and O'Neill, M.,W., 1984. *Evaluation of p-y relationships 
+    in cohesionless soils.* In Proceedings of Analysis and Design of Pile Foundations, 
+    San Francisco, October 1-5, pp. 174-191.
+.. [DNV-RP-C212] DNVGL RP-C212. *Recommended Practice, Geotechnical design*.
+    Edition 2019-09 - Amended 2021-09.
+.. [API2000] API, December 2000. *Recommended Practice for Planning, Designing, and Constructing 
+    Fixed Offshore Platforms - Working Stress Design (RP 2A-WSD)*, Twenty-First Edition.
+.. [API2014] API, October 2014. *Recommended Practice 2GEO/ISO 19901-4, Geotechnical and 
+   Foundation Design Considerations*, 1st Edition
+.. [Matl70] Matlock, H. (1970). *Correlations for Design of Laterally Loaded Piles in Soft Clay*. 
+    Offshore Technology Conference Proceedings, Paper No. OTC 1204, Houston, Texas. 
+.. [BaCA06] Battacharya,  S.,  Carrington,  T.  M.  and  Aldridge,  T.  R.  (2006),  
+    *Design  of  FPSO  Piles  against  Storm  Loading*. Proceedings Annual Offshore Technology 
+    Conference, OTC17861, Houston, Texas, May, 2006.
+.. [KrRK81] Kraft, L.M., Ray, R.P., and Kagawa, T. (1981). *Theoretical t-z curves*. 
+    Journal of the Geotechnical Engineering Division, ASCE, Vol. 107, No. GT11, pp. 1543-1561.
+.. [BHBG20] Byrne, B. W., Houlsby, G. T., Burd, H. J., Gavin, K. G., Igoe, D. J. P., 
+    Jardine, R. J., Martin, C. M., McAdam, R. A., Potts, D. M., Taborda, D. M. G. & Zdravkovic ́, L. (2020). 
+    PISA design model for monopiles for offshore wind turbines: application 
+    to a stiff glacial clay till. Géotechnique, https://doi.org/10.1680/ jgeot.18.P.255.
+.. [BTZA20] Burd, H. J., Taborda, D. M. G., Zdravkovic ́, L., Abadie, C. N., Byrne, B. W., 
+    Houlsby, G. T., Gavin, K. G., Igoe, D. J. P., Jardine, R. J., Martin, C. M., McAdam, R. A., 
+    Pedro, A. M. G. & Potts, D. M. (2020). PISA design model for monopiles for offshore wind 
+    turbines: application to a marine sand. Géotechnique, https://doi.org/10.1680/jgeot.18.P.277.
+.. [BABH20] Burd, H. J., Abadie, C. N., Byrne, B. W., Houlsby, G. T., Martin, C. M., McAdam, R. A., 
+    Jardine, R.J., Pedro, A.M., Potts, D.M., Taborda, D.M., Zdravković, L., and Andrade, M.P. 
+    (2020). Application of the PISA Design Model to Monopiles Embedded in Layered Soils. 
+    Géotechnique 70(11): 1-55. https://doi.org/10.1680/jgeot.20.PISA.009
+.. [Rees97] Reese, L.C. (1997), Analysis of Laterally Loaded Piles in Weak Rock, Journal of Geotechnical
+    and Geoenvironmental Engineering, ASCE, vol. 123 (11) Nov., ASCE, pp. 1010-1017.
+.. [SøIA10] Sorensen, S.P.H. & Ibsen, L.B. & Augustesen, A.H. (2010), Effects of diameter on 
+    initial stiffness of p-y curves for large-diameter piles in sand, Numerical Methods in 
+    Geotechnical Engineering, CRC Press, pp. 907-912.
+.. [Søre12] Sorensen, S.P.H. (2012), Soil-Structure Interaction For Nonslender, Large-Diameter 
+    Offshore Monopiles. PhD Thesis, Department of Civil Engineering, Aalborg University, Denmark.
+
+
 Lateral soil models
 -------------------
+
+Lateral models are capable of creating lateral and rotational springs. 
 
 The following lateral models are included in openpile. 
 
@@ -20,6 +64,26 @@ The following lateral models are included in openpile.
 * :class:`openpile.soilmodels.Cowden_clay`
 * :class:`openpile.soilmodels.Custom_pisa_sand`
 * :class:`openpile.soilmodels.Custom_pisa_clay`
+
+Typically, each model relates to soil spring definitions stored in either:
+
+* :mod:`openpile.utils.py_curves`
+* :mod:`openpile.utils.mt_curves`
+* :mod:`openpile.utils.Hb_curves`
+* :mod:`openpile.utils.Mb_curves`
+* :mod:`openpile.utils.tz_curves`
+* :mod:`openpile.utils.qz_curves`
+
+Axial soil models
+-----------------
+
+The axial model are capable of calculating skin friction along the pile and end-bearing at pile tip.
+
+The following axial models are included in openpile. 
+
+* :py:class:`openpile.soilmodels.API_sand_axial`
+* :py:class:`openpile.soilmodels.API_clay_axial`
+
 """
 
 
@@ -712,7 +776,7 @@ class Bothkennar_clay(LateralModel):
 
 
 class Cowden_clay(LateralModel):
-    """A class to establish the PISA Cowden clay model as per Byrne et al 2020 (see [BHBG20]_).
+    r"""A class to establish the PISA Cowden clay model as per Byrne et al 2020 (see [BHBG20]_).
 
     Parameters
     ----------
@@ -734,6 +798,34 @@ class Cowden_clay(LateralModel):
     :py:func:`openpile.utils.py_curves.cowden_clay`, :py:func:`openpile.utils.mt_curves.cowden_clay`,
     :py:func:`openpile.utils.Hb_curves.cowden_clay`, :py:func:`openpile.utils.Mb_curves.cowden_clay`
 
+    Notes
+    -----
+    This soil model was formulated as part of the Joint Industry Project PISA, 
+    that focused on formulating soil springs for large diameter monopiles as found 
+    in the offshore wind industry. This resulted in soil springs formulated in a normalized 
+    space based on a conic function backbone curve and the few following soil parameters, 
+    (i) undrained shear strength and (ii) small-strain shear stiffness. 
+
+    This soil model provides soil springs as given by the function(s):
+
+    * :py:func:`openpile.utils.py_curves.cowden_clay`
+    * :py:func:`openpile.utils.mt_curves.cowden_clay`
+    * :py:func:`openpile.utils.Hb_curves.cowden_clay`
+    * :py:func:`openpile.utils.Mb_curves.cowden_clay`
+
+    .. note::
+        This standard model only account for monotonic reaction curves and as usual, 
+        it reflects the site conditions of the site the curves were calibrated from, 
+        a site in Cowden, England where overconsolidated glacial till is found. 
+        More details can be found in [BHBG20]_.
+
+    The model is validated in the below figure by performing a benchmark of OpenPile
+    against the source material, [BHBG20]_.
+
+    .. figure:: _static/validation/CowdenClay_D1_D2.png
+        :width: 80%
+
+        Validation against piles D1 and D2 documented in [BHBG20]_.
 
     """
 
@@ -919,7 +1011,7 @@ class Cowden_clay(LateralModel):
 
 
 class Dunkirk_sand(LateralModel):
-    """A class to establish the PISA Dunkirk sand model as per  Burd et al (2020) (see [BTZA20]_)..
+    r"""A class to establish the PISA Dunkirk sand model as per  Burd et al (2020) (see [BTZA20]_)..
 
     Parameters
     ----------
@@ -940,6 +1032,39 @@ class Dunkirk_sand(LateralModel):
     --------
     :py:func:`openpile.utils.py_curves.dunkirk_sand`, :py:func:`openpile.utils.mt_curves.dunkirk_sand`,
     :py:func:`openpile.utils.Hb_curves.dunkirk_sand`, :py:func:`openpile.utils.Mb_curves.dunkirk_sand`
+
+    Notes
+    -----
+    This soil model was formulated as part of the Joint Industry Project PISA, 
+    that focused on formulating soil springs for large diameter monopiles as found 
+    in the offshore wind industry. This resulted in soil springs formulated in a normalized 
+    space based on a conic function backbone curve and the few following soil parameters, 
+    (i) relative density and (ii) small-strain shear stiffness. 
+    
+    This soil model provides soil springs as given by the function(s):
+
+    * :py:func:`openpile.utils.py_curves.dunkirk_sand`
+    * :py:func:`openpile.utils.mt_curves.dunkirk_sand`
+    * :py:func:`openpile.utils.Hb_curves.dunkirk_sand`
+    * :py:func:`openpile.utils.Mb_curves.dunkirk_sand`
+
+    .. note::
+        This standard model only account for monotonic reaction curves and as usual, it reflects the site 
+        conditions of the site the curves were calibrated from, a site in Dunkirk, France where dense sand is found. 
+        More details can be found in [BTZA20]_.
+
+    This soil model was formulated as part of the Joint Industry Project PISA, that focused on formulating soil springs for large diameter monopiles as found in the offshore wind industry. 
+    This resulted in soil springs formulated in a normalized space based on a conic function backbone curve and the few following soil parameters, 
+    (i) relative density and (ii) small-strain shear stiffness. 
+
+    Validation is shown in the below figure by performing a benchmark of OpenPile
+    against the source material, [BTZA20]_. OpenPile shows some differences in result for high lateral load. 
+    This is due to the slight difference in input given in OpenPile compares to the source material.
+
+    .. figure:: _static/validation/GDSM_D2t.png
+        :width: 80%
+
+        Validation against pile D2t documented in [BTZA20]_.
 
     """
 

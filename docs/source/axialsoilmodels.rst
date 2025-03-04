@@ -1,10 +1,13 @@
 Axial soil models
 =================
 
+The axial model calculates skin friction along the pile and end-bearing at pile tip.
+OpenPile's use of this model is done by calling the following class in a layer:
+
 The following axial models are included in openpile. 
 
-* API sand
-* API Clay
+* :py:class:`openpile.soilmodels.API_sand_axial`
+* :py:class:`openpile.soilmodels.API_clay_axial`
 
 
 API model

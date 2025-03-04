@@ -46,7 +46,7 @@ You can refer to OpenPile in your research paper by citing the following:
 
    gettingstarted
    usage
-   background
+   openpileintro
    API
 
 

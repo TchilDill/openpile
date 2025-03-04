@@ -3,7 +3,7 @@ Getting started
 ---------------
 
 Installation
-^^^^^^^^^^^^
+------------
 
 Installing OpenPile is as easy as installing well-known python packages such as Pandas or Numpy. This is done 
 via the below pip command.
@@ -13,11 +13,7 @@ via the below pip command.
     pip install openpile
 
 
-Some more help on installing python before OpenPile
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Via the generic Python distribution
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Below, you can find more help to get it installed on your local machine:**
 
 #. Go to the official Python website at https://www.python.org/downloads/ and 
    download python for your operating system (Windows, macOS, or Linux).
@@ -36,8 +32,7 @@ Via the generic Python distribution
    This will download and install the package and all its dependencies.
 
 
-Via the Anaconda distribution
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Below, an alternative to the above should you want to use the Anaconda distribution:**
 
 #. Download and install the latest version of Anaconda from https://www.anaconda.com/products/individual.
 #. Open the Anaconda Navigator application and select the "Environments" tab.
@@ -54,6 +49,38 @@ Via the Anaconda distribution
 
 
 First model in OpenPile
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 Please refer to the :ref:`usage` section where examples can help you get started.
+
+Philosophy
+----------
+
+these calculations can be as simple/generic as it gets, e.g. calculating the weight of a beam, its volume, or perform more advanced calculations with 1D Finite Element Method.
+
+.. show a plot of the beam/pile 
+
+.. ref to objects in API.
+
+
+System of units
+---------------
+
+The unit system used in this library is the `International System of Units (SI) <https://en.wikipedia.org/wiki/International_System_of_Units>`_. 
+The primary units used in OpenPile are kN (kilonewton) and m (meter). 
+The documentation (e.g. docstrings) should inform the user just well enough. If there is any ambiguity, 
+please create an issue so that we can solve this.
+
+
+Coordinates System
+------------------
+
+The coordinate system in OpenPile follows right hand system as shown below:
+
+.. figure:: _static/coordinates_system.png
+    :width: 80%
+
+    Coordinates system followed in OpenPile.
+
+
+

@@ -5,20 +5,12 @@
 API
 ---
 
-
-.. automodule:: openpile.construct
-    :members:
-    :exclude-members: __init__, PydanticConfig, soil_and_pile_bottom_elevation_match, create, check_elevations, check_layers_elevations
-
-.. automodule:: openpile.soilmodels
-    :members: 
-    :exclude-members: __init__, PydanticConfig, PydanticConfigFrozen, ConstitutiveModel, 
-                      LateralModel, AxialModel, py_spring_fct, mt_spring_fct, Hb_spring_fct, 
-                      Mb_spring_fct, spring_signature
-
-.. automodule:: openpile.winkler
-    :members: 
-    :exclude-members: simple_winkler_analysis, simple_beam_analysis, PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, WinklerResult
+.. toctree::
+    :maxdepth: 1
+    
+    API/construct
+    API/soilmodels
+    API/winkler
 
 
 `utils` module

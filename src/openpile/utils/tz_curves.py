@@ -151,7 +151,7 @@ def api_clay(
     tensile_factor: float = 1.0,
     output_length: int = 15,
 ):
-    """
+    r"""
     Creates the API clay t-z curve from relevant input as per [API2000]_.
 
     Parameters
@@ -179,6 +179,37 @@ def api_clay(
     numpy 1darray
         z vector [unit: m]
 
+    Notes
+    -----
+
+    The backbone curve is computed via the piecewise formulation by [API2000]_ or through 
+    Kraft's formulation that captures small-strain characteristics of the soil [KrRK81]_ in the backbone curve.
+
+    .. note::
+        Kraft's formulation is accessed by the user by stipulating the small-strain shear 
+        stiffness of the soil, :math:`G_0`
+
+    
+    The API guidelines describe the axial soil springs in a manner that accounts for the undrained shear strength of the clay. 
+    The springs are characterized as follows:
+
+    1. **Unit Skin Friction** :math:`f_s`: For clay, this is based on the undrained shear strength :math:`S_u` of the soil and a factor that accounts for the adhesion between the clay and the pile.
+
+        .. math::
+        
+            f_s = \alpha \cdot S_u < f_{s,\text{max}}
+        
+        where:
+        
+        - :math:`\alpha` is the adhesion factor, which depends on the type of clay and the pile material. 
+          It typically ranges from 0.5 to 1.0 for soft clays and 0.3 to 0.6 for stiff clays.
+          As per the API guidelines, this adhesion factor can be calculated as:
+        - :math:`S_u` is the undrained shear strength of the clay.
+        - Limit Skin Friction :math:`f_{s,\text{max}}` is the maximum unit skin friction for clay, 
+          which can be directly related to the undrained shear strength and the adhesion factor. 
+          In general, the limit skin friction is set to the undrained shear strength.
+
+    2. A backbone curve computed via the piecewise formulation seen in [API2000]_.
 
     """
     # cannot have less than 15
@@ -207,7 +238,7 @@ def api_clay_kraft(
     zif: float = 10.0,
     output_length: int = 15,
 ):
-    """
+    r"""
     Creates the API clay t-z curve (see [API2000]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
 
     Parameters
@@ -243,6 +274,40 @@ def api_clay_kraft(
     See also
     --------
     :py:func:`openpile.utils.tz_curves.api_clay`
+
+    Notes
+    -----
+
+    The backbone curve is computed via the piecewise formulation 
+    by [API2000]_ or through 
+    Kraft's formulation that captures small-strain 
+    characteristics of the soil [KrRK81]_ in the backbone curve.
+
+    .. note::
+        Kraft's formulation is accessed by the user by stipulating the small-strain shear 
+        stiffness of the soil, :math:`G_0`
+
+
+    For clay, the API guidelines describe the axial soil springs in a manner that accounts for the undrained shear strength of the clay. 
+    The springs are characterized as follows:
+
+    1. **Unit Skin Friction** :math:`f_s`: For clay, this is based on the undrained shear strength :math:`S_u` of the soil and a factor that accounts for the adhesion between the clay and the pile.
+
+        .. math::
+        
+            f_s = \alpha \cdot S_u < f_{s,\text{max}}
+        
+        where:
+        
+        - :math:`\alpha` is the adhesion factor, which depends on the type of clay and the pile material. 
+          It typically ranges from 0.5 to 1.0 for soft clays and 0.3 to 0.6 for stiff clays.
+          As per the API guidelines, this adhesion factor can be calculated as:
+        - :math:`S_u` is the undrained shear strength of the clay.
+        - Limit Skin Friction :math:`f_{s,\text{max}}` is the maximum unit skin friction for clay, 
+          which can be directly related to the undrained shear strength and the adhesion factor. 
+          In general, the limit skin friction is set to the undrained shear strength.
+
+    2. A backbone curve computed via the piecewise formulation seen in [API2000]_.
 
     """
 
@@ -324,7 +389,7 @@ def api_sand(
     tensile_factor: float = 1.0,
     output_length: int = 7,
 ):
-    """
+    r"""
     Creates the API sand t-z curve (see [API2000]_).
 
     Parameters
@@ -347,6 +412,51 @@ def api_sand(
     numpy 1darray
         z vector [unit: m]
 
+    Notes
+    -----
+
+    The backbone curve is computed via the piecewise formulation 
+    by [API2000]_ or through 
+    Kraft's formulation that captures small-strain 
+    characteristics of the soil [KrRK81]_ in the backbone curve.
+
+    .. note::
+        Kraft's formulation is accessed by the user by stipulating the small-strain shear 
+        stiffness of the soil, :math:`G_0`
+
+    The API guidelines provide methods to estimate the resistance offered by sandy soils along the pile. 
+    These springs are defined based on the following considerations:
+
+    1. **Unit Skin Friction** :math:`f_s`: This is the frictional resistance per unit area along the pile shaft. It depends on the effective overburden pressure and the soil-pile interface properties.
+
+        .. math::
+        
+        f_s = \sigma_v^\prime \cdot K \cdot tan(\delta) < f_{s,\text{max}}
+        
+        where:
+        
+        - \sigma_v^\prime is the effective vertical stress at the depth considered.
+        - K is the coefficient of horizontal earth pressure (typically ranges from 0.4 to 1.0 for sands).
+        - \delta is the angle of friction between the pile and the sand, often taken as a fraction of the soil's internal friction angle :math:`\varphi` (usually :math:`\delta = 0.7 \varphi` to :math:`\varphi`).
+        - Limit Skin Friction :math:`f_{s,\text{max}}` is the maximum unit skin friction that can be mobilized. It is typically given by empirical correlations or laboratory tests. The following is assumed in OpenPile:
+
+        .. list-table:: Correlation between interface friction angle and shaft friction 
+            :header-rows: 0
+
+            * - :math:`\delta` [degrees]
+              - 15
+              - 20
+              - 25
+              - 30
+              - 35
+            * - :math:`f_{s,\texttt{max}}` [kPa]
+              - 47.8
+              - 67
+              - 81.3
+              - 95.7
+              - 114.8
+
+    2. A backbone curve computed via the piecewise formulation seen in [API2000]_.
 
     """
 
@@ -372,7 +482,7 @@ def api_sand_kraft(
     zif: float = 10.0,
     output_length: int = 15,
 ):
-    """
+    r"""
     Creates the API sand t-z curve (see [API2000]_) with the Kraft et al (1981) formulation (see [KrRK81]_).
 
     Parameters
@@ -408,6 +518,52 @@ def api_sand_kraft(
     See also
     --------
     :py:func:`openpile.utils.tz_curves.api_sand`
+
+    Notes
+    -----
+
+    The backbone curve is computed via the piecewise formulation 
+    by [API2000]_ or through 
+    Kraft's formulation that captures small-strain 
+    characteristics of the soil [KrRK81]_ in the backbone curve.
+
+    .. note::
+        Kraft's formulation is accessed by the user by stipulating the small-strain shear 
+        stiffness of the soil, :math:`G_0`
+
+    The API guidelines provide methods to estimate the resistance offered by sandy soils along the pile. 
+    These springs are defined based on the following considerations:
+
+    1. **Unit Skin Friction** :math:`f_s`: This is the frictional resistance per unit area along the pile shaft. It depends on the effective overburden pressure and the soil-pile interface properties.
+
+        .. math::
+        
+        f_s = \sigma_v^\prime \cdot K \cdot tan(\delta) < f_{s,\text{max}}
+        
+        where:
+        
+        - \sigma_v^\prime is the effective vertical stress at the depth considered.
+        - K is the coefficient of horizontal earth pressure (typically ranges from 0.4 to 1.0 for sands).
+        - \delta is the angle of friction between the pile and the sand, often taken as a fraction of the soil's internal friction angle :math:`\varphi` (usually :math:`\delta = 0.7 \varphi` to :math:`\varphi`).
+        - Limit Skin Friction :math:`f_{s,\text{max}}` is the maximum unit skin friction that can be mobilized. It is typically given by empirical correlations or laboratory tests. The following is assumed in OpenPile:
+
+        .. list-table:: Correlation between interface friction angle and shaft friction 
+            :header-rows: 0
+
+            * - :math:`\delta` [degrees]
+              - 15
+              - 20
+              - 25
+              - 30
+              - 35
+            * - :math:`f_{s,\texttt{max}}` [kPa]
+              - 47.8
+              - 67
+              - 81.3
+              - 95.7
+              - 114.8
+
+    2. A backbone curve computed via the piecewise formulation seen in [API2000]_.
 
     """
     return kraft_modification(

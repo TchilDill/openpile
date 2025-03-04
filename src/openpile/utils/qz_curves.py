@@ -16,7 +16,7 @@ from openpile.utils.misc import _Qmax_api_clay, _Qmax_api_sand
 
 
 # API clay Q-z function
-def backbone_api(
+def _backbone_api(
     output_length: int = 15,
 ):
     """
@@ -73,7 +73,7 @@ def api_clay(
     D: float,
     output_length: int = 15,
 ):
-    """
+    r"""
     Creates the API clay Q.z curve from relevant input.
 
     Parameters
@@ -91,13 +91,25 @@ def api_clay(
         z vector [unit: m]
     numpy 1darray
         Q vector [unit: kPa]
+
+    Notes
+    -----
+
+    The maximum resistance is calculated as follows:
+
+    * API clay: :math:`Q_{max} = 9 S_u`
+
+    where :math:`S_u` is the clay undrained shear strength.
+
+
+    The backbone curve is computed via the piecewise formulation presented in [API2000]_.
     """
 
     # unit toe reistance [kPa]
     f = _Qmax_api_clay(Su)
 
     # call backbone curve
-    z, Q = backbone_api(output_length)
+    z, Q = _backbone_api(output_length)
 
     return z * D, Q * f
 
@@ -109,7 +121,7 @@ def api_sand(
     D: float,
     output_length: int = 15,
 ):
-    """
+    r"""
     Creates the API sand Q.z curve from relevant input.
 
     Parameters
@@ -129,12 +141,33 @@ def api_sand(
         z vector [unit: m]
     numpy 1darray
         Q vector [unit: kPa]
+
+    Notes
+    -----
+
+    The maximum resistance is calculated as follows:
+
+    * API sand: :math:`Q_{max} = N_q \sigma^\prime_v`
+
+    where :math:`\sigma_v^\prime` is the overburden effective stress and :math:`N_q` is 
+    the end-bearing factor depending on the interface friction angle :math:`\varphi`, see below table.
+
+    +---------------------------+------+------+------+------+-------+
+    | :math:`\varphi` [degrees] | 15.0 | 20.0 | 25.0 | 30.0 | 35.0  |
+    +---------------------------+------+------+------+------+-------+
+    | :math:`N_q` [kPa]         | 8.0  | 12.0 | 20.0 | 40.0 | 50.0  |
+    +---------------------------+------+------+------+------+-------+
+    | :math:`Q_{max}` [kPa]     | 1900 | 2900 | 4800 | 9600 | 12000 |
+    +---------------------------+------+------+------+------+-------+
+
+
+    The backbone curve is computed via the piecewise formulation presented in [API2000]_.
     """
 
     # max tip resistance
     f = _Qmax_api_sand(sig, delta)
 
     # call backbone curve
-    z, Q = backbone_api(output_length)
+    z, Q = _backbone_api(output_length)
 
     return z * D, Q * f

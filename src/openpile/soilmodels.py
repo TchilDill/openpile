@@ -49,8 +49,8 @@ a :class:`openpile.construct.Layer` with the `lateral_model` or `axial_model` ar
     Offshore Monopiles. PhD Thesis, Department of Civil Engineering, Aalborg University, Denmark.
 
 
-Lateral soil models
--------------------
+Introduction - lateral soil models
+----------------------------------
 
 Lateral models are capable of creating lateral and rotational springs. 
 
@@ -74,8 +74,8 @@ Typically, each model relates to soil spring definitions stored in either:
 * :mod:`openpile.utils.tz_curves`
 * :mod:`openpile.utils.qz_curves`
 
-Axial soil models
------------------
+Introduction - axial soil models
+--------------------------------
 
 The axial model are capable of calculating skin friction along the pile and end-bearing at pile tip.
 
@@ -83,6 +83,16 @@ The following axial models are included in openpile.
 
 * :py:class:`openpile.soilmodels.API_sand_axial`
 * :py:class:`openpile.soilmodels.API_clay_axial`
+
+This soil model then provides soil springs as given by the function(s) below and depending on the type of material:
+
+* :py:func:`openpile.utils.tz_curves.api_sand`
+* :py:func:`openpile.utils.tz_curves.api_sand_kraft`
+* :py:func:`openpile.utils.qz_curves.api_sand`
+* :py:func:`openpile.utils.tz_curves.api_clay`
+* :py:func:`openpile.utils.tz_curves.api_clay_kraft`
+* :py:func:`openpile.utils.qz_curves.api_clay`
+
 
 """
 

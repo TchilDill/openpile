@@ -1,6 +1,3 @@
-""" general plots for openfile
-
-"""
 
 # import libraries
 import numpy as np

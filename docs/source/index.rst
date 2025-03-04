@@ -7,8 +7,7 @@
 Welcome to OpenPile's documentation!
 ------------------------------------
 
-This package is an open source python library that provides a toolbox for beam/pile calculations. It is a
-Python library that provides users with various objects to represent structural and geotechnical problems (such as piles, soil profiles, soil layers), 
+This package is an open source python library that provides a toolbox for beam/pile calculations. It provides users with various objects to represent structural and geotechnical problems (such as piles, soil profiles, soil layers), 
 and an assortment of routines for fast operations, including solving 1D FE beam models with or without Winkler approach.
 
 Few features at a glance:
@@ -46,7 +45,6 @@ You can refer to OpenPile in your research paper by citing the following:
 
    gettingstarted
    usage
-   openpileintro
    API
 
 

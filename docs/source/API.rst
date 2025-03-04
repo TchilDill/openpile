@@ -24,7 +24,7 @@ API
 
 .. automodule:: openpile.winkler
     :members: 
-    :exclude-members: simple_winkler_analysis, simple_beam_analysis, PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, WinklerResult
+    :exclude-members: simple_winkler_analysis, simple_beam_analysis, PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, __init__
 
 
 .. `utils` module
@@ -54,10 +54,4 @@ API
     :members:
     :exclude-members: 
 
-.. The `Result` class
-.. ==================
-
-.. autoclass:: openpile.winkler.WinklerResult
-    :members:
-    :exclude-members: Config, __init__
 

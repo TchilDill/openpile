@@ -1,10 +1,8 @@
-"""
+r"""
 `winkler` module
 ==================
 
 The `winkler` module is used to run 1D Finite Element analyses. 
-
-Every function from this module returns an `openpile.winkler.WinklerResult` object. 
 
 """
 
@@ -262,7 +260,7 @@ class WinklerResult:
         return self._mb_mob if self._mb_mob is not None else None
 
     def plot_deflection(self, assign=False):
-        """
+        r"""
         Plots the deflection of the pile.
 
         Parameters
@@ -275,17 +273,58 @@ class WinklerResult:
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
 
-
+        Example
+        -------
         The plot looks like:
 
-        .. image:: ../../docs/source/_static/usage/analyses_plots/deflection_results_plot.png
-            :width: 60%
+        .. plot::
+            :context: reset
+            :include-source: False
+
+            from openpile.construct import Pile, SoilProfile, Layer, Model
+            from openpile.soilmodels import API_clay, API_sand
+            p = Pile.create_tubular(
+                name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=7.5, wt=0.075
+            )
+            # Create a 40m deep offshore Soil Profile with a 15m water column
+            sp = SoilProfile(
+                name="Offshore Soil Profile",
+                top_elevation=0,
+                water_line=15,
+                layers=[
+                    Layer(
+                        name="medium dense sand",
+                        top=0,
+                        bottom=-20,
+                        weight=18,
+                        lateral_model=API_sand(phi=33, kind="cyclic"),
+                    ),
+                    Layer(
+                        name="firm clay",
+                        top=-20,
+                        bottom=-40,
+                        weight=18,
+                        lateral_model=API_clay(Su=[50, 70], eps50=0.015, kind="cyclic"),
+                    ),
+                ],
+            )
+            # Create Model
+            M = Model(name="<model name>", pile=p, soil=sp)
+            # Apply bottom fixity along z-axis
+            M.set_support(elevation=-40, Tz=True)
+            # Apply axial and lateral loads
+            M.set_pointload(elevation=0, Pz=-20e3, Py=5e3)
+            # Run analysis
+            result = M.solve()
+            # plot the results
+            result.plot_deflection()
+
         """
         fig = graphics.plot_deflection(self)
         return fig if assign else None
 
     def plot_forces(self, assign=False):
-        """Plots the pile sectional forces.
+        r"""Plots the pile sectional forces.
 
         Parameters
         ----------
@@ -297,17 +336,21 @@ class WinklerResult:
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
 
-
+        Example
+        -------
         The plot looks like:
 
-        .. image:: ../../docs/source/_static/usage/analyses_plots/forces_results_plot.png
-            :width: 60%
+        .. plot::
+            :context: close-figs
+            :include-source: False
+
+            result.plot_forces()
         """
         fig = graphics.plot_forces(self)
         return fig if assign else None
 
     def plot_lateral_results(self, assign=False):
-        """Plots the pile deflection and sectional forces.
+        r"""Plots the pile deflection and sectional forces.
 
         Parameters
         ----------
@@ -320,16 +363,21 @@ class WinklerResult:
             if assign is True, a matplotlib figure is returned
 
 
+        Example
+        -------
         The plot looks like:
 
-        .. image:: ../../docs/source/_static/usage/analyses_plots/main_results_plot.png
-            :width: 60%
+        .. plot::
+            :context: close-figs
+            :include-source: False
+
+            result.plot_lateral_results()
         """
         fig = graphics.plot_results(self)
         return fig if assign else None
 
     def plot(self, assign=False):
-        """Same behaviour as :py:meth:`openpile.analyze.plot_lateral_results`.
+        r"""Same behaviour as :py:meth:`openpile.analyze.plot_lateral_results`.
 
         Parameters
         ----------
@@ -341,6 +389,16 @@ class WinklerResult:
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
 
+        Example
+        -------
+            
+        The plot looks like:
+        
+        .. plot::
+            :context: close-figs
+            :include-source: False
+
+            result.plot()
         """
         return self.plot_lateral_results(assign)
 

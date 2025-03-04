@@ -1,4 +1,4 @@
-"""
+r"""
 `SoilModels` module
 ===================
 
@@ -45,8 +45,8 @@ a :class:`openpile.construct.Layer` with the `lateral_model` or `axial_model` ar
 .. [SøIA10] Sorensen, S.P.H. & Ibsen, L.B. & Augustesen, A.H. (2010), Effects of diameter on 
     initial stiffness of p-y curves for large-diameter piles in sand, Numerical Methods in 
     Geotechnical Engineering, CRC Press, pp. 907-912.
-.. [Søre12] Sorensen, S.P.H. (2012), Soil-Structure Interaction For Nonslender, Large-Diameter 
-    Offshore Monopiles. PhD Thesis, Department of Civil Engineering, Aalborg University, Denmark.
+.. .. [Søre12] Sorensen, S.P.H. (2012), Soil-Structure Interaction For Nonslender, Large-Diameter 
+..     Offshore Monopiles. PhD Thesis, Department of Civil Engineering, Aalborg University, Denmark.
 
 
 Introduction - lateral soil models

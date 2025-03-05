@@ -22,6 +22,20 @@ def plot_deflection(result):
     return fig
 
 
+def plot_settlement(result):
+    fig, (ax1,ax2) = plt.subplots(1,2)
+
+    fig.suptitle(f"{result._name} - Pile settlements")
+
+    ax1 = settlement_plot(ax1, result)
+    ax2 = F_plot(ax2, result, "N [kN]")
+
+    ax2.set_yticklabels("")
+    ax2.set_ylabel("")
+
+    return fig
+
+
 def plot_forces(result):
     # create 4 subplots with (deflectiom, normal force, shear force, bending moment)
 
@@ -338,6 +352,23 @@ def U_plot(axis: plt.axis, result):
 
     return axis
 
+
+def settlement_plot(axis: plt.axis, result):
+    # TODO docstring
+
+    axis.set_ylabel("Elevation [m VREF]", fontsize=8)
+    axis.set_xlabel("Settlement [mm]", fontsize=8)
+    axis.tick_params(axis="both", labelsize=8)
+    axis.grid(which="both")
+
+    y = result.displacements["Elevation [m]"].values
+    x = np.zeros(shape=y.shape)
+    settlement = result.settlement['Settlement [m]'] * 1e3
+
+    axis.plot(x, y, color="0.4")
+    axis.plot(settlement, y, color="0.0", lw=2)
+
+    return axis
 
 def F_plot(axis: plt.axis, result, force: str):
     # TODO docstring

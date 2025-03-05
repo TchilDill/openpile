@@ -357,3 +357,42 @@ Example 8 - A less simple beam calculation
     #run solver and plot result
     result = m.solve()
     result.plot()
+
+
+Example 9 - Calculate pile settlement (axial analysis)
+======================================================
+
+.. plot::
+
+    from openpile.construct import Pile, SoilProfile, Layer, Model
+    from openpile.soilmodels import API_clay_axial, API_sand_axial, API_clay, API_sand
+    # Create a 20m deep offshore XL pile with a 15m water column
+    p = Pile.create_tubular(
+        name="", top_elevation=0, bottom_elevation=-20, diameter=7.5, wt=0.075
+    )
+    # Create a 20m deep offshore Soil Profile with a 15m water column
+    sp = SoilProfile(
+        name="Offshore Soil Profile",
+        top_elevation=0,
+        water_line=15,
+        layers=[
+            Layer(
+                name="medium dense sand",
+                top=0,
+                bottom=-20,
+                weight=18,
+                axial_model=API_sand_axial(delta=28),
+            ),
+        ],
+    )
+    # Create Model
+    M = Model(name="", pile=p, soil=sp)
+    # Apply fixity along lateral axis
+    M.set_support(elevation=-20, Ty=True)
+    M.set_support(elevation=0, Ty=True)
+    # Apply axial load
+    M.set_pointdisplacement(elevation=0, Tz=-1)
+    # Run analysis
+    result = M.solve()
+    result.plot_axial_results()
+

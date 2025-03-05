@@ -8,10 +8,12 @@ form the inputs to calculations in openpile.
 
 These objects include:
 
-- the Pile
-- the SoilProfile
-  - the Layer
-- the Model
+- Pile 
+  - PileMaterial
+  - PileSection
+- SoilProfile
+- Layer
+- Model
 
 **Usage**
 
@@ -1436,7 +1438,7 @@ class Model(AbstractModel):
     def tip_resistance(self) -> float:
         "the end bearing resistance [kN] calculated from the provided axial model at tip elevation"
         if self.soil is not None:
-            return float(np.abs(np.min(self._qz_spring[:,0,0,:], axis=1)))
+            return float(np.abs(np.min(self._qz_spring[0,0,0,:])))
         else:
             raise Exception(
                 "Model must be linked to a soil profile with provided axial models."
@@ -1612,6 +1614,40 @@ class Model(AbstractModel):
         """
         self._update_bc(elevation, z=Tz, y=Ty, x=Rx, BC_class=BoundaryFixation)
 
+    def get_distributed_axial_springs(self, kind: str = "lumped") -> pd.DataFrame:
+        """Table with t-z springs computed for the given Model with t-value [kN/m] and y-value [m].
+
+        Posible to extract the springs as typical structural springs (which are also the raw
+        springs used in the model) or element level (i.e. top and bottom springs at each element)
+
+        Parameters
+        ----------
+        kind : str
+            can be of ("lumped", "distributed").
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with t-z springs
+        """
+        if self.soil is None:
+            return None
+        else:
+            if kind == "distributed":
+                return misc.get_distributed_soil_springs(
+                    springs=self._tz_springs,
+                    elevations=self.nodes_coordinates["z [m]"].values,
+                    kind="t-z",
+                )
+            elif kind == "lumped":
+                return misc.get_lumped_soil_springs(
+                    springs=self._tz_springs,
+                    elevations=self.nodes_coordinates["z [m]"].values,
+                    kind="t-z",
+                )
+            else:
+                return None
+
     def get_distributed_lateral_springs(self, kind: str = "lumped") -> pd.DataFrame:
         """Table with p-y springs computed for the given Model with p-value [kN/m] and y-value [m].
 
@@ -1706,6 +1742,32 @@ class Model(AbstractModel):
 
             return df
 
+    def get_base_axial_spring(self) -> pd.DataFrame:
+        """Table with Q-z (base axial) spring computed for the given Model with Q-value [kN] and z-value [m].
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with Q-z spring.
+        """
+        if self.soil is None:
+            return None
+        else:
+            spring_dim = self._qz_spring.shape[-1]
+
+            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
+
+            df = pd.DataFrame(
+                data={
+                    "Node no.": [self.element_number + 1] * 2,
+                    "Elevation [m]": [self.pile.bottom_elevation] * 2,
+                }
+            )
+            df["type"] = ["q", "z"]
+            df[column_values_spring] = self._qz_spring.reshape(2, spring_dim)
+
+            return df
+
     def get_base_rotational_spring(self) -> pd.DataFrame:
         """Table with Mb (base moment) spring computed for the given Model with M-value [kNn] and t-value [radians].
 
@@ -1770,6 +1832,8 @@ class Model(AbstractModel):
             m.plot()
         """
         graphics.connectivity_plot(self, ax=ax)
+
+    
 
     def solve(self):
         """

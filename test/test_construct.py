@@ -1,5 +1,5 @@
 from openpile import construct
-from openpile.soilmodels import API_clay, API_sand
+from openpile.soilmodels import API_clay, API_sand, API_clay_axial, API_sand_axial
 from openpile.materials import PileMaterial
 
 import pytest
@@ -568,3 +568,41 @@ class TestModel:
         # check
         target_weight = 0.5 * ((steel_weight - 10) + steel_weight)
         assert m.isclose(model.effective_pile_weight, target_weight, abs_tol=0.1)
+
+    def test_axial_capacity_same_as_winkler(self):
+
+
+        p = construct.Pile.create_tubular(
+            name="", top_elevation=0, bottom_elevation=-20, diameter=7.5, wt=0.075
+        )
+        # Create a 40m deep offshore Soil Profile with a 15m water column
+        sp = construct.SoilProfile(
+            name="Offshore Soil Profile",
+            top_elevation=0,
+            water_line=15,
+            layers=[
+                construct.Layer(
+                    name="medium dense sand",
+                    top=0,
+                    bottom=-20,
+                    weight=18,
+                    axial_model=API_sand_axial(delta=28),
+                ),
+            ],
+        )
+        # Create Model
+        M = construct.Model(name="Settlement", pile=p, soil=sp)
+        # Apply bottom fixity along lateral axis
+        M.set_support(elevation=-20, Ty=True)
+        M.set_support(elevation=0, Ty=True)
+        # Apply axial and lateral loads
+        M.set_pointdisplacement(elevation=0, Tz=-1)
+        # Run analysis
+        result = M.solve()
+
+        # test 
+        assert m.isclose(
+            -(M.tip_resistance+M.shaft_resistance[0]),
+            result.forces['N [kN]'][0],
+            rel_tol=1e-3
+        )

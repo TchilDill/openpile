@@ -376,6 +376,23 @@ class WinklerResult:
         fig = graphics.plot_results(self)
         return fig if assign else None
 
+    def plot_axial_results(self, assign=False):
+        r"""Plots the pile settlements and normal forces.
+
+        Parameters
+        ----------
+        assign : bool, optional
+            by default False
+
+        Returns
+        -------
+        None or matplotlib.pyplot.figure
+            if assign is True, a matplotlib figure is returned
+
+        """
+        fig = graphics.plot_settlement(self)
+        return fig if assign else None
+
     def plot(self, assign=False):
         r"""Same behaviour as :py:meth:`openpile.analyze.plot_lateral_results`.
 

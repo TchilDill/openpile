@@ -116,6 +116,7 @@ from pydantic.dataclasses import dataclass
 from openpile.core.misc import from_list2x_parse_top_bottom, var_to_str, get_value_at_current_depth
 from openpile.utils import py_curves, Hb_curves, mt_curves, Mb_curves, tz_curves, qz_curves
 from openpile.utils.misc import _fmax_api_sand, _fmax_api_clay, _Qmax_api_clay, _Qmax_api_sand
+from openpile.utils.hooks import InitialSubgradeReaction
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Union
@@ -197,10 +198,13 @@ class API_clay_axial(AxialModel):
 
     Parameters
     ----------
-    Su: float or function taking the depth as argument and returns the multiplier
+    Su: float or function taking the depth as input argument and returning a value
         Undrained shear strength of soil. [unit: kPa]
     plugging: str
-        defines whether pile behave plugged or unplugged, can be one of ('none', 'compression', 'tension', 'both'), by default 'none'
+        defines whether pile behave plugged or unplugged, 
+        can be one of ('none', 'compression', 'tension', 'both'), by default 'none'.
+
+        The plugging criterion is only relevant if the pile section has an open geometry.
     alpha_limit: float
         Limit of unit shaft friction, normalized with undrained shear strength, by default it is 1.0
     t_multiplier: float or function taking the depth as argument and returns the multiplier
@@ -214,7 +218,7 @@ class API_clay_axial(AxialModel):
     t_residual: float
         Residual value of t-z curves, by default it is 0.9 and can range from 0.7 to 0.9.
     tension_multiplier: float or function taking the depth as argument and returns the multiplier
-        multiplier for tensile strength, by default it is 1.0
+        multiplier for tensile strength, by default it is 1.0.
 
     Returns
     -------
@@ -1289,14 +1293,20 @@ class API_sand(LateralModel):
     G0: float or list[top_value, bottom_value] or None
         Small-strain shear modulus [unit: kPa], by default None
     initial_subgrade_modulus: float or list[top_value, bottom_value] or None
-        user-defined initial subgrade modulus  [unit: kN/m^3], by default None which default to API definition based on friction angle
+        User-defined initial subgrade modulus  [unit: kN/m^3], by default None which default to API definition based on friction angle
+    Modification: str or None, by default None
+        Application of well-known modification to API sand. Modifications available are:
+        
+        - "Kallehave" - which calls the p-y springs :py:func:`openpile.utils.hooks.InitialSubgradeReaction.kallehave_sand()`.
+        - "Sørensen" - which calls the p-y springs with the initial subgrade modulus :py:func:`openpile.utils.hooks.InitialSubgradeReaction.sørensen2010_sand()`.
+
     p_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for p-values
     y_multiplier: float or function taking the depth as argument and returns the multiplier
         multiplier for y-values
     extension: str, by default None
-        turn on extensions by calling them in this variable
-        for API_sand, rotational springs can be added to the model with the extension "mt_curves"
+        turn on extensions by calling them in this variable.
+        Rotational springs can be added to the model with the extension "mt_curves"
 
     See also
     --------
@@ -1325,6 +1335,8 @@ class API_sand(LateralModel):
             Annotated[List[PositiveFloat], Field(min_length=1, max_length=2)],
         ]
     ] = None
+    #: Application of well-known modification to API sand
+    Modification: Optional[Literal["Kallehave", "Sørensen"]] = None
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], Annotated[float, Field(ge=0.0)]] = 1.0
     #: y-multiplier
@@ -1375,17 +1387,42 @@ class API_sand(LateralModel):
             subgrade_modulus_t, subgrade_modulus_b = from_list2x_parse_top_bottom(self.initial_subgrade_modulus)
             subgrade_modulus = subgrade_modulus_t + (subgrade_modulus_b - subgrade_modulus_t) * depth_from_top_of_layer / layer_height
 
-        y, p = py_curves.api_sand(
-            sig=sig,
-            X=X,
-            phi=phi,
-            D=D,
-            kind=self.kind,
-            below_water_table=below_water_table,
-            k=subgrade_modulus,
-            ymax=ymax,
-            output_length=output_length,
-        )
+        if not self.Modification:
+            y, p = py_curves.api_sand(
+                sig=sig,
+                X=X,
+                phi=phi,
+                D=D,
+                kind=self.kind,
+                below_water_table=below_water_table,
+                k=subgrade_modulus,
+                ymax=ymax,
+                output_length=output_length,
+            )
+        elif self.Modification == "Kallehave":
+            y, p = py_curves.api_sand(
+                sig=sig,
+                X=X,
+                phi=phi,
+                D=D,
+                kind=self.kind,
+                below_water_table=below_water_table,
+                k=InitialSubgradeReaction.kallehave_sand(phi),
+                ymax=ymax,
+                output_length=output_length,
+            )  
+        elif self.Modification == "Sørensen":
+            y, p = py_curves.api_sand(
+                sig=sig,
+                X=X,
+                phi=phi,
+                D=D,
+                kind=self.kind,
+                below_water_table=below_water_table,
+                k=InitialSubgradeReaction.sørensen2010_sand(phi),
+                ymax=ymax,
+                output_length=output_length,
+            )
 
         # parse multipliers and apply results
         y_mult = self.y_multiplier if isinstance(self.y_multiplier, float) else self.y_multiplier(X)
@@ -1414,15 +1451,16 @@ class API_sand(LateralModel):
         phi = phi_t + (phi_b - phi_t) * depth_from_top_of_layer / layer_height
 
         # define p vector
-        _, p = py_curves.api_sand(
+        _, p = self.py_spring_fct(
             sig=sig,
             X=X,
-            phi=phi,
+            layer_height= layer_height,
+            depth_from_top_of_layer= depth_from_top_of_layer,
             D=D,
-            kind=self.kind,
-            below_water_table=below_water_table,
-            ymax=ymax,
-            output_length=output_length,
+            L=L,
+            below_water_table= below_water_table,
+            ymax= ymax,
+            output_length= output_length,
         )
 
         if p.max() > 0:
@@ -1441,7 +1479,7 @@ class API_sand(LateralModel):
             output_length=output_length,
         )
 
-        # trasnform tz vector
+        # transform tz vector
         tz_pos = tz[tz >= 0]
         z_pos = z[z >= 0]
         diff_length_t = output_length - len(tz_pos)
@@ -1456,7 +1494,7 @@ class API_sand(LateralModel):
 
 
 class API_clay(LateralModel):
-    """A class to establish the API clay model.
+    """A class to establish the API clay model as per [API2014]_.
 
     Parameters
     ----------

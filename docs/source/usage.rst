@@ -49,20 +49,26 @@ A pile can be created in the simple following way in openpile.
     2          -10.0           7.5                0.08   1.864849  12.835479
     3          -40.0           7.5                0.08   1.864849  12.835479
 
-Additional methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
-For instance:
+Alternative methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
+A pile can also be created with a custom material.
 
+For instance, the below snippet of code with another pile made of a custom material:
 
 .. doctest::
 
-    >>> # Import Pile object from constuct module
-    >>> from openpile.construct import Pile
+    >>> # create a custom material
+    >>> from openpile.materials import PileMaterial
+    >>> my_concrete = PileMaterial(
+    ...     name="Concrete",
+    ...     uw=24,
+    ...     E=30e6,
+    ...     nu=0.2,
+    ... )
 
     >>> # create pile
     >>> p = Pile.create_tubular(
-    ...     name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=10, wt=0.050
+    ...     name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=10, wt=0.050, material=my_concrete
     ... )
-
     >>> print(p)
        Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
     0            0.0          10.0                0.05   1.562942  19.342388

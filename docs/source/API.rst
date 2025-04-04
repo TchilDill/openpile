@@ -15,6 +15,12 @@ API
                       AbstractPile, AbstractLayer, AbstractSoilProfile, AbstractModel
 
 
+.. automodule:: openpile.materials
+    :members:
+    :exclude-members: __init__, PydanticConfig, AbstractPileMaterial
+
+
+
 .. automodule:: openpile.soilmodels
     :members: 
     :exclude-members: __init__, PydanticConfig, PydanticConfigFrozen, ConstitutiveModel, 

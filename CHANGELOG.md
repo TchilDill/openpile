@@ -7,15 +7,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
-## [1.0.0] - 2024-06-xx
+## [1.0.0] - 2025-04-04
 
 *OpenPile's kernel now accounts for axial soil springs when running a Winkler analysis. The axial soil springs are by default turned on (`base_axial` and `distributed_axial` arguments of `openpile.construct.Model`) and considered if an `axial_model` is fed to a `openpile.construct.Layer`*
 
-The minimum python version to use with Openpile >= 1.0.0 is python 3.8. Please also note that the major version of Numpy (v2.0) does not work with OpenPile since we use Numba, so far imcompatible with this this new major release of Numpy.
+The minimum python version to use with Openpile >= 1.0.0 is python 3.8. Please also note that the major version of Numpy (v2.0) does not work with OpenPile since we use Numba, which at the time of writing this is imcompatible with Numpy 2.0+.
 
 ### Added
+- the `PileMaterial` class in the new `openpile.materials` module is now used to determine the material of the structure. Such material can now be customised by users by creating a new instance of `openpile.materials.PileMaterial`.
+- *Sørensen sand* and *Kallehave sand* py-curves are now available and require a setting to be turned on in `openpile.soilmodels.API_sand()`, the corresponding curves are also available in the module `openpile.utils.py_curves`.
 - extensions of API-type lateral soil models are now considered in the string output when printing out the model or the entire soil profile, i.e. when running `print(openpile.construct.Layer)`
-- the `PileMaterial` class in the brand new `openpile.materials` module is now used to determine the material of the structure. Such material can now be customised by users by creating a new instance of `openpile.materials.PileMaterial`.
 
 
 ### Modified

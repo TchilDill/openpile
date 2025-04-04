@@ -431,7 +431,7 @@ class Pile(AbstractPile):
         bottom_elevation: float,
         diameter: float,
         wt: float,
-        material: str = "Steel",
+        material: Union[Literal["Steel", "Concrete"], PileMaterial] = "Steel",
     ):
         """A method to simplify the creation of a Pile instance.
         This method creates a circular and hollow pile of constant diameter and wall thickness.
@@ -448,7 +448,7 @@ class Pile(AbstractPile):
             pile diameter [m]
         wt : float
             pile's wall thickness [m]
-        material : Literal["Steel",]
+        material : Literal["Steel", "Concrete"] or an instance of openpile.materials.PileMaterial 
             material the pile is made of. by default "Steel"
 
         Returns

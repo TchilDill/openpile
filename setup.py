@@ -4,7 +4,7 @@ import re
 
 if __name__ == "__main__":
     version = re.findall(
-        r'VERSION = "(\d+.\d+.\d+[^"]*)"',
+        r'__version__ = "(\d+.\d+.\d+[^"]*)"',
         Path("src/openpile/__init__.py").read_text(encoding="utf-8"),
     )[0]
 

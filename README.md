@@ -22,19 +22,16 @@ Open-source PILE software.
 
 Please see [official documentation](https://openpile.readthedocs.io/en/latest/) for more information.
 
-This package is an open source python library that provides users a tool box for geotechnical pile
-calculations.
+TThis package is an open source python library that provides a toolbox for beam/pile calculations. It provides users with various objects to represent structural and geotechnical problems (such as piles, soil profiles, soil layers), and an assortment of routines for fast operations, including solving 1D FE beam models with or without Winkler approach.
 
-This package allows the user to:
+Few features at a glance:
 
-* Use basic Euler-Bernoulli beam theory (as well as Timoshenko's variation) to compute 
-  forces, deflection of a beam (or a pile) under adequate loading and 
-  support conditions.
-* Use Winkler's approach of a beam (or a pile) supported by linear or non-linear lateral and/or 
-  rotational springs to compute forces and deflection of the pile based on recognised 
-  soil models such as the widely used traditional API models for sand and clay or more recent models that stem from the PISA joint-industry project.
+- Finite Element calculations with 1D Beam elements (following Euler-Bernoulli or Timishenko beam theories) to compute forces, deformations
+- Winkler’s approach of a beam supported by linear or non-linear springs
+- Soil springs over axial, lateral and rotational degrees of freedoms
+- Common soil spring formulations to model soil structure interaction with the structure (a beam or pile).
 
-This library supports the following versions of python: 3.7-3.10.
+This library supports the following versions of python: 3.8-3.10.
 Python 3.11 is not supported!
 
 ## Support
@@ -47,28 +44,12 @@ This package takes time and effort. You can support by buying me a coffee.
 
 **Prerequisites**:
 
-* a version of python is installed on your machine (supported versions: 3.7-3.10)
+* a version of python is installed on your machine (supported versions: 3.8-3.10)
 * pip is installed in your environment.
 
 ```bash
 pip install openpile
 ```
-
-## Features
-
- * Python 3.7-3.10 support
- * Interactive structure perfectly suited for Jupyter Notebook 
- * Integrated data validation to prevent wrong inputs with pydantic
- * very fast computations fueled by the Numpy, Numba and Pandas libraries
- * Calculations
-   * Beam calculation
-   * Winkler model (i.e. beam supported by soil springs)
-     * Load-driven analyses
-     * Displacement-driven analyses 
-   * Out-of-the-box computation of individual soil springs
-   <!-- * Axial capacity calculations via integration -->
- * Friendly API interface with object-oriented approach
- * Matplotlib and Pandas libraries to facilitate post-processing of results. 
 
  ## Please share with the community
 

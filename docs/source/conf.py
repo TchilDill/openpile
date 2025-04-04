@@ -45,7 +45,7 @@ autodoc_default_options = {
 }
 
 napoleon_numpy_docstring = True
-napoleon_custom_sections = ['Theory']
+napoleon_custom_sections = ["Theory"]
 
 auoclass_content = "class"
 # Automatically extract typehints when specified and place them in

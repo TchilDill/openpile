@@ -177,7 +177,7 @@ def dunkirk_sand(
 
     The curve backbone is defined as a conic function, see below.
 
-    .. figure:: _static/PISA_conic_function.png 
+    .. figure:: _static/PISA_conic_function.png
         :width: 80%
 
         PISA Conic function: (a) conic form; (b) bilinear form, after [BHBG20]_.
@@ -207,7 +207,6 @@ def dunkirk_sand(
 
     # return non-normalised curve
     return y * (sig * D / G0), p * (sig * D)
-
 
 
 # API sand function
@@ -456,14 +455,14 @@ def api_clay(
 
     See also
     --------
-    
+
     :py:class:`openpile.soilmodels.API_clay`, :py:func:`openpile.utils.py_curves.matlock_1970`
 
     Notes
     -----
 
     The p-y clay formulation is presented in both the API and DNVGL standards,
-    see [DNV-RP-C212]_ and [API2014]_. 
+    see [DNV-RP-C212]_ and [API2014]_.
 
     The p-y curve is defined as per Matlock original equations (see notes in :py:func:`openpile.utils.py_curves.matlock_1970`) but defined at specific points, in a piece-wise manner.
 
@@ -504,7 +503,7 @@ def api_clay(
         +----------------------------------------------------+------------------+
         | :math:`\min\left(0.72; 0.72 \dfrac{z}{X_R}\right)` | :math:`\infty`   |
         +----------------------------------------------------+------------------+
-    
+
         where:
 
         * :math:`z` is the depth below mudline
@@ -785,6 +784,7 @@ def matlock_1970(
 
     return y, p
 
+
 # API clay function
 @njit(parallel=True, cache=True)
 def modified_Matlock(
@@ -831,17 +831,17 @@ def modified_Matlock(
     1darray
         p vector [unit: kN/m]
 
-    
+
     See also
     --------
-    :py:func:`openpile.utils.py_curves.api_clay`, :py:func:`openpile.utils.py_curves.matlock_1970` 
+    :py:func:`openpile.utils.py_curves.api_clay`, :py:func:`openpile.utils.py_curves.matlock_1970`
 
     Notes
     -----
 
     Differences with standard Matlock (1970) formula
-        For an undrained shear strength of 96 kPa (assumed as the threshold at which a clay is considered stiff), 
-        this formulation may be deemed more relevant to account for a more brittle fracture and degradation 
+        For an undrained shear strength of 96 kPa (assumed as the threshold at which a clay is considered stiff),
+        this formulation may be deemed more relevant to account for a more brittle fracture and degradation
         of the soil, see [BaCA06]_.
 
         .. figure:: _static/schematic_curves.png
@@ -1068,7 +1068,7 @@ def custom_pisa_sand(
     See also
     --------
     :py:func:`openpile.utils.py_curves.dunkirk_sand`, :py:func:`openpile.utils.hooks.dunkirk_sand_pisa_norm_param`
-    
+
     Example
     -------
 
@@ -1131,7 +1131,7 @@ def custom_pisa_clay(
     See also
     --------
     :py:func:`openpile.utils.py_curves.cowden_clay`, :py:func:`openpile.utils.py_curves.bothkennar_clay`,
-    :py:func:`openpile.utils.hooks.cowden_clay_pisa_norm_param` 
+    :py:func:`openpile.utils.hooks.cowden_clay_pisa_norm_param`
     """
     # calculate normsalised conic function
     y, p = conic(X_ult, n, k, Y_ult, output_length)

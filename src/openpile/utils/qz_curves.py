@@ -39,7 +39,23 @@ def _backbone_api(
         output_length = 15
 
     # piecewise function
-    zlist = [-0.2, -0.15, -0.1, -0.073, -0.042, -0.013, -0.002, 0.0, 0.002, 0.013, 0.042, 0.073, 0.100, 0.15, 0.200]
+    zlist = [
+        -0.2,
+        -0.15,
+        -0.1,
+        -0.073,
+        -0.042,
+        -0.013,
+        -0.002,
+        0.0,
+        0.002,
+        0.013,
+        0.042,
+        0.073,
+        0.100,
+        0.15,
+        0.200,
+    ]
     Qlist = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.50, 0.75, 0.90, 1.00, 1.00, 1.00]
 
     # determine z vector
@@ -149,7 +165,7 @@ def api_sand(
 
     * API sand: :math:`Q_{max} = N_q \sigma^\prime_v`
 
-    where :math:`\sigma_v^\prime` is the overburden effective stress and :math:`N_q` is 
+    where :math:`\sigma_v^\prime` is the overburden effective stress and :math:`N_q` is
     the end-bearing factor depending on the interface friction angle :math:`\varphi`, see below table.
 
     +---------------------------+------+------+------+------+-------+

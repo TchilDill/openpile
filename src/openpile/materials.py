@@ -66,8 +66,9 @@ class PileMaterial(AbstractPileMaterial):
     E : float
         The Young's modulus of the material in kN/m².
     nu : float
-        The Poisson's ratio of the material. Must be between -1 and 0.5.    
+        The Poisson's ratio of the material. Must be between -1 and 0.5.
     """
+
     #: name of the material
     name: str = Field(min_length=1, max_length=20)
     #: unit weight [kN/m³]
@@ -110,7 +111,7 @@ class PileMaterial(AbstractPileMaterial):
         young_modulus : float
             The Young's modulus of the material in kN/m².
         poisson_ratio : float
-            The Poisson's ratio of the material. Must be between -1 and 0.5.  
+            The Poisson's ratio of the material. Must be between -1 and 0.5.
         name : str, optional
             the name of the material, by default "Custom"
 
@@ -119,6 +120,7 @@ class PileMaterial(AbstractPileMaterial):
         openpile.materials.PileMaterial
         """
         return cls(name=name, uw=unitweight, E=young_modulus, nu=poisson_ratio)
-    
+
+
 steel = PileMaterial(name="Steel", uw=78.0, E=210e6, nu=0.3)
 concrete = PileMaterial(name="Concrete", uw=24.0, E=30e6, nu=0.2)

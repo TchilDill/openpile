@@ -34,6 +34,7 @@ def circular_slender_pile():
         ],
     )
 
+
 @pytest.fixture
 def circular_slender_pile():
     # create a steel and circular pile
@@ -48,14 +49,13 @@ def circular_slender_pile():
 
 
 class TestPileSection:
-
     def test_pile_section(self):
         section = construct.CircularPileSection(top=10, bottom=5, diameter=9.4, thickness=0.31)
         assert section.width == 9.4
         assert section.top == 10
         assert section.bottom == 5
         assert section.length == 5
-        
+
     def test_elevations(self):
         with pytest.raises(ValueError):
             construct.CircularPileSection(top=-10, bottom=5, diameter=9.4, thickness=0.31)
@@ -63,7 +63,7 @@ class TestPileSection:
     def test_default_thickness(self):
         section = construct.CircularPileSection(top=10, bottom=5, diameter=9)
         assert section.thickness == 4.5
-        
+
 
 class TestPile:
     def test_main_constructor(self, offshore_wind_pile1):
@@ -85,8 +85,8 @@ class TestPile:
             ],
         )
 
-        assert pile.material.name == "Steel" 
-        assert isinstance(pile.material, PileMaterial) 
+        assert pile.material.name == "Steel"
+        assert isinstance(pile.material, PileMaterial)
 
     def test_pile_width(self):
         pile = construct.Pile(
@@ -286,54 +286,61 @@ class TestModel:
     def test_boundary_conditions_simple_beam(self, circular_slender_pile):
         """this test should show that specific nodes are created where x2mesh is used."""
         model = construct.Model(
-            name="", 
-            pile=circular_slender_pile, 
+            name="",
+            pile=circular_slender_pile,
             boundary_conditions=[
                 construct.BoundaryFixation(
-                    elevation=circular_slender_pile.top_elevation,
-                    y=True, z=True),
+                    elevation=circular_slender_pile.top_elevation, y=True, z=True
+                ),
                 construct.BoundaryFixation(
-                    elevation=circular_slender_pile.bottom_elevation,
-                    y=True),
+                    elevation=circular_slender_pile.bottom_elevation, y=True
+                ),
                 construct.BoundaryDisplacement(
-                    elevation=0.5*(circular_slender_pile.top_elevation+circular_slender_pile.bottom_elevation),
-                    y=0.1)
-            ])
+                    elevation=0.5
+                    * (
+                        circular_slender_pile.top_elevation + circular_slender_pile.bottom_elevation
+                    ),
+                    y=0.1,
+                ),
+            ],
+        )
 
         results = model.solve()
-        assert results.deflection['Deflection [m]'].max() == 0.1
-    
+        assert results.deflection["Deflection [m]"].max() == 0.1
 
     def test_boundary_conditions_fixed_end_beam(self, circular_slender_pile):
-        """this test checks that the beam calculation with one end fixed and 
+        """this test checks that the beam calculation with one end fixed and
         the other end loaded by a transverse force results in the correct known solution"""
         model = construct.Model(
-            name="", 
-            pile=circular_slender_pile, 
+            name="",
+            pile=circular_slender_pile,
             boundary_conditions=[
                 construct.BoundaryFixation(
-                    elevation=circular_slender_pile.bottom_elevation,
-                    x=True, y=True, z=True),
-                construct.BoundaryForce(
-                    elevation=circular_slender_pile.top_elevation,
-                    y=1.0
-                )
-            ])
+                    elevation=circular_slender_pile.bottom_elevation, x=True, y=True, z=True
+                ),
+                construct.BoundaryForce(elevation=circular_slender_pile.top_elevation, y=1.0),
+            ],
+        )
 
         results = model.solve()
         assert m.isclose(
-            results.deflection['Deflection [m]'][0],
-            circular_slender_pile.length**3/(3*circular_slender_pile.E*circular_slender_pile.sections[0].second_moment_of_area),
-            abs_tol=1e-5
+            results.deflection["Deflection [m]"][0],
+            circular_slender_pile.length**3
+            / (
+                3
+                * circular_slender_pile.E
+                * circular_slender_pile.sections[0].second_moment_of_area
+            ),
+            abs_tol=1e-5,
         )
 
     def test_constructor_with_x2mesh(self, circular_slender_pile):
         """this test should show that specific nodes are created where x2mesh is used."""
         model = construct.Model(name="", pile=circular_slender_pile, x2mesh=[-10.38, -10.918])
 
-        assert any(model.nodes_coordinates['z [m]'] == -10.38) 
-        assert any(model.nodes_coordinates['z [m]'] == -10.918) 
-    
+        assert any(model.nodes_coordinates["z [m]"] == -10.38)
+        assert any(model.nodes_coordinates["z [m]"] == -10.918)
+
     def test_constructor_wo_soil_models(self):
         """
         check that model can still be created with no lateral or axial models"""
@@ -377,19 +384,13 @@ class TestModel:
         )
 
         # # check that m_t springs are all zero
-        assert not np.all( 
-            model.get_distributed_rotational_springs()[['VAL 0','VAL 1','VAL 2']].values 
-        )
-
         assert not np.all(
-            model.get_base_rotational_spring()[['VAL 0','VAL 1','VAL 2']].values 
+            model.get_distributed_rotational_springs()[["VAL 0", "VAL 1", "VAL 2"]].values
         )
 
-        assert not np.all(
-            model.get_base_shear_spring()[['VAL 0','VAL 1','VAL 2']].values 
-        )
+        assert not np.all(model.get_base_rotational_spring()[["VAL 0", "VAL 1", "VAL 2"]].values)
 
-
+        assert not np.all(model.get_base_shear_spring()[["VAL 0", "VAL 1", "VAL 2"]].values)
 
     def test_entrapped_soil_weight_above_water_table(self):
         """calculate the weight of the soil inside a pile that is above water table"""
@@ -434,7 +435,6 @@ class TestModel:
         # check
         assert m.isclose(model.entrapped_soil_weight, soil_weight * p.length)
 
-
     def test_entrapped_soil_weight_below_water_table(self):
         """calculate the weight of the soil inside a pile that is submerged in water"""
 
@@ -476,8 +476,7 @@ class TestModel:
 
         model = construct.Model(name="", pile=p, soil=sp)
         # check
-        assert m.isclose(model.entrapped_soil_weight, (soil_weight-10) * p.length)
-
+        assert m.isclose(model.entrapped_soil_weight, (soil_weight - 10) * p.length)
 
     def test_submerged_effective_pile_weight(self):
 
@@ -520,10 +519,7 @@ class TestModel:
         model = construct.Model(name="", pile=p, soil=sp)
 
         # check
-        assert m.isclose(
-            model.effective_pile_weight, (steel_weight - 10), abs_tol=0.1
-        )
-
+        assert m.isclose(model.effective_pile_weight, (steel_weight - 10), abs_tol=0.1)
 
     def test_half_submerged_effective_pile_weight(self):
 
@@ -571,7 +567,6 @@ class TestModel:
 
     def test_axial_capacity_same_as_winkler(self):
 
-
         p = construct.Pile.create_tubular(
             name="", top_elevation=0, bottom_elevation=-20, diameter=7.5, wt=0.075
         )
@@ -600,9 +595,7 @@ class TestModel:
         # Run analysis
         result = M.solve()
 
-        # test 
+        # test
         assert m.isclose(
-            -(M.tip_resistance+M.shaft_resistance[0]),
-            result.forces['N [kN]'][0],
-            rel_tol=1e-3
+            -(M.tip_resistance + M.shaft_resistance[0]), result.forces["N [kN]"][0], rel_tol=1e-3
         )

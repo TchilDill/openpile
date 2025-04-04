@@ -34,12 +34,12 @@ def durkhop(D: float, ra: float = 0.3) -> object:
     Example
     -------
 
-    .. plot::  
+    .. plot::
 
         import matplotlib.pyplot as plt
         from openpile.construct import Layer
         from openpile.utils import hooks
-        from openpile.soilmodels import API_sand 
+        from openpile.soilmodels import API_sand
         # settings for py curve generation
         kw = {'sig':50, 'X':5, 'layer_height':10, 'depth_from_top_of_layer':5, 'D':5, 'L':30}
         # a, b soil models are traditional cyclic and static API sand models
@@ -60,7 +60,7 @@ def durkhop(D: float, ra: float = 0.3) -> object:
                 kind="cyclic",
                 p_multiplier=hooks.durkhop(D=7.0, ra=ra)
             )
-            plt.plot(*c.py_spring_fct(**kw), ':',label=f'Durkhop multipliers, ra={ra}') 
+            plt.plot(*c.py_spring_fct(**kw), ':',label=f'Durkhop multipliers, ra={ra}')
         plt.legend()
 
     Reference
@@ -110,6 +110,7 @@ def durkhop_normalized(D: float, ra: float = 0.3) -> object:
 
     return func
 
+
 class PISA_depth_variation:
     r"""stores functions that returns the depth varying normalized parameters
     of the p-y, m-t, H-b and M-b conic formulations as per [BTZA20]_ and [BHBG20]_, and [BABH20]_.
@@ -145,10 +146,10 @@ class PISA_depth_variation:
         plt.legend()
 
 
-        """
+    """
 
     @staticmethod
-    def dunkirk_sand_pisa_norm_param(D:float, L:float):
+    def dunkirk_sand_pisa_norm_param(D: float, L: float):
         """returns the depth variation functions for all normalized parameters
         of the dunkirk sand conic formulations as per [BTZA20]_.
 
@@ -162,13 +163,13 @@ class PISA_depth_variation:
 
         py = PISA_depth_variation.dunkirk_sand_py_pisa_norm_param(D=D)
         mt = PISA_depth_variation.dunkirk_sand_mt_pisa_norm_param(D=D)
-        Hb = PISA_depth_variation.dunkirk_sand_Hb_pisa_norm_param(D=D,L=L)
-        Mb = PISA_depth_variation.dunkirk_sand_Mb_pisa_norm_param(D=D,L=L)
-        
+        Hb = PISA_depth_variation.dunkirk_sand_Hb_pisa_norm_param(D=D, L=L)
+        Mb = PISA_depth_variation.dunkirk_sand_Mb_pisa_norm_param(D=D, L=L)
+
         return {**py, **mt, **Hb, **Mb}
 
     @staticmethod
-    def cowden_clay_pisa_norm_param(D:float, L:float):
+    def cowden_clay_pisa_norm_param(D: float, L: float):
         """returns the depth variation functions for all normalized parameters
         of the cowden_clay conic formulations as per [BHBG20]_.
 
@@ -182,9 +183,9 @@ class PISA_depth_variation:
 
         py = PISA_depth_variation.cowden_clay_py_pisa_norm_param(D=D)
         mt = PISA_depth_variation.cowden_clay_mt_pisa_norm_param(D=D)
-        Hb = PISA_depth_variation.cowden_clay_Hb_pisa_norm_param(D=D,L=L)
-        Mb = PISA_depth_variation.cowden_clay_Mb_pisa_norm_param(D=D,L=L)
-        
+        Hb = PISA_depth_variation.cowden_clay_Hb_pisa_norm_param(D=D, L=L)
+        Mb = PISA_depth_variation.cowden_clay_Mb_pisa_norm_param(D=D, L=L)
+
         return {**py, **mt, **Hb, **Mb}
 
     @staticmethod
@@ -372,7 +373,6 @@ class PISA_depth_variation:
         Y_func = lambda x: max(0.001, p_u1 + p_u2 * x / L)
 
         return {"py_k": k_func, "py_n": n_func, "py_X": X_func, "py_Y": Y_func}
-        
 
     @staticmethod
     def dunkirk_sand_mt_pisa_norm_param(L: float, Dr: float):
@@ -494,7 +494,7 @@ class PISA_depth_variation:
 
 
 class InitialSubgradeReaction:
-    """This class stores functions that calculate the initial 
+    """This class stores functions that calculate the initial
     subgrade modulus of soil reaction curves.
 
     This class includes functions to calculate the initial subgrade reaction of py curves for sand.
@@ -510,7 +510,7 @@ class InitialSubgradeReaction:
         from openpile.utils.hooks import InitialSubgradeReaction
 
         # sand parameters
-        settings = {'phi':35,'X':5,'sig':50,'D':4, 'below_water_table':False} 
+        settings = {'phi':35,'X':5,'sig':50,'D':4, 'below_water_table':False}
 
         # create a plot
         _, ax = plt.subplots()
@@ -522,10 +522,11 @@ class InitialSubgradeReaction:
         ax.plot(*api_sand(**settings, k=InitialSubgradeReaction.sørensen2010_sand(**settings)), label="Sørensen sand")
         ax.legend()
     """
+
     @staticmethod
-    def api_sand(phi:float, below_water_table:bool, *args, **kwargs):
+    def api_sand(phi: float, below_water_table: bool, *args, **kwargs):
         """Calculates the initial subgrade modulus 'k' in the API sand p-y curve.
-        The value calculated here is based on a visual fit. 
+        The value calculated here is based on a visual fit.
 
         Parameters
         ----------
@@ -545,7 +546,7 @@ class InitialSubgradeReaction:
             return max((0.2153 * phi**2 - 8.232 * phi + 63.657) * 1000, 5400)
 
     @staticmethod
-    def kallehave_sand(phi:float, below_water_table:bool, X:float, D:float, *args, **kwargs):
+    def kallehave_sand(phi: float, below_water_table: bool, X: float, D: float, *args, **kwargs):
         """Calculates the initial subgrade modulus based on modification of the API sand p-y curve, presented in #REF.
 
         Parameters
@@ -564,11 +565,15 @@ class InitialSubgradeReaction:
         float
             initial subgrade modulus [kN/m^3]
         """
-        return InitialSubgradeReaction.api_sand(phi, below_water_table)*(X/2.5)**0.6*(D/0.61)**0.5
-    
+        return (
+            InitialSubgradeReaction.api_sand(phi, below_water_table)
+            * (X / 2.5) ** 0.6
+            * (D / 0.61) ** 0.5
+        )
+
     @staticmethod
-    def sørensen2010_sand(phi:float, X:float, D:float, *args, **kwargs):
-        """Calculates the initial subgrade modulus based on modification of the API sand p-y curve, 
+    def sørensen2010_sand(phi: float, X: float, D: float, *args, **kwargs):
+        """Calculates the initial subgrade modulus based on modification of the API sand p-y curve,
         presented in [SøIA10]_.
 
         Parameters
@@ -589,4 +594,4 @@ class InitialSubgradeReaction:
         """
         Dref = 1.0
         Xref = 1.0
-        return 1/X * 50e3 * (X/Xref)**0.6 * (D/Dref)**0.5 * m.radians(phi)**3.6
+        return 1 / X * 50e3 * (X / Xref) ** 0.6 * (D / Dref) ** 0.5 * m.radians(phi) ** 3.6

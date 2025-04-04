@@ -1,4 +1,3 @@
-
 # import libraries
 import numpy as np
 import matplotlib as mpl
@@ -23,7 +22,7 @@ def plot_deflection(result):
 
 
 def plot_settlement(result):
-    fig, (ax1,ax2) = plt.subplots(1,2)
+    fig, (ax1, ax2) = plt.subplots(1, 2)
 
     fig.suptitle(f"{result._name} - Pile settlements")
 
@@ -143,7 +142,6 @@ def soil_plot(SoilProfile, ax=None):
     ax = add_soil_profile(SoilProfile, ax, pile=None)
 
     return ax
-
 
 
 def connectivity_plot(model, ax=None):
@@ -287,8 +285,6 @@ def connectivity_plot(model, ax=None):
                         )
                     )
 
-
-
     ax.set_ylim(ylim[0] - 0.11 * total_length, ylim[1] + 0.11 * total_length)
 
     if model.soil is not None:
@@ -363,12 +359,13 @@ def settlement_plot(axis: plt.axis, result):
 
     y = result.displacements["Elevation [m]"].values
     x = np.zeros(shape=y.shape)
-    settlement = result.settlement['Settlement [m]'] * 1e3
+    settlement = result.settlement["Settlement [m]"] * 1e3
 
     axis.plot(x, y, color="0.4")
     axis.plot(settlement, y, color="0.0", lw=2)
 
     return axis
+
 
 def F_plot(axis: plt.axis, result, force: str):
     # TODO docstring

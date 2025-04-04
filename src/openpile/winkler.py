@@ -408,9 +408,9 @@ class WinklerResult:
 
         Example
         -------
-            
+
         The plot looks like:
-        
+
         .. plot::
             :context: close-figs
             :include-source: False

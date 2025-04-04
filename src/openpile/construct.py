@@ -40,7 +40,7 @@ from openpile.core._model_build import (
     get_soil_properties,
     apply_bc,
     validate_bc,
-    parameter2elements
+    parameter2elements,
 )
 
 from abc import ABC, abstractmethod
@@ -411,7 +411,7 @@ class Pile(AbstractPile):
     def tip_footprint(self) -> float:
         "footprint area at the bottom of the pile [m2]"
         return self.sections[-1].footprint
-    
+
     @property
     def inner_volume(self) -> float:
         """the inner volume in [m3] of the pile from the model object."""
@@ -448,7 +448,7 @@ class Pile(AbstractPile):
             pile diameter [m]
         wt : float
             pile's wall thickness [m]
-        material : Literal["Steel", "Concrete"] or an instance of openpile.materials.PileMaterial 
+        material : Literal["Steel", "Concrete"] or an instance of openpile.materials.PileMaterial
             material the pile is made of. by default "Steel"
 
         Returns
@@ -471,13 +471,13 @@ class Pile(AbstractPile):
         )
         return obj
 
-
     @property
     def shape(self):
-        if all([isinstance(x,CircularPileSection) for x in self.sections]):
+        if all([isinstance(x, CircularPileSection) for x in self.sections]):
             return "Circular"
         else:
             "Undefined"
+
 
 class Layer(AbstractLayer):
     """A class to create a layer.
@@ -782,15 +782,15 @@ class SoilProfile(AbstractSoilProfile):
                     material='Steel',
                     sections=[
                         CircularPileSection(
-                            top=0, 
-                            bottom=-10, 
-                            diameter=7.5, 
+                            top=0,
+                            bottom=-10,
+                            diameter=7.5,
                             thickness=0.07
                         ),
                         CircularPileSection(
-                            top=-10, 
-                            bottom=-40, 
-                            diameter=7.5, 
+                            top=-10,
+                            bottom=-40,
+                            diameter=7.5,
                             thickness=0.08
                         ),
                     ]
@@ -879,7 +879,6 @@ class BoundaryForce(BaseModel):
     x: Optional[float] = None
     y: Optional[float] = None
     z: Optional[float] = None
-
 
 
 class Model(AbstractModel):
@@ -1004,10 +1003,12 @@ class Model(AbstractModel):
     @model_validator(mode="after")
     def max_coarseness(self):
         multiplier = 5
-        if self.pile.length >= multiplier*self.coarseness:
+        if self.pile.length >= multiplier * self.coarseness:
             return self
         else:
-            raise ValueError(f"the coarseness factor is too high, please decrease it to at least a value of {np.floor(self.pile.length*100/multiplier)/100}")
+            raise ValueError(
+                f"the coarseness factor is too high, please decrease it to at least a value of {np.floor(self.pile.length*100/multiplier)/100}"
+            )
 
     @model_validator(mode="after")
     def soil_and_pile_bottom_elevation_match(self):
@@ -1017,7 +1018,6 @@ class Model(AbstractModel):
             if self.pile.bottom_elevation < self.soil.bottom_elevation:
                 raise ValueError("The pile ends deeper than the soil profile.")
         return self
-
 
     @model_validator(mode="after")
     def bc_validation(self):
@@ -1179,7 +1179,9 @@ class Model(AbstractModel):
                     # elevation
                     elevation = soil_prop[["z_top [m]", "z_bottom [m]"]].iloc[i].values
                     # depth from ground
-                    depth_from_ground = (soil_prop[["zg_top [m]", "zg_bottom [m]"]].iloc[i]).abs().values
+                    depth_from_ground = (
+                        (soil_prop[["zg_top [m]", "zg_bottom [m]"]].iloc[i]).abs().values
+                    )
                     # pile width
                     pile_width = self.element_properties["Width [m]"].iloc[i]
                     perimeter_out = self.element_properties["Outer Perimeter [m]"].iloc[i]
@@ -1191,27 +1193,27 @@ class Model(AbstractModel):
                     if layer.axial_model is not None:
 
                         if self.distributed_axial:  # True if tz spring function exist
-                                # calculate springs (top and bottom) for each element
-                                for j in [0, 1]:
-                                    (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
-                                        sig=sig_v[j],
-                                        X=depth_from_ground[j],
-                                        circumference_out=perimeter_out,
-                                        circumference_in=perimeter_in,
-                                        layer_height=(layer.top - layer.bottom),
-                                        depth_from_top_of_layer=(layer.top - elevation[j]),
-                                        D=pile_width,
-                                        # TODO add wall thickness for CPT methods?
-                                        L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                        below_water_table=elevation[j] <= self.soil.water_line,
-                                        output_length=tz_springs_dim,
-                                    )
+                            # calculate springs (top and bottom) for each element
+                            for j in [0, 1]:
+                                (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
+                                    sig=sig_v[j],
+                                    X=depth_from_ground[j],
+                                    circumference_out=perimeter_out,
+                                    circumference_in=perimeter_in,
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - elevation[j]),
+                                    D=pile_width,
+                                    # TODO add wall thickness for CPT methods?
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=elevation[j] <= self.soil.water_line,
+                                    output_length=tz_springs_dim,
+                                )
 
                         if (
                             layer.top >= self.pile.bottom_elevation
                             and layer.bottom <= self.pile.bottom_elevation
                             and self.base_axial
-                        ): 
+                        ):
                             # calculate Qz spring
                             (qz[0, 0, 1], qz[0, 0, 0]) = layer.axial_model.Qz_spring_fct(
                                 sig=sig_v_tip,
@@ -1243,7 +1245,7 @@ class Model(AbstractModel):
                                     depth_from_top_of_layer=(layer.top - elevation[j]),
                                     D=pile_width,
                                     L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                    below_water_table= elevation[j] <= self.soil.water_line,
+                                    below_water_table=elevation[j] <= self.soil.water_line,
                                     output_length=spring_dim,
                                 )
 
@@ -1407,7 +1409,7 @@ class Model(AbstractModel):
             W[submerged_element] = V[submerged_element] * (self.pile.material.unitweight - 10)
             W[~submerged_element] = V[~submerged_element] * (self.pile.material.unitweight)
             return W.sum()
-        
+
         else:
             raise Exception(
                 "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
@@ -1416,21 +1418,29 @@ class Model(AbstractModel):
     @property
     def shaft_resistance(self) -> float:
         "the shaft resistances [kN] in compression and tension respectively calculated from the provided axial models along the pile."
-        
+
         if self.soil is None:
-            raise Exception(
-                "Model must be linked to a soil profile with provided axial models."
-            )
+            raise Exception("Model must be linked to a soil profile with provided axial models.")
         else:
             # influence zones
             influence = np.abs(np.gradient(self.nodes_coordinates["z [m]"].values))
             influence = influence / 2
             influence
 
-            #Shaft resistance calc compression
-            comp = np.sum(np.abs(np.min(self._tz_springs[:,0,0,:], axis=1)*influence[:-1] + np.min(self._tz_springs[:,1,0,:], axis=1)*influence[1:]))
-            #Shaft resistance calc tension
-            tens = np.sum(np.abs(np.max(self._tz_springs[:,0,0,:], axis=1)*influence[:-1] + np.max(self._tz_springs[:,1,0,:], axis=1)*influence[1:]))
+            # Shaft resistance calc compression
+            comp = np.sum(
+                np.abs(
+                    np.min(self._tz_springs[:, 0, 0, :], axis=1) * influence[:-1]
+                    + np.min(self._tz_springs[:, 1, 0, :], axis=1) * influence[1:]
+                )
+            )
+            # Shaft resistance calc tension
+            tens = np.sum(
+                np.abs(
+                    np.max(self._tz_springs[:, 0, 0, :], axis=1) * influence[:-1]
+                    + np.max(self._tz_springs[:, 1, 0, :], axis=1) * influence[1:]
+                )
+            )
 
             return comp, tens
 
@@ -1438,17 +1448,13 @@ class Model(AbstractModel):
     def tip_resistance(self) -> float:
         "the end bearing resistance [kN] calculated from the provided axial model at tip elevation"
         if self.soil is not None:
-            return float(np.abs(np.min(self._qz_spring[0,0,0,:])))
+            return float(np.abs(np.min(self._qz_spring[0, 0, 0, :])))
         else:
-            raise Exception(
-                "Model must be linked to a soil profile with provided axial models."
-            )
-        
+            raise Exception("Model must be linked to a soil profile with provided axial models.")
 
     @property
     def entrapped_soil_weight(self) -> float:
-        """calculates total weight of soil inside the pile. (Unit: kN)
-        """
+        """calculates total weight of soil inside the pile. (Unit: kN)"""
 
         if self.soil is not None:
 
@@ -1462,9 +1468,11 @@ class Model(AbstractModel):
             area_inside = parameter2elements(
                 self.pile.sections, lambda x: x.entrapped_area, elem_z_top, elem_z_bottom
             )
-            Vi = area_inside*L
+            Vi = area_inside * L
             # element mid-point elevation
-            elevation = 0.5 * (self.soil_properties["z_top [m]"] + self.soil_properties["z_bottom [m]"])
+            elevation = 0.5 * (
+                self.soil_properties["z_top [m]"] + self.soil_properties["z_bottom [m]"]
+            )
             # soil weight for each element where we have soil and pile
             elem_number = int(self.element_properties.shape[0])
             element_sw = np.zeros(elem_number)
@@ -1810,7 +1818,7 @@ class Model(AbstractModel):
 
         .. plot::
             :context: close-figs
-            :include-source: False 
+            :include-source: False
 
             from openpile.construct import Model
 
@@ -1825,15 +1833,13 @@ class Model(AbstractModel):
 
         .. plot::
             :context: close-figs
-            :include-source: False 
-            
+            :include-source: False
+
             m = Model(name="<Model name>", pile=p, soil=sp)
             m.set_pointload(elevation=0, Py=500)
             m.plot()
         """
         graphics.connectivity_plot(self, ax=ax)
-
-    
 
     def solve(self):
         """

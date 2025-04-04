@@ -201,7 +201,7 @@ class API_clay_axial(AxialModel):
     Su: float or function taking the depth as input argument and returning a value
         Undrained shear strength of soil. [unit: kPa]
     plugging: str
-        defines whether pile behave plugged or unplugged, 
+        defines whether pile behave plugged or unplugged,
         can be one of ('none', 'compression', 'tension', 'both'), by default 'none'.
 
         The plugging criterion is only relevant if the pile section has an open geometry.
@@ -264,7 +264,7 @@ class API_clay_axial(AxialModel):
         Annotated[List[PositiveFloat], Field(min_length=1, max_length=2)],
     ]
     # pile behaviour upon axial loading
-    plugging: Literal['none', 'compression', 'tension', 'both'] = 'none'
+    plugging: Literal["none", "compression", "tension", "both"] = "none"
     #: limiting value of unit shaft friction normalized to undrained shear strength
     alpha_limit: Annotated[float, Field(gt=0.0)] = 1.0
     #: t-multiplier
@@ -281,13 +281,13 @@ class API_clay_axial(AxialModel):
     tension_multiplier: Annotated[float, Field(ge=0.0, le=1.0)] = 1.0
 
     def __str__(self):
-        if self.plugging == 'both':
+        if self.plugging == "both":
             out = f"\tAPI clay (Plugged)\n\tSu = {var_to_str(self.Su)} kPa\n\talpha_limit = {var_to_str(self.alpha_limit)}"
-        elif self.plugging == 'none':
+        elif self.plugging == "none":
             out = f"\tAPI clay (Unplugged)\n\tSu = {var_to_str(self.Su)} kPa\n\talpha_limit = {var_to_str(self.alpha_limit)}"
-        elif self.plugging == 'compression':
+        elif self.plugging == "compression":
             out = f"\tAPI clay (Plugged in compression, unplugged in tension)\n\tSu = {var_to_str(self.Su)} kPa\n\talpha_limit = {var_to_str(self.alpha_limit)}"
-        elif self.plugging == 'tension':
+        elif self.plugging == "tension":
             out = f"\tAPI clay (Unplugged in compression, plugged in tension)\n\tSu = {var_to_str(self.Su)} kPa\n\talpha_limit = {var_to_str(self.alpha_limit)}"
         if self.t_multiplier != 1.0:
             out += f"\n\tt-multiplier = {var_to_str(self.t_multiplier)}"
@@ -302,7 +302,6 @@ class API_clay_axial(AxialModel):
         if self.tension_multiplier != 1.0:
             out += f"\n\ttension_multiplier = {var_to_str(self.tension_multiplier)}"
         return out
-
 
     def unit_shaft_friction(self, sig, depth_from_top_of_layer, layer_height):
         # define Su
@@ -326,7 +325,7 @@ class API_clay_axial(AxialModel):
     def tz_spring_fct(
         self,
         circumference_in: float,
-        circumference_out:float, 
+        circumference_out: float,
         sig: float,
         layer_height: float,
         depth_from_top_of_layer: float,
@@ -339,18 +338,22 @@ class API_clay_axial(AxialModel):
         Su_t, Su_b = from_list2x_parse_top_bottom(self.Su)
         Su = Su_t + (Su_b - Su_t) * depth_from_top_of_layer / layer_height
 
-        if self.plugging == 'none':
-            circumference_total = circumference_out+circumference_in
+        if self.plugging == "none":
+            circumference_total = circumference_out + circumference_in
             tens_fac = self.tension_multiplier
-        elif self.plugging == 'tension':
-            circumference_total = circumference_out+circumference_in
-            tens_fac = self.tension_multiplier*circumference_in/(circumference_total)
-        elif self.plugging == 'compression':
+        elif self.plugging == "tension":
+            circumference_total = circumference_out + circumference_in
+            tens_fac = self.tension_multiplier * circumference_in / (circumference_total)
+        elif self.plugging == "compression":
             circumference_total = circumference_out
-            tens_fac = self.tension_multiplier*(circumference_in+circumference_out)/(circumference_total)
-        elif self.plugging == 'both':
+            tens_fac = (
+                self.tension_multiplier
+                * (circumference_in + circumference_out)
+                / (circumference_total)
+            )
+        elif self.plugging == "both":
             circumference_total = circumference_out
-            tens_fac = self.tension_multiplier*circumference_in/(circumference_total)
+            tens_fac = self.tension_multiplier * circumference_in / (circumference_total)
 
         z, t = tz_curves.api_clay(
             sig=sig,
@@ -361,12 +364,12 @@ class API_clay_axial(AxialModel):
             output_length=output_length,
         )
 
-        return z * self.z_multiplier, t * self.t_multiplier*circumference_total
+        return z * self.z_multiplier, t * self.t_multiplier * circumference_total
 
     def Qz_spring_fct(
         self,
-        tip_area:float,
-        footprint:float,
+        tip_area: float,
+        footprint: float,
         layer_height: float,
         depth_from_top_of_layer: float,
         D: float,
@@ -380,12 +383,12 @@ class API_clay_axial(AxialModel):
 
         w, Q = qz_curves.api_clay(Su=Su, D=D, output_length=output_length)
 
-        if self.plugging == 'both' or self.plugging == 'compression':
+        if self.plugging == "both" or self.plugging == "compression":
             area = footprint
         else:
             area = tip_area
 
-        return w * self.w_multiplier, Q * self.Q_multiplier*area
+        return w * self.w_multiplier, Q * self.Q_multiplier * area
 
     def method(self) -> str:
         return "API"
@@ -458,8 +461,8 @@ class API_sand_axial(AxialModel):
     ]
     #: coefficient of lateral earth pressure, for open-ended piles, a value of 0.8 should be considered while 1.0 for close-ended piles
     K: Annotated[float, Field(ge=0.8, le=1.0)] = 0.8
-    # pile behaviour upon axial loading 
-    plugging: Literal['none', 'compression', 'tension', 'both'] = 'none'
+    # pile behaviour upon axial loading
+    plugging: Literal["none", "compression", "tension", "both"] = "none"
     #: t-multiplier
     t_multiplier: Union[Callable[[float], float], Annotated[float, Field(ge=0.0)]] = 1.0
     #: z-multiplier
@@ -474,13 +477,13 @@ class API_sand_axial(AxialModel):
     tension_multiplier: Annotated[float, Field(ge=0.0, le=1.0)] = 1.0
 
     def __str__(self):
-        if self.plugging == 'both':
+        if self.plugging == "both":
             out = f"\tAPI sand (Plugged)\n\tdelta = {var_to_str(self.delta)} deg\n\tK = {var_to_str(self.K)}"
-        elif self.plugging == 'none':
+        elif self.plugging == "none":
             out = f"\tAPI sand (Unplugged)\n\tdelta = {var_to_str(self.delta)} deg\n\tK = {var_to_str(self.K)}"
-        elif self.plugging == 'compression':
+        elif self.plugging == "compression":
             out = f"\tAPI sand (Plugged in compression, unplugged in tension)\n\tdelta = {var_to_str(self.delta)} deg\n\tK = {var_to_str(self.K)}"
-        elif self.plugging == 'tension':
+        elif self.plugging == "tension":
             out = f"\tAPI sand (Unplugged in compression, plugged in tension)\n\tdelta = {var_to_str(self.delta)} deg\n\tK = {var_to_str(self.K)}"
         if self.t_multiplier != 1.0:
             out += f"\n\tt-multiplier = {var_to_str(self.t_multiplier)}"
@@ -493,7 +496,6 @@ class API_sand_axial(AxialModel):
         if self.tension_multiplier != 1.0:
             out += f"\n\ttension_multiplier = {var_to_str(self.tension_multiplier)}"
         return out
-
 
     def unit_shaft_friction(self, sig, depth_from_top_of_layer, layer_height):
         # define interface friction angle
@@ -516,8 +518,8 @@ class API_sand_axial(AxialModel):
 
     def tz_spring_fct(
         self,
-        circumference_out:float,
-        circumference_in:float,
+        circumference_out: float,
+        circumference_in: float,
         sig: float,
         layer_height: float,
         depth_from_top_of_layer: float,
@@ -530,18 +532,22 @@ class API_sand_axial(AxialModel):
         delta_t, delta_b = from_list2x_parse_top_bottom(self.delta)
         delta = delta_t + (delta_b - delta_t) * depth_from_top_of_layer / layer_height
 
-        if self.plugging == 'none':
+        if self.plugging == "none":
             tens_fac = self.tension_multiplier
-            circumference_total = circumference_out+circumference_in
-        elif self.plugging == 'tension':
-            circumference_total = circumference_out+circumference_in
-            tens_fac = self.tension_multiplier*circumference_in/(circumference_total)
-        elif self.plugging == 'compression':
+            circumference_total = circumference_out + circumference_in
+        elif self.plugging == "tension":
+            circumference_total = circumference_out + circumference_in
+            tens_fac = self.tension_multiplier * circumference_in / (circumference_total)
+        elif self.plugging == "compression":
             circumference_total = circumference_out
-            tens_fac = self.tension_multiplier*(circumference_in+circumference_out)/(circumference_total)
-        elif self.plugging == 'both':
+            tens_fac = (
+                self.tension_multiplier
+                * (circumference_in + circumference_out)
+                / (circumference_total)
+            )
+        elif self.plugging == "both":
             circumference_total = circumference_out
-            tens_fac = self.tension_multiplier*circumference_in/(circumference_total)
+            tens_fac = self.tension_multiplier * circumference_in / (circumference_total)
 
         z, t = tz_curves.api_sand(
             sig=sig,
@@ -549,14 +555,14 @@ class API_sand_axial(AxialModel):
             K=self.K,
             tensile_factor=tens_fac,
             output_length=output_length,
-        )   
+        )
 
-        return z * self.z_multiplier, t * self.t_multiplier*circumference_total
+        return z * self.z_multiplier, t * self.t_multiplier * circumference_total
 
     def Qz_spring_fct(
         self,
-        tip_area:float,
-        footprint:float,
+        tip_area: float,
+        footprint: float,
         sig: float,
         layer_height: float,
         depth_from_top_of_layer: float,
@@ -571,12 +577,12 @@ class API_sand_axial(AxialModel):
 
         w, Q = qz_curves.api_sand(sig=sig, delta=delta, D=D, output_length=output_length)
 
-        if self.plugging == 'both' or self.plugging == 'compression':
+        if self.plugging == "both" or self.plugging == "compression":
             area = footprint
         else:
             area = tip_area
 
-        return w * self.w_multiplier, Q * self.Q_multiplier*area
+        return w * self.w_multiplier, Q * self.Q_multiplier * area
 
     def method(self) -> str:
         return "API"
@@ -814,11 +820,11 @@ class Cowden_clay(LateralModel):
 
     Notes
     -----
-    This soil model was formulated as part of the Joint Industry Project PISA, 
-    that focused on formulating soil springs for large diameter monopiles as found 
-    in the offshore wind industry. This resulted in soil springs formulated in a normalized 
-    space based on a conic function backbone curve and the few following soil parameters, 
-    (i) undrained shear strength and (ii) small-strain shear stiffness. 
+    This soil model was formulated as part of the Joint Industry Project PISA,
+    that focused on formulating soil springs for large diameter monopiles as found
+    in the offshore wind industry. This resulted in soil springs formulated in a normalized
+    space based on a conic function backbone curve and the few following soil parameters,
+    (i) undrained shear strength and (ii) small-strain shear stiffness.
 
     This soil model provides soil springs as given by the function(s):
 
@@ -828,9 +834,9 @@ class Cowden_clay(LateralModel):
     * :py:func:`openpile.utils.Mb_curves.cowden_clay`
 
     .. note::
-        This standard model only account for monotonic reaction curves and as usual, 
-        it reflects the site conditions of the site the curves were calibrated from, 
-        a site in Cowden, England where overconsolidated glacial till is found. 
+        This standard model only account for monotonic reaction curves and as usual,
+        it reflects the site conditions of the site the curves were calibrated from,
+        a site in Cowden, England where overconsolidated glacial till is found.
         More details can be found in [BHBG20]_.
 
     The model is validated in the below figure by performing a benchmark of OpenPile
@@ -1049,12 +1055,12 @@ class Dunkirk_sand(LateralModel):
 
     Notes
     -----
-    This soil model was formulated as part of the Joint Industry Project PISA, 
-    that focused on formulating soil springs for large diameter monopiles as found 
-    in the offshore wind industry. This resulted in soil springs formulated in a normalized 
-    space based on a conic function backbone curve and the few following soil parameters, 
-    (i) relative density and (ii) small-strain shear stiffness. 
-    
+    This soil model was formulated as part of the Joint Industry Project PISA,
+    that focused on formulating soil springs for large diameter monopiles as found
+    in the offshore wind industry. This resulted in soil springs formulated in a normalized
+    space based on a conic function backbone curve and the few following soil parameters,
+    (i) relative density and (ii) small-strain shear stiffness.
+
     This soil model provides soil springs as given by the function(s):
 
     * :py:func:`openpile.utils.py_curves.dunkirk_sand`
@@ -1063,16 +1069,16 @@ class Dunkirk_sand(LateralModel):
     * :py:func:`openpile.utils.Mb_curves.dunkirk_sand`
 
     .. note::
-        This standard model only account for monotonic reaction curves and as usual, it reflects the site 
-        conditions of the site the curves were calibrated from, a site in Dunkirk, France where dense sand is found. 
+        This standard model only account for monotonic reaction curves and as usual, it reflects the site
+        conditions of the site the curves were calibrated from, a site in Dunkirk, France where dense sand is found.
         More details can be found in [BTZA20]_.
 
-    This soil model was formulated as part of the Joint Industry Project PISA, that focused on formulating soil springs for large diameter monopiles as found in the offshore wind industry. 
-    This resulted in soil springs formulated in a normalized space based on a conic function backbone curve and the few following soil parameters, 
-    (i) relative density and (ii) small-strain shear stiffness. 
+    This soil model was formulated as part of the Joint Industry Project PISA, that focused on formulating soil springs for large diameter monopiles as found in the offshore wind industry.
+    This resulted in soil springs formulated in a normalized space based on a conic function backbone curve and the few following soil parameters,
+    (i) relative density and (ii) small-strain shear stiffness.
 
     Validation is shown in the below figure by performing a benchmark of OpenPile
-    against the source material, [BTZA20]_. OpenPile shows some differences in result for high lateral load. 
+    against the source material, [BTZA20]_. OpenPile shows some differences in result for high lateral load.
     This is due to the slight difference in input given in OpenPile compares to the source material.
 
     .. figure:: _static/validation/GDSM_D2t.png
@@ -1276,9 +1282,9 @@ class API_sand(LateralModel):
     """A class to establish the API sand model.
 
 
-    The API sand soil model is based on the publication by 
+    The API sand soil model is based on the publication by
     O'neill and Murchison, preceded by work from Reese, L.C. and others (
-    see [MuOn83]_ and [MuOn84]_). 
+    see [MuOn83]_ and [MuOn84]_).
 
     This soil model provides soil springs as given by the function(s):
 
@@ -1296,7 +1302,7 @@ class API_sand(LateralModel):
         User-defined initial subgrade modulus  [unit: kN/m^3], by default None which default to API definition based on friction angle
     Modification: str or None, by default None
         Application of well-known modification to API sand. Modifications available are:
-        
+
         - "Kallehave" - which calls the p-y springs :py:func:`openpile.utils.hooks.InitialSubgradeReaction.kallehave_sand()`.
         - "Sørensen" - which calls the p-y springs with the initial subgrade modulus :py:func:`openpile.utils.hooks.InitialSubgradeReaction.sørensen2010_sand()`.
 
@@ -1380,12 +1386,17 @@ class API_sand(LateralModel):
         phi_t, phi_b = from_list2x_parse_top_bottom(self.phi)
         phi = phi_t + (phi_b - phi_t) * depth_from_top_of_layer / layer_height
 
-        #initial k
+        # initial k
         if self.initial_subgrade_modulus is None:
             subgrade_modulus = 0.0
         else:
-            subgrade_modulus_t, subgrade_modulus_b = from_list2x_parse_top_bottom(self.initial_subgrade_modulus)
-            subgrade_modulus = subgrade_modulus_t + (subgrade_modulus_b - subgrade_modulus_t) * depth_from_top_of_layer / layer_height
+            subgrade_modulus_t, subgrade_modulus_b = from_list2x_parse_top_bottom(
+                self.initial_subgrade_modulus
+            )
+            subgrade_modulus = (
+                subgrade_modulus_t
+                + (subgrade_modulus_b - subgrade_modulus_t) * depth_from_top_of_layer / layer_height
+            )
 
         if not self.Modification:
             y, p = py_curves.api_sand(
@@ -1410,7 +1421,7 @@ class API_sand(LateralModel):
                 k=InitialSubgradeReaction.kallehave_sand(phi),
                 ymax=ymax,
                 output_length=output_length,
-            )  
+            )
         elif self.Modification == "Sørensen":
             y, p = py_curves.api_sand(
                 sig=sig,
@@ -1454,13 +1465,13 @@ class API_sand(LateralModel):
         _, p = self.py_spring_fct(
             sig=sig,
             X=X,
-            layer_height= layer_height,
-            depth_from_top_of_layer= depth_from_top_of_layer,
+            layer_height=layer_height,
+            depth_from_top_of_layer=depth_from_top_of_layer,
             D=D,
             L=L,
-            below_water_table= below_water_table,
-            ymax= ymax,
-            output_length= output_length,
+            below_water_table=below_water_table,
+            ymax=ymax,
+            output_length=output_length,
         )
 
         if p.max() > 0:

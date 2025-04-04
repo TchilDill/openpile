@@ -29,7 +29,7 @@ def from_list2x_parse_top_bottom(var):
 
 
 def get_value_at_current_depth(X, depth_from_top_of_layer, layer_height, depth_from_ground):
-    if isinstance(X, type(lambda x:2)):
+    if isinstance(X, type(lambda x: 2)):
         return X(depth_from_ground)
     else:
         xtop, xbot = from_list2x_parse_top_bottom(X)
@@ -76,7 +76,9 @@ def repeat_inner(arr):
     return np.hstack([arr[0], arr_inner, arr[-1]])
 
 
-def get_distributed_soil_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.DataFrame:
+def get_distributed_soil_springs(
+    springs: np.ndarray, elevations: np.ndarray, kind: str
+) -> pd.DataFrame:
     """
     Returns soil springs created for the given model in one DataFrame.
 

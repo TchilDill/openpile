@@ -1,11 +1,8 @@
-""" general plots for openfile
-
-"""
-
 # import libraries
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+
 
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
@@ -20,6 +17,20 @@ def plot_deflection(result):
     fig.suptitle(f"{result._name} - Pile Deflection")
 
     ax = U_plot(ax, result)
+
+    return fig
+
+
+def plot_settlement(result):
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+
+    fig.suptitle(f"{result._name} - Pile settlements")
+
+    ax1 = settlement_plot(ax1, result)
+    ax2 = F_plot(ax2, result, "N [kN]")
+
+    ax2.set_yticklabels("")
+    ax2.set_ylabel("")
 
     return fig
 
@@ -61,7 +72,7 @@ def plot_results(result):
     return fig
 
 
-def soil_plot(SoilProfile):
+def soil_plot(SoilProfile, ax=None):
     def add_soil_profile(SoilProfile, ax, pile=None):
 
         ax.set_title(label=f"Soil Profile overview - {SoilProfile.name}")
@@ -126,92 +137,55 @@ def soil_plot(SoilProfile):
 
         return ax
 
-    fig, ax = plt.subplots()
+    if ax is None:
+        _, ax = plt.subplots()
     ax = add_soil_profile(SoilProfile, ax, pile=None)
 
-    return fig
+    return ax
 
 
-def pile_plot(pile):
-
-    if pile.kind == "Circular":
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-
-        fig.suptitle(f"Pile overview - {pile.name}")
-
-        ydata = pile.data["Elevation [m]"]
-
-        xdata = pile.data["Wall thickness [m]"]
-        ax2.plot(xdata, ydata, "-k", lw=2)
-        ax2.set_xlim(left=0, right=xdata.max() * 1.1)
-
-        xdata = pile.data["Area [m2]"]
-        ax3.plot(xdata, ydata, "-k", lw=2)
-        ax3.set_xlim(left=0, right=xdata.max() * 1.1)
-
-        for axis in [ax2, ax3]:
-            axis.set_yticklabels("")
-            axis.set_ylabel("")
-
-        ax1.set_ylabel("Elevation [m VREF]", fontsize=8)
-
-        for (axis, xlab) in zip(
-            [ax1, ax2, ax3], ["Diameter [m]", "Wall thickness [m]", "Area [m2]"]
-        ):
-            xdata = pile.data[xlab]
-            axis.plot(xdata, ydata, "-k", lw=2)
-            axis.set_xlim(left=0, right=xdata.max() * 1.1)
-
-            axis.set_xlabel(xlab, fontsize=8)
-            axis.tick_params(axis="both", labelsize=8)
-            axis.grid()
-            axis.grid(which="minor", color=[0.75, 0.75, 0.75], linestyle="-", linewidth=0.5)
-            axis.xaxis.set_minor_locator(AutoMinorLocator())
-
-    return fig
-
-
-def connectivity_plot(model):
+def connectivity_plot(model, ax=None):
     # TODO docstring
 
     support_color = "b"
     # create 4 subplots with (deflectiom, normal force, shear force, bending moment)
-    fig, ax = plt.subplots()
-    ax.set_ylabel("x [m]")
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.set_ylabel("z [m]")
     ax.set_xlabel("y [m]")
     ax.set_title(f"{model.name} - Connectivity plot")
     ax.axis("equal")
     ax.grid(which="both")
 
     # plot mesh with + scatter points to see nodes.
-    x = model.nodes_coordinates["x [m]"]
+    z = model.nodes_coordinates["z [m]"]
     y = model.nodes_coordinates["y [m]"]
-    ax.plot(y, x, "-k", marker="+")
+    ax.plot(y, z, "-k", marker="+")
 
     total_length = (
-        (model.nodes_coordinates["x [m]"].max() - model.nodes_coordinates["x [m]"].min()) ** 2
+        (model.nodes_coordinates["z [m]"].max() - model.nodes_coordinates["z [m]"].min()) ** 2
         + (model.nodes_coordinates["y [m]"].max() - model.nodes_coordinates["y [m]"].min()) ** 2
     ) ** (0.5)
 
     ylim = ax.get_ylim()
 
     # plots SUPPORTS
-    # Plot supports along x
-    support_along_x = model.global_restrained["Tx"].values
-    support_along_x_down = np.copy(support_along_x)
-    support_along_x_down[-1] = False
-    support_along_x_up = np.copy(support_along_x)
-    support_along_x_up[:-1] = False
+    # Plot supports along z
+    support_along_z = model.global_restrained["Tz"].values
+    support_along_z_down = np.copy(support_along_z)
+    support_along_z_down[-1] = False
+    support_along_z_up = np.copy(support_along_z)
+    support_along_z_up[:-1] = False
     ax.scatter(
-        y[support_along_x_down],
-        x[support_along_x_down],
+        y[support_along_z_down],
+        z[support_along_z_down],
         color=support_color,
         marker=7,
         s=100,
     )
     ax.scatter(
-        y[support_along_x_up],
-        x[support_along_x_up],
+        y[support_along_z_up],
+        z[support_along_z_up],
         color=support_color,
         marker=6,
         s=100,
@@ -219,11 +193,11 @@ def connectivity_plot(model):
 
     # Plot supports along y
     support_along_y = model.global_restrained["Ty"].values
-    ax.scatter(y[support_along_y], x[support_along_y], color=support_color, marker=5, s=100)
+    ax.scatter(y[support_along_y], z[support_along_y], color=support_color, marker=5, s=100)
 
     # Plot supports along z
-    support_along_z = model.global_restrained["Rz"].values
-    ax.scatter(y[support_along_z], x[support_along_z], color=support_color, marker="s", s=35)
+    support_along_z = model.global_restrained["Rx"].values
+    ax.scatter(y[support_along_z], z[support_along_z], color=support_color, marker="s", s=35)
 
     # plot LOADS
     arrows = []
@@ -233,7 +207,7 @@ def connectivity_plot(model):
     )  # max arrow length will be 20% of the total structure length
 
     load_max = model.global_forces["Py [kN]"].abs().max()
-    for yval, xval, load in zip(x, y, model.global_forces["Py [kN]"]):
+    for yval, zval, load in zip(z, y, model.global_forces["Py [kN]"]):
         if load == 0:
             pass
         else:
@@ -241,12 +215,12 @@ def connectivity_plot(model):
             kw = dict(arrowstyle=style, color="r")
             arrow_length = normalized_arrow_size * abs(load / load_max)
             if load > 0:
-                arrows.append(FancyArrowPatch((-arrow_length, yval), (xval, yval), **kw))
+                arrows.append(FancyArrowPatch((-arrow_length, yval), (zval, yval), **kw))
             elif load < 0:
-                arrows.append(FancyArrowPatch((arrow_length, yval), (xval, yval), **kw))
+                arrows.append(FancyArrowPatch((arrow_length, yval), (zval, yval), **kw))
 
-    load_max = model.global_forces["Px [kN]"].abs().max()
-    for idx, (yval, xval, load) in enumerate(zip(x, y, model.global_forces["Px [kN]"])):
+    load_max = model.global_forces["Pz [kN]"].abs().max()
+    for idx, (yval, zval, load) in enumerate(zip(z, y, model.global_forces["Pz [kN]"])):
         if load == 0:
             pass
         else:
@@ -254,18 +228,18 @@ def connectivity_plot(model):
             kw = dict(arrowstyle=style, color="r")
             arrow_length = normalized_arrow_size * abs(load / load_max)
             if load > 0:
-                if idx == len(x) - 1:
-                    arrows.append(FancyArrowPatch((xval, yval), (xval, yval + arrow_length), **kw))
+                if idx == len(z) - 1:
+                    arrows.append(FancyArrowPatch((zval, yval), (zval, yval + arrow_length), **kw))
                 else:
-                    arrows.append(FancyArrowPatch((xval, yval - arrow_length), (xval, yval), **kw))
+                    arrows.append(FancyArrowPatch((zval, yval - arrow_length), (zval, yval), **kw))
             elif load < 0:
-                if idx == len(x) - 1:
-                    arrows.append(FancyArrowPatch((xval, yval), (xval, yval - arrow_length), **kw))
+                if idx == len(z) - 1:
+                    arrows.append(FancyArrowPatch((zval, yval), (zval, yval - arrow_length), **kw))
                 else:
-                    arrows.append(FancyArrowPatch((xval, yval + arrow_length), (xval, yval), **kw))
+                    arrows.append(FancyArrowPatch((zval, yval + arrow_length), (zval, yval), **kw))
 
-    load_max = model.global_forces["Mz [kNm]"].abs().max()
-    for idx, (yval, xval, load) in enumerate(zip(x, y, model.global_forces["Mz [kNm]"])):
+    load_max = model.global_forces["Mx [kNm]"].abs().max()
+    for idx, (yval, zval, load) in enumerate(zip(z, y, model.global_forces["Mx [kNm]"])):
         if load == 0:
             pass
         else:
@@ -273,7 +247,7 @@ def connectivity_plot(model):
             arrow_length = normalized_arrow_size * abs(load / load_max)
             style = "Simple, tail_width=1, head_width=5, head_length=3"
             if load > 0:
-                if idx == len(x) - 1:
+                if idx == len(z) - 1:
                     arrows.append(
                         FancyArrowPatch(
                             (arrow_length / 1.5, yval),
@@ -292,7 +266,7 @@ def connectivity_plot(model):
                         )
                     )
             elif load < 0:
-                if idx == len(x) - 1:
+                if idx == len(z) - 1:
                     arrows.append(
                         FancyArrowPatch(
                             (arrow_length / 1.5, yval),
@@ -354,7 +328,7 @@ def connectivity_plot(model):
     for arrow in arrows:
         ax.add_patch(arrow)
 
-    return fig
+    return ax
 
 
 def U_plot(axis: plt.axis, result):
@@ -371,6 +345,24 @@ def U_plot(axis: plt.axis, result):
 
     axis.plot(x, y, color="0.4")
     axis.plot(deflection, y, color="0.0", lw=2)
+
+    return axis
+
+
+def settlement_plot(axis: plt.axis, result):
+    # TODO docstring
+
+    axis.set_ylabel("Elevation [m VREF]", fontsize=8)
+    axis.set_xlabel("Settlement [mm]", fontsize=8)
+    axis.tick_params(axis="both", labelsize=8)
+    axis.grid(which="both")
+
+    y = result.displacements["Elevation [m]"].values
+    x = np.zeros(shape=y.shape)
+    settlement = result.settlement["Settlement [m]"] * 1e3
+
+    axis.plot(x, y, color="0.4")
+    axis.plot(settlement, y, color="0.0", lw=2)
 
     return axis
 

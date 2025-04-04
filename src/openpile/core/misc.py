@@ -29,7 +29,7 @@ def from_list2x_parse_top_bottom(var):
 
 
 def get_value_at_current_depth(X, depth_from_top_of_layer, layer_height, depth_from_ground):
-    if isinstance(X, callable):
+    if isinstance(X, type(lambda x: 2)):
         return X(depth_from_ground)
     else:
         xtop, xbot = from_list2x_parse_top_bottom(X)
@@ -76,16 +76,20 @@ def repeat_inner(arr):
     return np.hstack([arr[0], arr_inner, arr[-1]])
 
 
-def get_reduced_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.DataFrame:
+def get_distributed_soil_springs(
+    springs: np.ndarray, elevations: np.ndarray, kind: str
+) -> pd.DataFrame:
     """
     Returns soil springs created for the given model in one DataFrame.
+
+    Unit of the springs are [kN/m]/[kNm/m] for resistance and [m]/[rad] for displacement/rotation.
 
     Parameters
     ----------
     springs : ndarray dim[nelem,2,2,spring_dim]
         Springs at top and bottom of element
     elevations : ndarray
-        self.nodes_coordinates["x [m]"].values
+        self.nodes_coordinates["z [m]"].values
     kind : str
         type of spring to extract. one of ["p-y", "m-t", "Hb-y", "Mb-t", "t-z"]
 
@@ -147,16 +151,18 @@ def get_reduced_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) 
     return df
 
 
-def get_full_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.DataFrame:
+def get_lumped_soil_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> pd.DataFrame:
     """
-    Returns soil springs in created for the given model in one DataFrame.
+    Returns soil springs created for the given model in one DataFrame.
+
+    Unit of the springs are [kN]/[kNm] for resistance and [m]/[rad] for displacement/rotation.
 
     Parameters
     ----------
     springs : ndarray dim[nelem,2,2,spring_dim]
         Springs at top and bottom of element
     elevations : ndarray
-        self.nodes_coordinates["x [m]"].values
+        self.nodes_coordinates["z [m]"].values
     kind : str
         type of spring to extract. one of ["p-y", "m-t", "Hb-y", "Mb-t", "t-z"]
 
@@ -172,32 +178,48 @@ def get_full_springs(springs: np.ndarray, elevations: np.ndarray, kind: str) -> 
 
     spring_dim = springs.shape[-1]
     nelem = springs.shape[0]
+    nnode = len(elevations)
 
     column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
 
-    id = np.repeat(np.arange(nelem), 4)
-    x = np.repeat(repeat_inner(elevations), 2)
+    id = np.repeat(np.arange(nelem + 1), 2)
+    x = np.repeat(elevations, 2)
 
-    if len(x) > 2:
-        t_b = ["top", "top", "bottom", "bottom"] * int(nelem)
+    influence = np.abs(np.gradient(elevations))
+    influence[0] = influence[0] / 2
+    influence[-1] = influence[-1] / 2
 
-        df = pd.DataFrame(
-            data={
-                "Element no.": id,
-                "Position": t_b,
-                "Elevation [m]": x,
-            }
+    springs[:, 0, 0, :] = springs[:, 0, 0, :] * influence[:-1].reshape(-1, 1)
+    springs[:, 1, 0, :] = springs[:, 1, 0, :] * influence[1:].reshape(-1, 1)
+
+    reduced_springs = np.zeros((nnode * 2, spring_dim))
+
+    # first spring resistance and disp values
+    reduced_springs[0, :] = springs[0, 0, 0, :]
+    reduced_springs[1, :] = springs[0, 0, 1, :]
+    # last spring resistance and disp values
+    reduced_springs[-2, :] = springs[-1, 1, 0, :]
+    reduced_springs[-1, :] = springs[-1, 1, 1, :]
+    # calculation of weighted springs when node based
+    j = 0
+    for i in range(2, nelem * 2 - 1, 2):
+        j += 1
+        reduced_springs[i, :] = (
+            springs[j - 1, 1, 0, :] * influence[j - 1] + springs[j, 0, 0, :] * influence[j]
         )
-    else:
-        df = pd.DataFrame(
-            data={
-                "Element no.": id,
-                "Elevation [m]": x,
-            }
+        reduced_springs[i + 1, :] = (
+            springs[j - 1, 1, 1, :] * influence[j - 1] + springs[j, 0, 1, :] * influence[j]
         )
 
-    df["type"] = kind.split("-") * int(len(x) / 2)
-    df[column_values_spring] = np.reshape(springs, (-1, spring_dim))
+    df = pd.DataFrame(
+        data={
+            "Node no.": id,
+            "Elevation [m]": x,
+        }
+    )
+
+    df["type"] = kind.split("-") * len(elevations)
+    df[column_values_spring] = reduced_springs
 
     return df
 

@@ -7,6 +7,35 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
+## [1.0.0] - 2025-04-04
+
+*OpenPile's kernel now accounts for axial soil springs when running a Winkler analysis. The axial soil springs are by default turned on (`base_axial` and `distributed_axial` arguments of `openpile.construct.Model`) and considered if an `axial_model` is fed to a `openpile.construct.Layer`*
+
+The minimum python version to use with Openpile >= 1.0.0 is python 3.8. Please also note that the major version of Numpy (v2.0) does not work with OpenPile since we use Numba, which at the time of writing this is imcompatible with Numpy 2.0+.
+
+### Added
+- the `PileMaterial` class in the new `openpile.materials` module is now used to determine the material of the structure. Such material can now be customised by users by creating a new instance of `openpile.materials.PileMaterial`.
+- *Sørensen sand* and *Kallehave sand* py-curves are now available and require a setting to be turned on in `openpile.soilmodels.API_sand()`, the corresponding curves are also available in the module `openpile.utils.py_curves`.
+- extensions of API-type lateral soil models are now considered in the string output when printing out the model or the entire soil profile, i.e. when running `print(openpile.construct.Layer)`
+
+
+### Modified
+
+- The coordinate system follows now a more traditional approach, which still is a right-hand system however, the x and z components are swapped, this was done in order for soil springs which are called 't-z' and 'Q-z' by convention to be aligned with the coordinate system used in setting the boundary conditions. 
+- `openpile.construct.Model.get_py_springs()` and other related methods to extract springs have been updated to the following naming style: `.get_distributed_lateral_springs()`, see documentation for more details. 
+- The API clay model available until v0.7.1 has been decoupled to form the `API_clay` and the mofidied_Matlock models, new function and new model can be seen here: `Openpile.utils.py_curves.modified_Matlock()` and `Openpile.soilmodels.Modified_Matlock_clay`. Such decision was made to make it clearer on what model is used when running an analysis.
+- The API sand model as well as API sand py curves now accepts a user-defined inital subgrade modulus value. If not provided, it reverts to the API definition based on friction angle.
+- functions found in `openpile.calculate` are now dependent on `openpile.construct.Pile` and `openpile.construct.SoilProfile` instead of `openpile.construct.Model`.
+- module `openpile.analyze` object renamed to `openpile.winkler`.
+- class `AnalyzeResult` object renamed to `WinklerResult`.
+- module `openpile.multipliers` object renamed to `openpile.hooks`.
+
+### Deleted
+- The functions `openpile.analyze.simple_beam_analysis()` and `openpile.analyze.simple_winkler_analysis()` are now removed from the code.
+- The method `openpile.construct.Pile.set_I()` method has been deleted, the second moment of area of a given pile segment can be changed by calling a Custom PileSection Geometry.
+- The property `openpile.construct.Pile.E` cannot be overriden anymore, instead use the new feature where any material can be provided to the pile via `openpile.materials.PileMaterial`.
+- The method `openpile.construct.Model.get_pointload()` is now deprecated and cannot be used anymore. Use the property `openpile.construct.Model.boundary_conditions` instead to list all boundary conditions.
+
 ## [0.7.1] - 2023-11-21
 
 ### Fixed

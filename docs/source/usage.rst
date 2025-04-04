@@ -20,18 +20,25 @@ A pile can be created in the simple following way in openpile.
 .. doctest::
 
     >>> # import the Pile object from the construct module
-    >>> from openpile.construct import Pile
+    >>> from openpile.construct import Pile, CircularPileSection
     
     >>> # Create a Pile
     >>> pile = Pile(name = "",
-    ...         kind='Circular',
     ...         material='Steel',
-    ...         top_elevation = 0,
-    ...         pile_sections={
-    ...             'length':[10,30],
-    ...             'diameter':[7.5,7.5],
-    ...             'wall thickness':[0.07, 0.08],
-    ...         }
+    ...         sections=[
+    ...             CircularPileSection(
+    ...                 top=0, 
+    ...                 bottom=-10, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.07
+    ...             ),
+    ...             CircularPileSection(
+    ...                 top=-10, 
+    ...                 bottom=-40, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.08
+    ...             ),
+    ...         ]
     ...     )
 
     >>> # Print the pile data
@@ -42,20 +49,26 @@ A pile can be created in the simple following way in openpile.
     2          -10.0           7.5                0.08   1.864849  12.835479
     3          -40.0           7.5                0.08   1.864849  12.835479
 
-Additional methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
-For instance:
+Alternative methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
+A pile can also be created with a custom material.
 
+For instance, the below snippet of code with another pile made of a custom material:
 
 .. doctest::
 
-    >>> # Import Pile object from constuct module
-    >>> from openpile.construct import Pile
+    >>> # create a custom material
+    >>> from openpile.materials import PileMaterial
+    >>> my_concrete = PileMaterial(
+    ...     name="Concrete",
+    ...     uw=24,
+    ...     E=30e6,
+    ...     nu=0.2,
+    ... )
 
     >>> # create pile
     >>> p = Pile.create_tubular(
-    ...     name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=10, wt=0.050
+    ...     name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=10, wt=0.050, material=my_concrete
     ... )
-
     >>> print(p)
        Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
     0            0.0          10.0                0.05   1.562942  19.342388
@@ -74,44 +87,17 @@ As of now, only a circular pile can be modelled in openpile, however the user ca
 the construcutor by updating the pile's properties governing the pile's behaviour under 
 axial or lateral loading.
 
-.. doctest::
+.. versionadded:: 1.0.0
+    The user cannot anymore override the young modulus `E` but we can now create custom PileMaterial 
+    via :py:meth:`openpile.materials.PileMaterial.custom()`
 
-    >>> # Override young's modulus
-    >>> pile.E = 250e6
-    >>> # Check young's modulus (value in kPa)
-    >>> print(pile.E)
-    250000000.0
+.. versionadded:: 1.0.0
+    The user cannot anymore override the pile width or the second moment of area `I`  but 
+    we can now create a custom PileSegment object by creating a subclass of the 
+    class :py:class:`openpile.materials.PileSegment`. 
 
-    >>> # Override second moment of area across first section [in meters^4]
-    >>> pile.set_I(value=1.11, section=1)
-    >>> # Check updated second moment of area
-    >>> print(pile)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0           7.5                0.07   1.633942   1.110000
-    1          -10.0           7.5                0.07   1.633942   1.110000
-    2          -10.0           7.5                0.08   1.864849  12.835479
-    3          -40.0           7.5                0.08   1.864849  12.835479
-    
-    >>> # Override pile's width or pile's diameter [in meters]
-    >>> pile.width = 2.22
-    >>> # Check updated width or diameter
-    >>> print(pile)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0          2.22                0.07   1.633942   1.110000
-    1          -10.0          2.22                0.07   1.633942   1.110000
-    2          -10.0          2.22                0.08   1.864849  12.835479
-    3          -40.0          2.22                0.08   1.864849  12.835479
-
-    >>> # Override pile's area  [in meters^2]
-    >>> pile.area = 1.0
-    >>> # Check updated width or diameter
-    >>> print(pile)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0          2.22                0.07        1.0   1.110000
-    1          -10.0          2.22                0.07        1.0   1.110000
-    2          -10.0          2.22                0.08        1.0  12.835479
-    3          -40.0          2.22                0.08        1.0  12.835479
-
+.. todo: add a doctest with the PileSegment class
+.. todo: add a doctest with the PileMaterial class
 
 
 .. _Ex2-plot_a_pycurve:
@@ -186,6 +172,7 @@ A Lateral and/or Axial soil model can be assigned to a layer.
        Su = 30.0-35.0 kPa
        eps50 = 0.01-0.02
        static curves
+       ext: None
     Axial model: None
 
 
@@ -231,6 +218,7 @@ Example 4 - Create a soil profile
     Lateral model: 	API sand
         phi = 33.0°
         cyclic curves
+        ext: None
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Layer 2
@@ -242,14 +230,15 @@ Example 4 - Create a soil profile
         Su = 50.0-70.0 kPa
         eps50 = 0.015
         cyclic curves
+        ext: None
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 .. _Ex5-run_winkler:
 
-Example 5 - Run a winkler analysis
-==================================
+Example 5 - Run a lateral pile analysis
+=======================================
 
 .. plot::
     :context:
@@ -287,18 +276,17 @@ Example 5 - Run a winkler analysis
     >>> # Create Model
     >>> M = Model(name="<model name>", pile=p, soil=sp)
     >>> 
-    >>> # Apply bottom fixity along x-axis
-    >>> M.set_support(elevation=-40, Tx=True)
+    >>> # Apply bottom fixity along z-axis
+    >>> M.set_support(elevation=-40, Tz=True)
     >>> # Apply axial and lateral loads
-    >>> M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
+    >>> M.set_pointload(elevation=0, Pz=-20e3, Py=5e3)
     >>> 
     >>> # Run analysis
-    >>> from openpile.analyze import winkler
-    >>> Result = winkler(M)
+    >>> result = M.solve()
     Converged at iteration no. 2
     >>> 
     >>> # plot the results
-    >>> Result.plot()
+    >>> result.plot()
 
 .. _Ex6-check_model:
 
@@ -313,9 +301,104 @@ can be provided by plotting the model with the method: :meth:`openpile.construct
 
     >>> # Create Model
     >>> M = Model(name="<model name>", pile=p, soil=sp)
-    >>> # Apply bottom fixity along x-axis
-    >>> M.set_support(elevation=-40, Tx=True)
+    >>> # Apply bottom fixity along z-axis
+    >>> M.set_support(elevation=-40, Tz=True)
     >>> # Apply axial and lateral loads
-    >>> M.set_pointload(elevation=0, Px=-20e3, Py=5e3)
+    >>> M.set_pointload(elevation=0, Pz=-20e3, Py=5e3)
     >>> # Plot the Model
     >>> M.plot()
+
+
+.. _Ex7-simple_beam_calculation:
+
+Example 7 - Run a simple beam calculation
+=========================================
+
+.. plot::
+
+    #imports
+    from openpile.construct import Pile, Model
+    #create a tubular pile
+    p = Pile.create_tubular(name="Simple tubular pile", top_elevation=10, bottom_elevation=0, diameter=0.1, wt=0.01)
+    # create a model with this pile we just created
+    m = Model(name="Beam calculation", pile=p, coarseness=0.2)
+    # create boundary conditions
+    m.set_support(10, Ty=True )
+    m.set_support(0, Tz=True, Ty=True)
+    m.set_pointload(elevation=5, Py=1)
+    #run solver and plot result
+    result = m.solve()
+    
+    #closed form solution is max_deflection = PL^3/(48EI)
+    normalized_deflection = result.deflection['Deflection [m]']*(48*p.E*p.sections[0].second_moment_of_area)/10**3
+    import matplotlib.pyplot as plt
+    _, axs = plt.subplots(nrows=1, ncols=2, figsize=(8,5))
+    m.plot(ax=axs[0])
+    axs[1].plot(normalized_deflection, result.deflection['Elevation [m]'] )
+    axs[1].set_xlabel("Normzalized Deflection $\delta_n=\dfrac{\delta \cdot 48 EI}{PL^3}$")
+    axs[1].set_ylim(axs[0].get_ylim())
+    axs[1].set_title('Results against\nclosed-form solution')
+    axs[1].grid()
+
+.. _Ex8-beam_calculation:
+
+Example 8 - A less simple beam calculation
+==========================================
+
+.. plot::
+
+    #imports
+    from openpile.construct import Pile, Model
+    #create a tubular pile
+    p = Pile.create_tubular(name="Simple tubular pile", top_elevation=10, bottom_elevation=0, diameter=1, wt=0.1)
+    print(p)
+    # create a model with this pile we just created
+    m = Model(name="Beam calculation", pile=p)
+    # create boundary conditions with fixed rotation
+    m.set_support(10, Rx=True,Ty=True, )
+    m.set_support(0, Tz=True, Ty=True, Rx=True)
+    m.set_pointload(elevation=5, Py=1)
+    m.set_pointload(elevation=10, Pz=-1)
+    m.plot()
+    #run solver and plot result
+    result = m.solve()
+    result.plot()
+
+
+Example 9 - Calculate pile settlement (axial analysis)
+======================================================
+
+.. plot::
+
+    from openpile.construct import Pile, SoilProfile, Layer, Model
+    from openpile.soilmodels import API_clay_axial, API_sand_axial, API_clay, API_sand
+    # Create a 20m deep offshore XL pile with a 15m water column
+    p = Pile.create_tubular(
+        name="", top_elevation=0, bottom_elevation=-20, diameter=7.5, wt=0.075
+    )
+    # Create a 20m deep offshore Soil Profile with a 15m water column
+    sp = SoilProfile(
+        name="Offshore Soil Profile",
+        top_elevation=0,
+        water_line=15,
+        layers=[
+            Layer(
+                name="medium dense sand",
+                top=0,
+                bottom=-20,
+                weight=18,
+                axial_model=API_sand_axial(delta=28),
+            ),
+        ],
+    )
+    # Create Model
+    M = Model(name="", pile=p, soil=sp)
+    # Apply fixity along lateral axis
+    M.set_support(elevation=-20, Ty=True)
+    M.set_support(elevation=0, Ty=True)
+    # Apply axial load
+    M.set_pointdisplacement(elevation=0, Tz=-1)
+    # Run analysis
+    result = M.solve()
+    result.plot_axial_results()
+

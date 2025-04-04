@@ -2,17 +2,8 @@
 Getting started
 ---------------
 
-System of units
-^^^^^^^^^^^^^^^
-
-The unit system used in this library is the `International System of Units (SI) <https://en.wikipedia.org/wiki/International_System_of_Units>`_. 
-The primary units used in OpenPile are kN (kilonewton) and m (meter). 
-The documentation should show the units to the user. If there are any ambiguity, 
-please create an issue so that we can solve this.
-
-
 Installation
-^^^^^^^^^^^^
+------------
 
 Installing OpenPile is as easy as installing well-known python packages such as Pandas or Numpy. This is done 
 via the below pip command.
@@ -22,15 +13,11 @@ via the below pip command.
     pip install openpile
 
 
-Some more help on installing python before OpenPile
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Via the generic Python distribution
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Below, you can find more help to get it installed on your local machine:**
 
 #. Go to the official Python website at https://www.python.org/downloads/ and 
    download python for your operating system (Windows, macOS, or Linux).
-   **Note that only python version ranging from 3.7 to 3.10 are valid for openpile to run.**
+   **Note that only python version ranging from 3.8 to 3.10 are valid for openpile to run.**
 #. Run the installer and follow the prompts to complete the installation process.
 #. After installing Python, open a terminal or command prompt and type python to verify that 
    Python is installed correctly. You should see the Python version number.
@@ -45,15 +32,12 @@ Via the generic Python distribution
    This will download and install the package and all its dependencies.
 
 
-Via the Anaconda distribution
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Below, an alternative to the above should you want to use the Anaconda distribution:**
 
 #. Download and install the latest version of Anaconda from https://www.anaconda.com/products/individual.
 #. Open the Anaconda Navigator application and select the "Environments" tab.
-#. Click the "Create" button to create a new environment and enter a name for it (e.g. python37).
-#. Select the desired Python version from the dropdown menu (e.g. Python 3.7) and click the "Create" button.
-#. Repeat the previous steps to create environments for the other Python versions you want to install (e.g. 
-   python38, python39, python310).
+#. Click the "Create" button to create a new environment and enter a name for it (e.g. python38).
+#. Select the desired Python version from the dropdown menu (e.g. Python 3.8) and click the "Create" button.
 #. To switch to a specific environment, select it from the list and click the "Activate" button.
 #. To install a package in the environment using pip, open a terminal window by clicking the 
    "Open Terminal" button in the "Environments" tab.
@@ -65,6 +49,38 @@ Via the Anaconda distribution
 
 
 First model in OpenPile
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 Please refer to the :ref:`usage` section where examples can help you get started.
+
+Philosophy
+----------
+
+these calculations can be as simple/generic as it gets, e.g. calculating the weight of a beam, its volume, or perform more advanced calculations with 1D Finite Element Method.
+
+.. show a plot of the beam/pile 
+
+.. ref to objects in API.
+
+
+System of units
+---------------
+
+The unit system used in this library is the `International System of Units (SI) <https://en.wikipedia.org/wiki/International_System_of_Units>`_. 
+The primary units used in OpenPile are kN (kilonewton) and m (meter). 
+The documentation (e.g. docstrings) should inform the user just well enough. If there is any ambiguity, 
+please create an issue so that we can solve this.
+
+
+Coordinates System
+------------------
+
+The coordinate system in OpenPile follows right hand system as shown below:
+
+.. figure:: _static/coordinates_system.png
+    :width: 80%
+
+    Coordinates system followed in OpenPile.
+
+
+

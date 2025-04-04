@@ -2,8 +2,6 @@
 import math as m
 import numpy as np
 from numba import njit
-from random import random
-
 
 # maximum resistance values
 @njit(cache=True)
@@ -35,6 +33,7 @@ def _Qmax_api_sand(
 def _fmax_api_clay(
     sig: float,
     Su: float,
+    alpha_limit: float,
 ) -> float:
     """Creates the maximum skin friction.
 
@@ -46,12 +45,16 @@ def _fmax_api_clay(
         vertical effcitve stress in kPa.
     Su : float
         undrained shear strength in kPa.
+    alpha_limit : float
+        limit value for the skin friction normalized to undrained shear strength.
+
 
     Returns
     -------
     float
         unit skin friction in kPa.
     """
+
     # important variables
     if sig == 0.0:
         psi = Su / 0.001
@@ -59,9 +62,9 @@ def _fmax_api_clay(
         psi = Su / sig
 
     if psi > 1.0:
-        alpha = min(0.5 * psi ** (-0.25), 1.0)
+        alpha = min(0.5 * psi ** (-0.25), alpha_limit)
     else:
-        alpha = min(0.5 * psi ** (-0.5), 1.0)
+        alpha = min(0.5 * psi ** (-0.5), alpha_limit)
 
     # Unit skin friction [kPa]
     return alpha * Su

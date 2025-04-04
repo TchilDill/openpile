@@ -1,10 +1,8 @@
-"""
-`analyze` module
+r"""
+`winkler` module
 ==================
 
-The `analyze` module is used to run 1D Finite Element analyses. 
-
-Every function from this module returns an `openpile.analyze.AnalyzeResult` object. 
+The `winkler` module is used to run 1D Finite Element analyses. 
 
 """
 
@@ -14,6 +12,7 @@ import matplotlib.pyplot as plt
 import warnings
 
 from dataclasses import dataclass
+from copy import deepcopy
 
 from openpile.core import kernel
 import openpile.core.validation as validation
@@ -30,7 +29,7 @@ class PydanticConfig:
 def springs_mob_to_df(model, d):
 
     # elevations
-    x = model.nodes_coordinates["x [m]"].values
+    x = model.nodes_coordinates["z [m]"].values
     x = kernel.double_inner_njit(x)
 
     # PY springs
@@ -66,12 +65,12 @@ def springs_mob_to_df(model, d):
 
 
 def reaction_forces_to_df(model, Q):
-    x = model.nodes_coordinates["x [m]"].values
+    z = model.nodes_coordinates["z [m]"].values
     Q = Q.reshape(-1, 3)
 
     df = pd.DataFrame(
         data={
-            "Elevation [m]": x,
+            "Elevation [m]": z,
             "Nr [kN]": Q[:, 0],
             "Vr [kN]": Q[:, 1],
             "Mr [kNm]": Q[:, 2],
@@ -87,8 +86,8 @@ def reaction_forces_to_df(model, Q):
 
 
 def structural_forces_to_df(model, q):
-    x = model.nodes_coordinates["x [m]"].values
-    x = misc.repeat_inner(x)
+    z = model.nodes_coordinates["z [m]"].values
+    z = misc.repeat_inner(z)
     L = kernel.mesh_to_element_length(model).reshape(-1)
 
     N = np.vstack((-q[0::6], q[3::6])).reshape(-1, order="F")
@@ -97,7 +96,7 @@ def structural_forces_to_df(model, q):
 
     structural_forces_to_DataFrame = pd.DataFrame(
         data={
-            "Elevation [m]": x,
+            "Elevation [m]": z,
             "N [kN]": N,
             "V [kN]": V,
             "M [kNm]": M,
@@ -108,16 +107,16 @@ def structural_forces_to_df(model, q):
 
 
 def disp_to_df(model, u):
-    x = model.nodes_coordinates["x [m]"].values
+    z = model.nodes_coordinates["z [m]"].values
 
-    Tx = u[::3].reshape(-1)
+    Tz = u[::3].reshape(-1)
     Ty = u[1::3].reshape(-1)
     Rx = u[2::3].reshape(-1)
 
     disp_to_DataFrame = pd.DataFrame(
         data={
-            "Elevation [m]": x,
-            "Settlement [m]": Tx,
+            "Elevation [m]": z,
+            "Settlement [m]": Tz,
             "Deflection [m]": Ty,
             "Rotation [rad]": Rx,
         }
@@ -127,8 +126,8 @@ def disp_to_df(model, u):
 
 
 @dataclass
-class AnalyzeResult:
-    """The `AnalyzeResult` class is created by any analyses from the :py:mod:`openpile.analyze` module.
+class WinklerResult:
+    """The `WinklerResult` class is created by any analyses from the :py:mod:`openpile.winkler` module.
 
     As such the user can use the following properties and/or methods for any return values of an analysis.
 
@@ -261,7 +260,7 @@ class AnalyzeResult:
         return self._mb_mob if self._mb_mob is not None else None
 
     def plot_deflection(self, assign=False):
-        """
+        r"""
         Plots the deflection of the pile.
 
         Parameters
@@ -274,17 +273,58 @@ class AnalyzeResult:
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
 
-
+        Example
+        -------
         The plot looks like:
 
-        .. image:: ../../docs/source/_static/usage/analyses_plots/deflection_results_plot.png
-            :width: 60%
+        .. plot::
+            :context: reset
+            :include-source: False
+
+            from openpile.construct import Pile, SoilProfile, Layer, Model
+            from openpile.soilmodels import API_clay, API_sand
+            p = Pile.create_tubular(
+                name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=7.5, wt=0.075
+            )
+            # Create a 40m deep offshore Soil Profile with a 15m water column
+            sp = SoilProfile(
+                name="Offshore Soil Profile",
+                top_elevation=0,
+                water_line=15,
+                layers=[
+                    Layer(
+                        name="medium dense sand",
+                        top=0,
+                        bottom=-20,
+                        weight=18,
+                        lateral_model=API_sand(phi=33, kind="cyclic"),
+                    ),
+                    Layer(
+                        name="firm clay",
+                        top=-20,
+                        bottom=-40,
+                        weight=18,
+                        lateral_model=API_clay(Su=[50, 70], eps50=0.015, kind="cyclic"),
+                    ),
+                ],
+            )
+            # Create Model
+            M = Model(name="<model name>", pile=p, soil=sp)
+            # Apply bottom fixity along z-axis
+            M.set_support(elevation=-40, Tz=True)
+            # Apply axial and lateral loads
+            M.set_pointload(elevation=0, Pz=-20e3, Py=5e3)
+            # Run analysis
+            result = M.solve()
+            # plot the results
+            result.plot_deflection()
+
         """
         fig = graphics.plot_deflection(self)
         return fig if assign else None
 
     def plot_forces(self, assign=False):
-        """Plots the pile sectional forces.
+        r"""Plots the pile sectional forces.
 
         Parameters
         ----------
@@ -296,17 +336,21 @@ class AnalyzeResult:
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
 
-
+        Example
+        -------
         The plot looks like:
 
-        .. image:: ../../docs/source/_static/usage/analyses_plots/forces_results_plot.png
-            :width: 60%
+        .. plot::
+            :context: close-figs
+            :include-source: False
+
+            result.plot_forces()
         """
         fig = graphics.plot_forces(self)
         return fig if assign else None
 
     def plot_lateral_results(self, assign=False):
-        """Plots the pile deflection and sectional forces.
+        r"""Plots the pile deflection and sectional forces.
 
         Parameters
         ----------
@@ -319,16 +363,21 @@ class AnalyzeResult:
             if assign is True, a matplotlib figure is returned
 
 
+        Example
+        -------
         The plot looks like:
 
-        .. image:: ../../docs/source/_static/usage/analyses_plots/main_results_plot.png
-            :width: 60%
+        .. plot::
+            :context: close-figs
+            :include-source: False
+
+            result.plot_lateral_results()
         """
         fig = graphics.plot_results(self)
         return fig if assign else None
 
-    def plot(self, assign=False):
-        """Same behaviour as :py:meth:`openpile.analyze.plot_lateral_results`.
+    def plot_axial_results(self, assign=False):
+        r"""Plots the pile settlements and normal forces.
 
         Parameters
         ----------
@@ -340,6 +389,33 @@ class AnalyzeResult:
         None or matplotlib.pyplot.figure
             if assign is True, a matplotlib figure is returned
 
+        """
+        fig = graphics.plot_settlement(self)
+        return fig if assign else None
+
+    def plot(self, assign=False):
+        r"""Same behaviour as :py:meth:`openpile.analyze.plot_lateral_results`.
+
+        Parameters
+        ----------
+        assign : bool, optional
+            by default False
+
+        Returns
+        -------
+        None or matplotlib.pyplot.figure
+            if assign is True, a matplotlib figure is returned
+
+        Example
+        -------
+
+        The plot looks like:
+
+        .. plot::
+            :context: close-figs
+            :include-source: False
+
+            result.plot()
         """
         return self.plot_lateral_results(assign)
 
@@ -373,7 +449,7 @@ class AnalyzeResult:
 def beam(model):
     """
     Function where loading or displacement defined in the model boundary conditions
-    are used to solve the system of equations, .
+    are used to solve the system of equations, this is a linear problem and is solved with one iteration.
 
     Parameters
     ----------
@@ -387,14 +463,14 @@ def beam(model):
     """
 
     # validate boundary conditions
-    validation.check_boundary_conditions(model)
+    # validation.check_boundary_conditions(model)
 
     # initialise global force
     F = kernel.mesh_to_global_force_dof_vector(model.global_forces)
     # initiliase prescribed displacement vector
     U = kernel.mesh_to_global_disp_dof_vector(model.global_disp)
     # initialise global supports vector
-    supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
+    supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) | (U != 0.0)
 
     # initialise displacement vectors
     d = np.zeros(U.shape)
@@ -403,16 +479,12 @@ def beam(model):
     K = kernel.build_stiffness_matrix(model, d)
     # first run with no stress stiffness matrix
     d, Q = kernel.solve_equations(K, F, U, restraints=supports)
-    # rerun global stiffness matrix
-    K = kernel.build_stiffness_matrix(model, d)
-    # second run with stress stiffness matrix
-    d, Q = kernel.solve_equations(K, F, U, restraints=supports)
 
     # internal forces
     q_int = kernel.pile_internal_forces(model, d)
 
     # Final results
-    results = AnalyzeResult(
+    results = WinklerResult(
         _name=f"{model.name} ({model.pile.name})",
         _d=disp_to_df(model, d),
         _f=structural_forces_to_df(model, q_int),
@@ -446,7 +518,7 @@ def winkler(model, max_iter: int = 100):
     """
 
     if model.soil is None:
-        UserWarning("SoilProfile must be provided when creating the Model.")
+        UserWarning("A SoilProfile must be provided to the model before running this model.")
 
     else:
         # initialise global force
@@ -458,13 +530,15 @@ def winkler(model, max_iter: int = 100):
         # initialise global stiffness matrix
         K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
         # initialise global supports vector
-        supports = kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)
+        supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) | (
+            U != 0.0
+        )
 
         # validate boundary conditions
         # validation.check_boundary_conditions(model)
 
         # Initialise residual forces
-        Rg = F
+        Rg = deepcopy(F)
 
         # incremental calculations to convergence
         iter_no = 0
@@ -480,6 +554,10 @@ def winkler(model, max_iter: int = 100):
                     """Cannot converge. Failure of the pile-soil system.\n
                       Boundary conditions may not be realistic or values may be too large."""
                 )
+                # dummy output vars
+                Q = np.full(F.shape, np.nan)
+                d = np.full(U.shape, np.nan)
+                nr_tol = np.nan
                 break
 
             # External forces
@@ -501,10 +579,26 @@ def winkler(model, max_iter: int = 100):
             if np.linalg.norm(Rg[~supports]) < nr_tol and iter_no > 1:
                 # do not accept convergence without iteration (without a second call to solve equations)
                 print(f"Converged at iteration no. {iter_no}")
+
+                # final stiffness matrix
+                K_final = kernel.build_stiffness_matrix(model, u=d, kind="secant")
+
+                # calculate final reaction forces
+                _, Q = kernel.solve_equations(
+                    K_final,
+                    kernel.mesh_to_global_force_dof_vector(model.global_forces),
+                    kernel.mesh_to_global_disp_dof_vector(model.global_disp),
+                    restraints=supports,
+                )
+
                 break
 
             if iter_no == 100:
                 print("Not converged after 100 iterations.")
+
+                # dummy output vars
+                Q = np.full(F.shape, np.nan)
+                d = np.full(U.shape, np.nan)
 
             # re-calculate global stiffness matrix for next iterations
             K = kernel.build_stiffness_matrix(model, u=d, kind="tangent")
@@ -517,7 +611,7 @@ def winkler(model, max_iter: int = 100):
         q_int = kernel.pile_internal_forces(model, d)
 
         # Final results
-        results = AnalyzeResult(
+        results = WinklerResult(
             _name=f"{model.name} ({model.pile.name}/{model.soil.name})",
             _d=disp_to_df(model, d),
             _f=structural_forces_to_df(model, q_int),
@@ -543,27 +637,16 @@ def winkler(model, max_iter: int = 100):
         return results
 
 
-def simple_winkler_analysis(model, max_iter: int = 100):
-
-    # deprecation warning
-    warnings.warn(
-        "\nThe method Analyze.simple_winkler_analysis() will be removed in version 1.0.0."
-        "\nPlease use the Analyze.winkler() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    return winkler(model, max_iter)
+def simple_winkler_analysis(*args, **kwargs):
+    """
+    .. versionremoved: 1.0.0
+        Use :func:`winkler` instead that keeps the same functional behaviour.
+    """
 
 
-def simple_beam_analysis(model):
+def simple_beam_analysis(*args, **kwargs):
+    """
+    .. versionremoved: 1.0.0
+        Use :func:`beam` instead that keeps the same functional behaviour.
 
-    # deprecation warning
-    warnings.warn(
-        "\nThe method Analyze.simple_beam_analysis() will be removed in version 1.0.0."
-        "\nPlease use the Analyze.beam() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    return beam(model)
+    """

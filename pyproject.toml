@@ -3,9 +3,9 @@ requires = [ "setuptools >= 61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
-addopts = "--cov=openpile"
+addopts = '--doctest-modules --doctest-glob="*.rst" --cov=openpile'
 testpaths = [
-    "test",
+    "test", "docs/source",
 ] 
 
 [tool.black]

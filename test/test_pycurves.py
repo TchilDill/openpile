@@ -6,6 +6,8 @@ import numpy as np
 
 import openpile.utils.py_curves as py
 
+from openpile.utils.hooks import InitialSubgradeReaction
+
 
 @pytest.fixture
 def make_pmax_api_sand():
@@ -106,10 +108,7 @@ def test_api_clay(make_pmax_api_clay, xsigma, xX, xSu, xe50, xD, xJ, xkind):
 
     factor = min(1.0, xX / Xr)
 
-    if xkind == "cyclic" and xSu > 96:
-        pres = 0.5 * pmax * factor
-        pu = 0.5 * pmax
-    elif xkind == "cyclic" and xSu <= 96:
+    if xkind == "cyclic":
         pres = 0.7185 * pmax * factor
         pu = 0.7185 * pmax
     elif xkind == "static":
@@ -138,3 +137,18 @@ def test_reese_weakrock(xEi, xqu, xRQD, xxr, xD):
     alpha = 1 - 2 / 3 * xRQD / 100
     pu = min(alpha * xqu * xD * (1 + 1.4 * xxr / xD), 5.2 * alpha * xqu * xD)
     assert m.isclose(np.max(p), pu, rel_tol=0.01, abs_tol=0.1)
+
+
+def test_get_initial_subgrade_modulus():
+
+    for phi in [28, 30, 35, 40, 42]:
+
+        y, p = py.api_sand(50, 5, phi, 4)
+        y1, p1 = py.api_sand(50, 5, phi, 4, k=InitialSubgradeReaction.api_sand(phi, True))
+        assert y1[1] == y[1]
+        assert p1[1] == p[1]
+
+        y, p = py.api_sand(50, 5, phi, 4, below_water_table=False)
+        y1, p1 = py.api_sand(50, 5, phi, 4, k=InitialSubgradeReaction.api_sand(phi, False))
+        assert y1[1] == y[1]
+        assert p1[1] == p[1]

@@ -8,6 +8,7 @@ Open-source PILE software.
 [![Downloads](https://static.pepy.tech/badge/openpile/month)](https://pepy.tech/project/openpile)
 
 ![Tests](https://github.com/TchilDill/openpile/actions/workflows/Test.yml/badge.svg) 
+[![codecov](https://codecov.io/gh/TchilDill/Openpile/graph/badge.svg?token=HQERTZ09CV)](https://codecov.io/gh/TchilDill/Openpile)
 [![Documentation Status](https://readthedocs.org/projects/openpile/badge/?version=latest)](https://openpile.readthedocs.io/en/latest/?badge=latest)
 
 

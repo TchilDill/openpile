@@ -8,10 +8,12 @@ form the inputs to calculations in openpile.
 
 These objects include:
 
-- the Pile
-- the SoilProfile
-  - the Layer
-- the Model
+- Pile 
+  - PileMaterial
+  - PileSection
+- SoilProfile
+- Layer
+- Model
 
 **Usage**
 
@@ -19,62 +21,229 @@ These objects include:
 
 """
 
+
 import math as m
 import pandas as pd
 import numpy as np
 import warnings
-from typing import List, Dict, Optional, Union
-from typing_extensions import Literal
-from pydantic import (
-    BaseModel,
-    Field,
-    root_validator,
-    validator,
-    PositiveFloat,
-    confloat,
-    conlist,
-    constr,
-    Extra,
-    ValidationError,
-)
-from pydantic.dataclasses import dataclass
 import matplotlib.pyplot as plt
 
 import openpile.utils.graphics as graphics
-import openpile.core.validation as validation
-import openpile.soilmodels as soilmodels
 
-from openpile.core import misc
-
-from openpile.soilmodels import ConstitutiveModel
-
+from openpile.materials import PileMaterial
+import openpile.materials as materials
+from openpile.core import misc, _model_build
+from openpile.soilmodels import LateralModel, AxialModel
 from openpile.core.misc import generate_color_string
+from openpile.core._model_build import (
+    check_springs,
+    get_soil_properties,
+    apply_bc,
+    validate_bc,
+    parameter2elements,
+)
+
+from abc import ABC, abstractmethod
+from typing import List, Dict, Optional, Union
+from typing_extensions import Literal, Annotated, Optional
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    InstanceOf,
+    Field,
+    model_validator,
+    computed_field,
+)
+from functools import cached_property
+
+from pydantic import (
+    BaseModel,
+    Field,
+    model_validator,
+)
 
 
-class PydanticConfig:
-    arbitrary_types_allowed = True
-    extra = Extra.forbid
-    post_init_call = "after_validation"
+class AbstractPile(BaseModel, ABC):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
 
-@dataclass(config=PydanticConfig)
-class Pile:
+class AbstractLayer(BaseModel, ABC):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+
+class AbstractSoilProfile(BaseModel, ABC):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+
+class AbstractModel(BaseModel, ABC):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+
+class PileSection(BaseModel, ABC):
     """
-    A class to create the pile.
+    An abstract Pile Segment is a section of a pile.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+    @property
+    @abstractmethod
+    def top_elevation(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def bottom_elevation(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def footprint(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def length(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def area(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def entrapped_area(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def outer_perimeter(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def inner_perimeter(self) -> float:
+        pass
+
+    @abstractmethod
+    def get_volume(self, length) -> float:
+        pass
+
+    @abstractmethod
+    def get_entrapped_volume(self, length) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def width(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def second_moment_of_area(self) -> float:
+        pass
+
+
+class CircularPileSection(PileSection):
+    """A circular section of a pile.
+
+    Parameters
+    ----------
+    top : float
+        the top elevation of the circular section, in meters
+    bottom : float
+        the bottom elevation of the circular section, in meters
+    diameter : float
+        the diameter of the circular section, in meters
+    thickness : Optional[float], optional
+        the wall thickness of the circular section if the section is hollow, in meters,
+        by default None which means the section is solid.
+
+    """
+
+    top: float
+    bottom: float
+    diameter: Annotated[float, Field(gt=0)]
+    thickness: Optional[Annotated[float, Field(gt=0)]] = None
+
+    @model_validator(mode="after")
+    def get_proper_thickness(self):
+        if self.thickness is None:
+            self.thickness = self.diameter / 2
+        return self
+
+    @model_validator(mode="after")
+    def check_elevations(self):
+        if self.bottom >= self.top:
+            raise ValueError(
+                f"Bottom elevation ({self.bottom}) must be less than top elevation ({self.top})."
+            )
+        return self
+
+    @property
+    def top_elevation(self) -> float:
+        return self.top
+
+    @property
+    def bottom_elevation(self) -> float:
+        return self.bottom
+
+    @property
+    def length(self) -> float:
+        return self.top - self.bottom
+
+    @property
+    def area(self) -> float:
+        return (self.diameter**2 - (self.diameter - 2 * self.thickness) ** 2) * m.pi / 4
+
+    @property
+    def entrapped_area(self) -> float:
+        return (self.diameter - 2 * self.thickness) ** 2 * m.pi / 4
+
+    @property
+    def outer_perimeter(self) -> float:
+        return self.diameter * m.pi
+
+    @property
+    def inner_perimeter(self) -> float:
+        return (self.diameter - 2 * self.thickness) * m.pi
+
+    @property
+    def footprint(self) -> float:
+        return self.diameter**2 * m.pi / 4
+
+    @property
+    def width(self) -> float:
+        return self.diameter
+
+    @property
+    def second_moment_of_area(self) -> float:
+        return (self.diameter**4 - (self.diameter - 2 * self.thickness) ** 4) * m.pi / 64
+
+    def get_volume(self, length) -> float:
+        return self.area * length
+
+    def get_entrapped_volume(self, length) -> float:
+        return length * (self.diameter - 2 * self.thickness) ** 2 * m.pi / 4
+
+
+class Pile(AbstractPile):
+    #: name of the pile
+    name: str
+    #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
+    sections: List[InstanceOf[PileSection]]
+    #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
+    material: Union[Literal["Steel", "Concrete"], PileMaterial]
+    """
+    A class to create the pil.e.
 
     Parameters
     ----------
     name : str
         Pile/Structure's name.
-    top_elevation : float
-        top elevation of the pile. Note that this elevation provides a reference point to
-        know where the pile is located, especially with respect to other object such as a SoilProfile.
-    pile_sections : Dict[str, List[float]]
-        argument that stores the relevant data of each pile segment.
-        Below are the needed keys for the available piles:
-        - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
-    kind : Literal["Circular",]
-        type of pile or type of cross-section. by default "Circular"
+    sections : List[PileSection]
+        argument that stores the relevant data of each pile segment. numbering of sections is made from uppermost elevation and 0-indexed.
     material : Literal["Steel",]
         material the pile is made of. by default "Steel"
 
@@ -82,290 +251,177 @@ class Pile:
     Example
     -------
 
-    >>> from openpile.construct import Pile
+    >>> from openpile.construct import Pile, CircularPileSection
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
     >>> pile = Pile(name = "",
-    ...         kind='Circular',
     ...         material='Steel',
-    ...         top_elevation = 0,
-    ...         pile_sections={
-    ...             'length':[10,30],
-    ...             'diameter':[7.5,7.5],
-    ...             'wall thickness':[0.07, 0.08],
-    ...         }
+    ...         sections=[
+    ...             CircularPileSection(
+    ...                 top=0, 
+    ...                 bottom=-10, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.07
+    ...             ),
+    ...             CircularPileSection(
+    ...                 top=-10, 
+    ...                 bottom=-40, 
+    ...                 diameter=7.5, 
+    ...                 thickness=0.08
+    ...             ),
+    ...         ]
     ...     )
+
+    One can also create a pile from other constructors such as: create_tubular(), that creates a ciruclar hollow pile of one unique section.
+
+    >>> from openpile.construct import Pile
+    >>> pile = Pile.create_tubular(name = "",
+    ...         top_elevation = 0,
+    ...         bottom_elevation = -40,
+    ...         diameter=7.5,
+    ...         wt=0.07,
+    ...         )
     """
 
-    #: name of the pile
-    name: str
-    #: select the type of pile, can be of ('Circular', )
-    kind: Literal["Circular"]
-    #: select the type of material the pile is made of, can be of ('Steel', )
-    material: Literal["Steel"]
-    #: top elevation of the pile according to general vertical reference set by user
-    top_elevation: float
-    #: pile geometry made of a dictionary of lists. the structure of the dictionary depends on the type of pile selected.
-    #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
-    pile_sections: Dict[str, List[PositiveFloat]]
+    # check that we have at least one pile section
+    @model_validator(mode="after")
+    def sections_must_be_provided(self):
+        if len(self.sections) == 0:
+            raise ValueError("No pile sections provided.")
+        return self
 
-    def __post_init__(self):
-        # check that dict is correctly entered
-        validation.pile_sections_must_be(self)
+    # check that dict is correctly entered
+    @model_validator(mode="after")
+    def sections_must_not_overlap(self):
+        self.sections = sorted(self.sections, key=lambda x: -x.top_elevation)
+        for i, segment in enumerate(self.sections):
+            if i == 0:
+                pass
+            else:
+                previous_segment = self.sections[i - 1]
+                if segment.top_elevation != previous_segment.bottom_elevation:
+                    raise ValueError(
+                        f"Pile sections are not consistent. Pile section No. {i} and No. {i-1} do not connect."
+                    )
+        return self
 
-        # Create material specific specs for given material
-        # if steel
+    # check that dict is correctly entered
+    @model_validator(mode="after")
+    def check_materials(self):
         if self.material == "Steel":
-            # unit weight
-            self._uw = 78.0  # kN/m3
-            # young modulus
-            self._young_modulus = 210.0e6  # kPa
-            # Poisson's ratio
-            self._nu = 0.3
-        else:
-            raise UserWarning
+            self.material = materials.steel
+        elif self.material == "Concrete":
+            self.material = materials.concrete
+        return self
 
-        self._shear_modulus = self._young_modulus / (2 + 2 * self._nu)
+    @property
+    def top_elevation(self) -> float:
+        return self.sections[0].top_elevation
 
+    @property
+    def data(self) -> pd.DataFrame:
         # create pile data used by openpile for mesh and calculations.
         # Create top and bottom elevations
-        elevation = []
-        # add bottom of section i and top of section i+1 (essentially the same values)
-        for idx, val in enumerate(self.pile_sections["length"]):
-            if idx == 0:
-                elevation.append(self.top_elevation)
-                elevation.append(elevation[-1] - val)
-            else:
-                elevation.append(elevation[-1])
-                elevation.append(elevation[-1] - val)
-
-        # create sectional properties
-
-        # spread
-        diameter = []
-        # add top and bottom of section i (essentially the same values)
-        for idx, val in enumerate(self.pile_sections["diameter"]):
-            diameter.append(val)
-            diameter.append(diameter[-1])
-
-        # thickness
-        thickness = []
-        # add top and bottom of section i (essentially the same values)
-        for idx, val in enumerate(self.pile_sections["wall thickness"]):
-            thickness.append(val)
-            thickness.append(thickness[-1])
-
-        # Area & second moment of area
-        area = []
-        second_moment_of_area = []
-        # add top and bottom of section i (essentially the same values)
-        for _, (d, wt) in enumerate(
-            zip(self.pile_sections["diameter"], self.pile_sections["wall thickness"])
-        ):
-            # calculate area
-            if self.kind == "Circular":
-                A = m.pi / 4 * (d**2 - (d - 2 * wt) ** 2)
-                I = m.pi / 64 * (d**4 - (d - 2 * wt) ** 4)
-                area.append(A)
-                area.append(area[-1])
-                second_moment_of_area.append(I)
-                second_moment_of_area.append(second_moment_of_area[-1])
-            else:
-                # not yet supporting other kind
-                raise ValueError()
-
-        # Create pile data
-        self.data = pd.DataFrame(
+        return pd.DataFrame(
             data={
-                "Elevation [m]": elevation,
-                "Diameter [m]": diameter,
-                "Wall thickness [m]": thickness,
-                "Area [m2]": area,
-                "I [m4]": second_moment_of_area,
+                "Elevation [m]": [
+                    x for x in self.sections for x in [x.top_elevation, x.bottom_elevation]
+                ],
+                "Width [m]": [x.width for x in self.sections for x in [x, x]],
+                "Area [m2]": [x.area for x in self.sections for x in [x, x]],
+                "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x, x]],
+                "Entrapped Area [m2]": [x.entrapped_area for x in self.sections for x in [x, x]],
+                "Outer Perimeter [m]": [x.outer_perimeter for x in self.sections for x in [x, x]],
+                "Inner Perimeter [m]": [x.inner_perimeter for x in self.sections for x in [x, x]],
             }
         )
 
     def __str__(self):
-        return self.data.to_string()
+        if self.shape == "Circular":
+            return pd.DataFrame(
+                data={
+                    "Elevation [m]": [
+                        x for x in self.sections for x in [x.top_elevation, x.bottom_elevation]
+                    ],
+                    "Diameter [m]": [x.width for x in self.sections for x in [x, x]],
+                    "Wall thickness [m]": [x.thickness for x in self.sections for x in [x, x]],
+                    "Area [m2]": [x.area for x in self.sections for x in [x, x]],
+                    "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x, x]],
+                }
+            ).to_string()
+        else:
+            return pd.DataFrame(
+                data={
+                    "Elevation [m]": [
+                        x for x in self.sections for x in [x.top_elevation, x.bottom_elevation]
+                    ],
+                    "Width [m]": [x.width for x in self.sections for x in [x, x]],
+                    "Area [m2]": [x.area for x in self.sections for x in [x, x]],
+                    "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x, x]],
+                }
+            ).to_string()
 
     @property
     def bottom_elevation(self) -> float:
         """
         Bottom elevation of the pile [m VREF].
         """
-        return self.top_elevation - sum(self.pile_sections["length"])
+        return self.sections[-1].bottom_elevation
 
     @property
     def length(self) -> float:
         """
         Pile length [m].
         """
-        return sum(self.pile_sections["length"])
+        return self.top_elevation - self.bottom_elevation
 
     @property
     def volume(self) -> float:
         """
         Pile volume [m3].
         """
-        A = self.data["Area [m2]"].values[1:]
-        L = np.abs(np.diff(self.data["Elevation [m]"].values))
-        return round((A * L).sum(), 2)
+        return sum([x.area * x.length for x in self.sections])
 
     @property
     def weight(self) -> float:
         """
         Pile weight [kN].
         """
-        return round(self.volume * self._uw, 2)
+        return self.volume * self.material.unitweight
+
+    @property
+    def G(self) -> float:
+        """
+        Shear modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
+        """
+        return self.material.shear_modulus
 
     @property
     def E(self) -> float:
         """
         Young modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
         """
-        try:
-            return self._young_modulus
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @E.setter
-    def E(self, value: float) -> None:
-        try:
-            self._young_modulus = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
-    def I(self) -> float:
-        """
-        Second moment of area of the pile [m4].
-
-        The user can use the method :py:meth:`openpile.construct.Pile.set_I` to customise the second
-        moment of area for different sections of the pile.
-        """
-        try:
-            return self.data["I [m4]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
-    def width(self) -> float:
-        """
-        Width of the pile [m]. (Used to compute soil springs)
-        """
-        try:
-            return self.data.loc[:, "Diameter [m]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @width.setter
-    def width(self, value: float) -> None:
-        try:
-            self.data.loc[:, "Diameter [m]"] = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @property
-    def area(self) -> float:
-        "Sectional area of the pile [m2]"
-        try:
-            return self.data.loc[:, "Area [m2]"]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
-
-    @area.setter
-    def area(self, value: float) -> None:
-        try:
-            self.data.loc[:, "Area [m2]"] = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
+        return self.material.young_modulus
 
     @property
     def tip_area(self) -> float:
         "Sectional area at the bottom of the pile [m2]"
-        try:
-            return self.data["Area [m2]"].iloc[-1]
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
+        return self.sections[-1].area
 
     @property
     def tip_footprint(self) -> float:
         "footprint area at the bottom of the pile [m2]"
-        try:
-            return (self.data["Diameter [m]"].iloc[-1]) ** 2 * m.pi / 4
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            print(e)
+        return self.sections[-1].footprint
 
-    @classmethod
-    def create(
-        cls,
-        name: str,
-        top_elevation: float,
-        pile_sections: Dict[str, List[float]],
-        kind: Literal[
-            "Circular",
-        ] = "Circular",
-        material: Literal[
-            "Steel",
-        ] = "Steel",
-    ):
-        """A method to create the pile.
+    @property
+    def inner_volume(self) -> float:
+        """the inner volume in [m3] of the pile from the model object."""
 
-        Parameters
-        ----------
-        name : str
-            Pile/Structure's name.
-        top_elevation : float
-            top elevation of the pile. Note that this elevation provides a reference point to
-            know where the pile is located, especially with respect to other object such as a SoilProfile.
-        pile_sections : Dict[str, List[float]]
-            argument that stores the relevant data of each pile segment.
-            Below are the needed keys for the available piles:
-            - kind:'Circular' >> keys:['length', 'diameter', 'wall thickness']
-        kind : Literal["Circular",]
-            type of pile or type of cross-section. by default "Circular"
-        material : Literal["Steel",]
-            material the pile is made of. by default "Steel"
+        z_top = np.array([x.top_elevation for x in self.sections])
+        z_bottom = np.array([x.bottom_elevation for x in self.sections])
+        L = z_top - z_bottom
+        area_inside = np.array([x.entrapped_area for x in self.sections])
 
-        Returns
-        -------
-        openpile.construct.Pile
-            a Pile instance with embedded postprocessing to perform calculations with openpile.
-        """
-
-        obj = cls(
-            name=name,
-            kind=kind,
-            material=material,
-            top_elevation=top_elevation,
-            pile_sections=pile_sections,
-        )
-
-        warnings.warn(
-            "\nThe method Pile.create() will be removed in version 1.0.0."
-            "\nPlease use the base class to create a Pile instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        return obj
+        return np.sum(area_inside * L)
 
     @classmethod
     def create_tubular(
@@ -375,7 +431,7 @@ class Pile:
         bottom_elevation: float,
         diameter: float,
         wt: float,
-        material: str = "Steel",
+        material: Union[Literal["Steel", "Concrete"], PileMaterial] = "Steel",
     ):
         """A method to simplify the creation of a Pile instance.
         This method creates a circular and hollow pile of constant diameter and wall thickness.
@@ -392,7 +448,7 @@ class Pile:
             pile diameter [m]
         wt : float
             pile's wall thickness [m]
-        material : Literal["Steel",]
+        material : Literal["Steel", "Concrete"] or an instance of openpile.materials.PileMaterial
             material the pile is made of. by default "Steel"
 
         Returns
@@ -403,75 +459,27 @@ class Pile:
 
         obj = cls(
             name=name,
-            kind="Circular",
             material=material,
-            top_elevation=top_elevation,
-            pile_sections={
-                "length": [
-                    (top_elevation - bottom_elevation),
-                ],
-                "wall thickness": [
-                    wt,
-                ],
-                "diameter": [
-                    diameter,
-                ],
-            },
+            sections=[
+                CircularPileSection(
+                    top=top_elevation,
+                    bottom=bottom_elevation,
+                    diameter=diameter,
+                    thickness=wt,
+                )
+            ],
         )
-
         return obj
 
-    def set_I(self, value: float, section: int) -> None:
-        """set second moment of area for a particular section of the pile.
-
-        Parameters
-        ----------
-        value : float
-            new second moment of area [m4].
-        section : int
-            section number for which to set new second moment of area
-
-        """
-        try:
-            length = len(self.data["I [m4]"].values)
-            if section * 2 > length:
-                print("section number is too large")
-            elif section < 1:
-                print("section number must be 1 or above")
-            else:
-                self.data.loc[section * 2 - 2, "I [m4]"] = value
-                self.data.loc[section * 2 - 1, "I [m4]"] = value
-        except AttributeError:
-            print("Please first create the pile with the Pile.create() method")
-        except Exception as e:
-            raise Exception
-
-    def plot(self, assign=False):
-        """Creates a plot of the pile with the properties.
-
-        Parameters
-        ----------
-        assign : bool, optional
-            this parameter can be set to True to return the figure, by default False
-
-        Returns
-        -------
-        matplotlib.pyplot.figure
-            only return the object if assign=True
-
-        Example
-        -------
-
-        .. image:: _static/plots/Pile_plot.png
-           :width: 70%
-
-        """
-        fig = graphics.pile_plot(self)
-        return fig if assign else None
+    @property
+    def shape(self):
+        if all([isinstance(x, CircularPileSection) for x in self.sections]):
+            return "Circular"
+        else:
+            "Undefined"
 
 
-@dataclass(config=PydanticConfig)
-class Layer:
+class Layer(AbstractLayer):
     """A class to create a layer.
 
     The Layer stores information on the soil parameters of the layer as well
@@ -487,9 +495,9 @@ class Layer:
         bottom elevation of the layer in [m].
     weight : float
         total unit weight in [kN/m3], cannot be lower than 10.
-    lateral_model : ConstitutiveModel
+    lateral_model : LateralModel
         Lateral soil model of the layer, by default None.
-    axial_model : ConstitutiveModel
+    axial_model : AxialModel
         Axial soil model of the layer, by default None.
     color : str
         soil layer color in HEX format (e.g. '#000000'), by default None.
@@ -513,10 +521,11 @@ class Layer:
     Name: Soft Clay
     Elevation: (0.0) - (-10.0) m
     Weight: 19.0 kN/m3
-    Lateral model:      API clay
+    Lateral model: 	API clay
         Su = 30.0-35.0 kPa
         eps50 = 0.01-0.02
         static curves
+        ext: None
     Axial model: None
     """
 
@@ -527,32 +536,31 @@ class Layer:
     #: bottom elevaiton of the layer
     bottom: float
     #: unit weight in kN of the layer
-    weight: confloat(gt=10.0)
+    weight: Annotated[float, Field(gt=10.0)]
     #: Lateral constitutive model of the layer
-    lateral_model: Optional[ConstitutiveModel] = None
+    lateral_model: Optional[LateralModel] = None
     #: Axial constitutive model of the layer
-    axial_model: Optional[ConstitutiveModel] = None
+    axial_model: Optional[AxialModel] = None
     #: Layer's color when plotted
-    color: Optional[constr(min_length=7, max_length=7)] = None
+    color: Optional[Annotated[str, Field(min_length=7, max_length=7)]] = None
 
-    def __post_init__(self):
+    def model_post_init(self, *args, **kwargs):
         if self.color is None:
             self.color = generate_color_string("earth")
+        return self
 
     def __str__(self):
         return f"Name: {self.name}\nElevation: ({self.top}) - ({self.bottom}) m\nWeight: {self.weight} kN/m3\nLateral model: {self.lateral_model}\nAxial model: {self.axial_model}"
 
-    @root_validator
-    def check_elevations(cls, values):  # pylint: disable=no-self-argument
-        if not values["top"] > values["bottom"]:
-            print("Bottom elevation is higher than top elevation")
-            raise ValueError
+    @model_validator(mode="after")
+    def check_elevations(self):
+        if not self.top > self.bottom:
+            raise ValueError("Bottom elevation is higher than top elevation")
         else:
-            return values
+            return self
 
 
-@dataclass(config=PydanticConfig)
-class SoilProfile:
+class SoilProfile(AbstractSoilProfile):
     """
     A class to create the soil profile. A soil profile consist of a ground elevation (or top elevation)
     with one or more layers of soil.
@@ -612,6 +620,7 @@ class SoilProfile:
     Lateral model: 	API sand
         phi = 30.0°
         cyclic curves
+        ext: None
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Layer 2
@@ -623,6 +632,7 @@ class SoilProfile:
         Su = 50.0 kPa
         eps50 = 0.01
         static curves
+        ext: None
     Axial model: None
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     """
@@ -643,29 +653,28 @@ class SoilProfile:
     #: (the cpt data outside the soil profile boundaries will be ignored)
     cpt_data: Optional[np.ndarray] = None
 
-    @root_validator
-    def check_layers_elevations(cls, values):  # pylint: disable=no-self-argument
-        layers = values["layers"]
+    @model_validator(mode="after")
+    def check_layers_elevations(self):
 
-        top_elevations = np.array([x.top for x in layers], dtype=float)
-        bottom_elevations = np.array([x.bottom for x in layers], dtype=float)
+        top_elevations = np.array([x.top for x in self.layers], dtype=float)
+        bottom_elevations = np.array([x.bottom for x in self.layers], dtype=float)
         idx_sort = np.argsort(top_elevations)
 
         top_sorted = top_elevations[idx_sort][::-1]
         bottom_sorted = bottom_elevations[idx_sort][::-1]
 
         # check no overlap
-        if top_sorted[0] != values["top_elevation"]:
+        if top_sorted[0] != self.top_elevation:
             raise ValueError("top_elevation not matching uppermost layer's elevations.")
 
         for i in range(len(top_sorted) - 1):
             if not m.isclose(top_sorted[i + 1], bottom_sorted[i], abs_tol=0.001):
                 raise ValueError("Layers' elevations overlap.")
 
-        return values
+        return self
 
-    @root_validator
-    def check_multipliers_in_lateral_model(cls, values):
+    @model_validator(mode="after")
+    def check_multipliers_in_lateral_model(self):
         def check_multipliers_callable(multiplier, ground_level, top, bottom, type):
             # if not a float, it must be a callable, then we check for Real Positive float
             if not isinstance(multiplier, float):
@@ -693,14 +702,12 @@ class SoilProfile:
                                 )
                                 return None
 
-        layers = values["layers"]
-
-        for layer in layers:
+        for layer in self.layers:
             if layer.lateral_model is not None:
                 # check p-multipliers
                 check_multipliers_callable(
                     layer.lateral_model.p_multiplier,
-                    values["top_elevation"],
+                    self.top_elevation,
                     layer.top,
                     layer.bottom,
                     "p",
@@ -708,7 +715,7 @@ class SoilProfile:
                 # check y-multipliers
                 check_multipliers_callable(
                     layer.lateral_model.y_multiplier,
-                    values["top_elevation"],
+                    self.top_elevation,
                     layer.top,
                     layer.bottom,
                     "y",
@@ -716,7 +723,7 @@ class SoilProfile:
                 # check m-multipliers
                 check_multipliers_callable(
                     layer.lateral_model.m_multiplier,
-                    values["top_elevation"],
+                    self.top_elevation,
                     layer.top,
                     layer.bottom,
                     "m",
@@ -724,16 +731,13 @@ class SoilProfile:
                 # check t-multipliers
                 check_multipliers_callable(
                     layer.lateral_model.t_multiplier,
-                    values["top_elevation"],
+                    self.top_elevation,
                     layer.top,
                     layer.bottom,
                     "t",
                 )
 
-        return values
-
-    def __post_init__(self):
-        pass
+        return self
 
     def __str__(self):
         """List all layers in table-like format"""
@@ -752,13 +756,13 @@ class SoilProfile:
         """
         return self.top_elevation - sum([abs(x.top - x.bottom) for x in self.layers])
 
-    def plot(self, assign=False):
+    def plot(self, ax=None):
         """Creates a plot illustrating the stratigraphy.
 
         Parameters
         ----------
-        assign : bool, optional
-            this parameter can be set to True to return the figure, by default False
+        ax : axis handle from matplotlib figure, optional
+            if None, a new axis handle is created
 
         Returns
         -------
@@ -768,15 +772,116 @@ class SoilProfile:
         Example
         -------
 
-        .. image:: _static/plots/SoilProfile_plot.png
-           :scale: 70%
+        .. plot::
+            :context: reset
+            :include-source: False
+
+            from openpile.construct import Pile, CircularPileSection
+            # Create a pile instance with two sections of respectively 10m and 30m length.
+            p = Pile(name = "",
+                    material='Steel',
+                    sections=[
+                        CircularPileSection(
+                            top=0,
+                            bottom=-10,
+                            diameter=7.5,
+                            thickness=0.07
+                        ),
+                        CircularPileSection(
+                            top=-10,
+                            bottom=-40,
+                            diameter=7.5,
+                            thickness=0.08
+                        ),
+                    ]
+            )
+
+            from openpile.construct import SoilProfile, Layer
+
+            # save the figure generated by SoilProfile.plot()
+            sp = SoilProfile(
+                name="<soil profile name>",
+                top_elevation=0,
+                water_line=8.0,
+                layers=[
+                    Layer(name="<layer name>", top=0, bottom=-4, weight=18),
+                    Layer(name="<layer name>", top=-4, bottom=-8, weight=18),
+                    Layer(name="<layer name>", top=-8, bottom=-20, weight=18),
+                    Layer(name="<layer name>", top=-20, bottom=-40, weight=18),
+                ],
+            )
+            sp.plot()
         """
-        fig = graphics.soil_plot(self)
-        return fig if assign is True else None
+        ax = graphics.soil_plot(self, ax=ax)
 
 
-@dataclass(config=PydanticConfig)
-class Model:
+class BoundaryFixation(BaseModel):
+    """
+    A class to create a boundary condition where support is fixed.
+
+    Parameters
+    ----------
+    elevation : str
+        Elevation of the boundary condition [m VREF]
+    x : bool
+        Fix the boundary condition in the x-direction
+    y : bool
+        Fix the boundary condition in the y-direction
+    z : bool
+        Fix the boundary condition in the z-direction
+    """
+
+    elevation: float
+    x: Optional[bool] = None
+    y: Optional[bool] = None
+    z: Optional[bool] = None
+
+
+class BoundaryDisplacement(BaseModel):
+    """
+    A class to create a boundary condition where displacement is given.
+
+    Parameters
+    ----------
+    elevation : str
+        Elevation of the boundary condition [m VREF]
+    x : float
+        Apply displacement in the x-direction [m]
+    y : float
+        Apply displacement in the y-direction [m]
+    z : float
+        Apply displacement in the z-direction [m]
+    """
+
+    elevation: float
+    x: Optional[float] = None
+    y: Optional[float] = None
+    z: Optional[float] = None
+
+
+class BoundaryForce(BaseModel):
+    """
+    A class to create a boundary condition where force is given.
+
+    Parameters
+    ----------
+    elevation : str
+        Elevation of the boundary condition [m VREF]
+    x : float
+        Apply force in the x-direction [kN]
+    y : float
+        Apply force in the y-direction [kN]
+    z : float
+        Apply force in the z-direction [kN]
+    """
+
+    elevation: float
+    x: Optional[float] = None
+    y: Optional[float] = None
+    z: Optional[float] = None
+
+
+class Model(AbstractModel):
     """
     A class to create a Model.
 
@@ -789,6 +894,10 @@ class Model:
         Name of the model
     pile : Pile
         Pile instance to be included in the model.
+    boundary_conditions : list[BoundaryFix, BoundaryDisp, BoundaryForce], optional
+        list of boundary conditions to be included in the model, by default None.
+        Boundary conditions can be added when instantiating the model with Boundary... objects or via the methods:
+        `.set_pointload()`, `.set_pointdisplacement()`, `.set_support()`
     soil : Optional[SoilProfile], optional
         SoilProfile instance, by default None.
     element_type : str, optional
@@ -796,7 +905,7 @@ class Model:
     x2mesh : List[float], optional
         additional elevations to be included in the mesh, by default none.
     coarseness : float, optional
-        maximum distance in meters between two nodes of the mesh, by default 0.5.
+        maximum distance in meters between two nodes of the mesh, by default 0.5. A value lower than 0.01 is not accepted due to computational purposes.
     distributed_lateral : bool, optional
         include distributed lateral springs, by default True.
     distributed_moment : bool, optional
@@ -805,6 +914,12 @@ class Model:
         include lateral spring at pile toe, by default False.
     base_moment : bool, optional
         include moment spring at pile toe, by default False.
+    distributed_axial : bool, optional
+        include distributed axial springs, by default True.
+    base_axial : bool, optional
+        include base axial springs, by default True.
+    plugging : bool, optional
+        whether the pile is plugged or unplugged, by default False.
 
 
     Example
@@ -813,16 +928,24 @@ class Model:
     >>> from openpile.construct import Pile, Model, Layer
     >>> from openpile.soilmodels import API_sand
     >>> # create pile
-    ... p = Pile(name = "WTG01",
-    ... 		kind='Circular',
-    ... 		material='Steel',
-    ... 		top_elevation = 0,
-    ... 		pile_sections={
-    ... 			'length':[10,30],
-    ... 			'diameter':[7.5,7.5],
-    ... 			'wall thickness':[0.07, 0.08],
-    ... 		}
-    ... 	)
+    ... p = Pile(name = "",
+    ...          material='Steel',
+    ...          sections=[
+    ...             CircularPileSection(
+    ...                 top=0,
+    ...                 bottom=-10,
+    ...                 diameter=7.5,
+    ...                 thickness=0.07
+    ...             ),
+    ...             CircularPileSection(
+    ...                 top=-10,
+    ...                 bottom=-40,
+    ...                 diameter=7.5,
+    ...                 thickness=0.08
+    ...             ),
+    ...          ]
+    ...     )
+
     >>> # Create Soil Profile
     >>> sp = SoilProfile(
     ... 	name="BH01",
@@ -850,6 +973,10 @@ class Model:
     name: str
     #: pile instance that the Model should consider
     pile: Pile
+    #: boundary conditions of the model
+    boundary_conditions: List[Union[BoundaryFixation, BoundaryForce, BoundaryDisplacement]] = Field(
+        default_factory=list
+    )
     #: soil profile instance that the Model should consider
     soil: Optional[SoilProfile] = None
     #: type of beam elements
@@ -857,7 +984,7 @@ class Model:
     #: x coordinates values to mesh as nodes
     x2mesh: List[float] = Field(default_factory=list)
     #: mesh coarseness, represent the maximum accepted length of elements
-    coarseness: float = 0.5
+    coarseness: Annotated[float, Field(ge=0.01)] = 0.5
     #: whether to include p-y springs in the calculations
     distributed_lateral: bool = True
     #: whether to include m-t springs in the calculations
@@ -867,120 +994,162 @@ class Model:
     #: whether to include Mb-t spring in the calculations
     base_moment: bool = True
     #: whether to include t-z springs in the calculations
-    distributed_axial: bool = False
+    distributed_axial: bool = True
     #: whether to include Q-z spring in the calculations
-    base_axial: bool = False
+    base_axial: bool = True
+    #: plugging
+    plugging: bool = None
 
-    @root_validator(skip_on_failure=True)
-    def soil_and_pile_bottom_elevation_match(cls, values):  # pylint: disable=no-self-argument
-        if values["soil"] is None:
-            pass
+    @model_validator(mode="after")
+    def max_coarseness(self):
+        multiplier = 5
+        if self.pile.length >= multiplier * self.coarseness:
+            return self
         else:
-            if values["pile"].bottom_elevation < values["soil"].bottom_elevation:
-                raise UserWarning("The pile ends deeper than the soil profile.")
-        return values
-
-    def __post_init__(self):
-        def check_springs(arr):
-            check_nan = np.isnan(arr).any()
-            check_negative = (arr < 0).any()
-
-            return check_nan or check_negative
-
-        def get_coordinates() -> pd.DataFrame:
-            # Primary discretisation over x-axis
-            x = np.array([], dtype=np.float16)
-            # add get pile relevant sections
-            x = np.append(x, self.pile.data["Elevation [m]"].values)
-            # add soil relevant layers and others
-            if self.soil is not None:
-                soil_elevations = np.array(
-                    [x.top for x in self.soil.layers] + [x.bottom for x in self.soil.layers],
-                    dtype=float,
-                )
-                if any(soil_elevations < self.pile.bottom_elevation):
-                    soil_elevations = np.append(self.pile.bottom_elevation, soil_elevations)
-                    soil_elevations = soil_elevations[soil_elevations >= self.pile.bottom_elevation]
-                x = np.append(x, soil_elevations)
-            # add user-defined elevation
-            x = np.append(x, self.x2mesh)
-
-            # get unique values and sort in reverse order
-            x = np.unique(x)[::-1]
-
-            # Secondary discretisation over x-axis depending on coarseness factor
-            x_secondary = np.array([], dtype=np.float16)
-            for i in range(len(x) - 1):
-                spacing = x[i] - x[i + 1]
-                new_spacing = spacing
-                divider = 1
-                while new_spacing > self.coarseness:
-                    divider += 1
-                    new_spacing = spacing / divider
-                new_x = x[i] - (
-                    np.arange(start=1, stop=divider) * np.tile(new_spacing, (divider - 1))
-                )
-                x_secondary = np.append(x_secondary, new_x)
-
-            # assemble x- coordinates
-            x = np.append(x, x_secondary)
-            x = np.unique(x)[::-1]
-
-            # dummy y- coordinates
-            y = np.zeros(shape=x.shape)
-
-            # create dataframe coordinates
-            nodes = pd.DataFrame(
-                data={
-                    "x [m]": x,
-                    "y [m]": y,
-                },
-                dtype=float,
-            ).round(3)
-            nodes.index.name = "Node no."
-
-            element = pd.DataFrame(
-                data={
-                    "x_top [m]": x[:-1],
-                    "x_bottom [m]": x[1:],
-                    "y_top [m]": y[:-1],
-                    "y_bottom [m]": y[1:],
-                },
-                dtype=float,
-            ).round(3)
-            element.index.name = "Element no."
-
-            return nodes, element
-
-            # function doing the work
-
-        def get_soil_profile() -> pd.DataFrame:
-            top_elevations = [x.top for x in self.soil.layers]
-            bottom_elevations = [x.bottom for x in self.soil.layers]
-            soil_weights = [x.weight for x in self.soil.layers]
-
-            idx_sort = np.argsort(top_elevations)[::-1]
-
-            top_elevations = [top_elevations[i] for i in idx_sort]
-            soil_weights = [soil_weights[i] for i in idx_sort]
-            bottom_elevations = [bottom_elevations[i] for i in idx_sort]
-
-            # #calculate vertical stress
-            # v_stress = [0.0,]
-            # for uw, top, bottom in zip(soil_weights, top_elevations, bottom_elevations):
-            #     v_stress.append(v_stress[-1] + uw*(top-bottom))
-
-            # elevation in model w.r.t to x axis
-            x = top_elevations
-
-            return pd.DataFrame(
-                data={"Top soil layer [m]": x, "Unit Weight [kN/m3]": soil_weights},
-                dtype=np.float64,
+            raise ValueError(
+                f"the coarseness factor is too high, please decrease it to at least a value of {np.floor(self.pile.length*100/multiplier)/100}"
             )
 
+    @model_validator(mode="after")
+    def soil_and_pile_bottom_elevation_match(self):
+        if self.soil is None:
+            pass
+        else:
+            if self.pile.bottom_elevation < self.soil.bottom_elevation:
+                raise ValueError("The pile ends deeper than the soil profile.")
+        return self
+
+    @model_validator(mode="after")
+    def bc_validation(self):
+        # validate_bc(self.boundary_conditions, BoundaryDisplacement)
+        # validate_bc(self.boundary_conditions, BoundaryForce)
+        # validate_bc(self.boundary_conditions, BoundaryFixation)
+        return self
+
+    @computed_field
+    # @cached_property
+    def soil_properties(self) -> Union[Dict[str, np.ndarray], None]:
+        return get_soil_properties(self.pile, self.soil, self.x2mesh, self.coarseness)
+
+    @computed_field
+    # @cached_property
+    def element_properties(self) -> Dict[str, np.ndarray]:
+        # creates element structural properties
+        # merge Pile.data and coordinates
+        element_properties = pd.merge_asof(
+            left=self.element_coordinates.sort_values(by=["z_top [m]"]),
+            right=self.pile.data.sort_values(by=["Elevation [m]"]),
+            left_on="z_top [m]",
+            right_on="Elevation [m]",
+            direction="forward",
+        ).sort_values(by=["z_top [m]"], ascending=False)
+        # add young modulus to data
+        element_properties["E [kPa]"] = self.pile.material.young_modulus
+        # delete Elevation [m] column
+        element_properties.drop("Elevation [m]", inplace=True, axis=1)
+        # reset index
+        element_properties.reset_index(inplace=True, drop=True)
+
+        return element_properties
+
+    @computed_field
+    @cached_property
+    def nodes_coordinates(self) -> Dict[str, np.ndarray]:
+        return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[0]
+
+    @computed_field
+    @cached_property
+    def element_coordinates(self) -> Dict[str, np.ndarray]:
+        return _model_build.get_coordinates(self.pile, self.soil, self.x2mesh, self.coarseness)[1]
+
+    @computed_field
+    @property
+    def global_forces(self) -> Dict[str, np.ndarray]:
+
+        validate_bc(self.boundary_conditions, BoundaryForce)
+
+        # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
+        df = self.nodes_coordinates.copy()
+        df["Pz [kN]"] = 0
+        df["Py [kN]"] = 0
+        df["Mx [kNm]"] = 0
+
+        nodes_elevations = df["z [m]"].values
+
+        df["Pz [kN]"], df["Py [kN]"], df["Mx [kNm]"] = apply_bc(
+            nodes_elevations,
+            df["Pz [kN]"].values,
+            df["Py [kN]"].values,
+            df["Mx [kNm]"].values,
+            self.boundary_conditions,
+            BoundaryForce,
+            "Load",
+        )
+
+        return df
+
+    @computed_field
+    @property
+    def global_disp(self) -> Dict[str, np.ndarray]:
+
+        validate_bc(self.boundary_conditions, BoundaryDisplacement)
+
+        # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
+        df = self.nodes_coordinates.copy()
+        df["Tz [m]"] = 0.0
+        df["Ty [m]"] = 0.0
+        df["Rx [rad]"] = 0.0
+
+        nodes_elevations = df["z [m]"].values
+
+        df["Tz [m]"], df["Ty [m]"], df["Rx [rad]"] = apply_bc(
+            nodes_elevations,
+            df["Tz [m]"].values,
+            df["Ty [m]"].values,
+            df["Rx [rad]"].values,
+            self.boundary_conditions,
+            BoundaryDisplacement,
+            "Displacement",
+        )
+
+        return df
+
+    @computed_field
+    @property
+    def global_restrained(self) -> Dict[str, np.ndarray]:
+
+        validate_bc(self.boundary_conditions, BoundaryFixation)
+
+        # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
+        df = self.nodes_coordinates.copy()
+        df["Tz"] = False
+        df["Ty"] = False
+        df["Rx"] = False
+
+        nodes_elevations = df["z [m]"].values
+
+        df["Tz"], df["Ty"], df["Rx"] = apply_bc(
+            nodes_elevations,
+            df["Tz"].values,
+            df["Ty"].values,
+            df["Rx"].values,
+            self.boundary_conditions,
+            BoundaryFixation,
+            "Fixity",
+        )
+        return df
+
+    @property
+    def element_number(self) -> int:
+        return self.element_properties.shape[0]
+
+    def model_post_init(self, *args, **kwargs):
         def create_springs() -> np.ndarray:
             # dim of springs
             spring_dim = 15
+            # springs dim for axial
+            tz_springs_dim = 15
+            qz_spring_dim = 15
 
             # Allocate array
             py = np.zeros(shape=(self.element_number, 2, 2, spring_dim), dtype=np.float32)
@@ -990,33 +1159,77 @@ class Model:
             Hb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
             Mb = np.zeros(shape=(1, 1, 2, spring_dim), dtype=np.float32)
 
-            tz = np.zeros(shape=(self.element_number, 2, 2, 15), dtype=np.float32)
+            # allocate array for axial springs
+            tz = np.zeros(shape=(self.element_number, 2, 2, tz_springs_dim), dtype=np.float32)
+            qz = np.zeros(shape=(1, 1, 2, qz_spring_dim), dtype=np.float32)
+
+            soil_prop = self.soil_properties
 
             # fill in spring for each element
             for layer in self.soil.layers:
-                elements_for_layer = self.soil_properties.loc[
-                    (self.soil_properties["x_top [m]"] <= layer.top)
-                    & (self.soil_properties["x_bottom [m]"] >= layer.bottom)
+                elements_for_layer = soil_prop.loc[
+                    (soil_prop["z_top [m]"] <= layer.top)
+                    & (soil_prop["z_bottom [m]"] >= layer.bottom)
                 ].index
 
-                # py curve
-                if layer.lateral_model is None:
-                    pass
-                else:
+                for i in elements_for_layer:
                     # Set local layer parameters for each element of the layer
-                    for i in elements_for_layer:
-                        # vertical effective stress
-                        sig_v = self.soil_properties[
-                            ["sigma_v top [kPa]", "sigma_v bottom [kPa]"]
-                        ].iloc[i]
-                        # elevation
-                        elevation = self.soil_properties[["x_top [m]", "x_bottom [m]"]].iloc[i]
-                        # depth from ground
-                        depth_from_ground = (
-                            self.soil_properties[["xg_top [m]", "xg_bottom [m]"]].iloc[i]
-                        ).abs()
-                        # pile width
-                        pile_width = self.element_properties["Diameter [m]"].iloc[i]
+                    # vertical effective stress
+                    sig_v = soil_prop[["sigma_v top [kPa]", "sigma_v bottom [kPa]"]].iloc[i].values
+                    # elevation
+                    elevation = soil_prop[["z_top [m]", "z_bottom [m]"]].iloc[i].values
+                    # depth from ground
+                    depth_from_ground = (
+                        (soil_prop[["zg_top [m]", "zg_bottom [m]"]].iloc[i]).abs().values
+                    )
+                    # pile width
+                    pile_width = self.element_properties["Width [m]"].iloc[i]
+                    perimeter_out = self.element_properties["Outer Perimeter [m]"].iloc[i]
+                    perimeter_in = self.element_properties["Outer Perimeter [m]"].iloc[i]
+
+                    sig_v_tip = soil_prop["sigma_v bottom [kPa]"].iloc[-1]
+
+                    # t-z curves
+                    if layer.axial_model is not None:
+
+                        if self.distributed_axial:  # True if tz spring function exist
+                            # calculate springs (top and bottom) for each element
+                            for j in [0, 1]:
+                                (tz[i, j, 1], tz[i, j, 0]) = layer.axial_model.tz_spring_fct(
+                                    sig=sig_v[j],
+                                    X=depth_from_ground[j],
+                                    circumference_out=perimeter_out,
+                                    circumference_in=perimeter_in,
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(layer.top - elevation[j]),
+                                    D=pile_width,
+                                    # TODO add wall thickness for CPT methods?
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=elevation[j] <= self.soil.water_line,
+                                    output_length=tz_springs_dim,
+                                )
+
+                        if (
+                            layer.top >= self.pile.bottom_elevation
+                            and layer.bottom <= self.pile.bottom_elevation
+                            and self.base_axial
+                        ):
+                            # calculate Qz spring
+                            (qz[0, 0, 1], qz[0, 0, 0]) = layer.axial_model.Qz_spring_fct(
+                                sig=sig_v_tip,
+                                tip_area=self.pile.tip_area,
+                                footprint=self.pile.tip_footprint,
+                                layer_height=(layer.top - layer.bottom),
+                                depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
+                                D=pile_width,
+                                L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                below_water_table=self.pile.bottom_elevation
+                                <= self.soil.water_line,
+                                output_length=qz_spring_dim,
+                            )
+
+                    # py curve
+                    if layer.lateral_model is not None:
 
                         # p-y curves
                         if (
@@ -1053,44 +1266,51 @@ class Model:
                                     output_length=spring_dim,
                                 )
 
-                    # check if pile tip is within layer
-                    if (
-                        layer.top >= self.pile.bottom_elevation
-                        and layer.bottom <= self.pile.bottom_elevation
-                    ):
+                        # check if pile tip is within layer
+                        if (
+                            layer.top >= self.pile.bottom_elevation
+                            and layer.bottom <= self.pile.bottom_elevation
+                        ):
 
-                        # Hb curve
-                        sig_v_tip = self.soil_properties["sigma_v bottom [kPa]"].iloc[-1]
+                            # Hb curve
+                            if layer.lateral_model.spring_signature[1] and self.base_shear:
 
-                        if layer.lateral_model.spring_signature[1] and self.base_shear:
+                                # calculate Hb spring
+                                (Hb[0, 0, 1], Hb[0, 0, 0]) = layer.lateral_model.Hb_spring_fct(
+                                    sig=sig_v_tip,
+                                    X=(self.soil.top_elevation - self.soil.bottom_elevation),
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(
+                                        layer.top - self.pile.bottom_elevation
+                                    ),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=self.pile.bottom_elevation
+                                    <= self.soil.water_line,
+                                    output_length=spring_dim,
+                                )
 
-                            # calculate Hb spring
-                            (Hb[0, 0, 1], Hb[0, 0, 0]) = layer.lateral_model.Hb_spring_fct(
-                                sig=sig_v_tip,
-                                X=(self.soil.top_elevation - self.soil.bottom_elevation),
-                                layer_height=(layer.top - layer.bottom),
-                                depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
-                                D=pile_width,
-                                L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                below_water_table=self.pile.bottom_elevation
-                                <= self.soil.water_line,
-                                output_length=spring_dim,
-                            )
+                            # Mb curve
+                            if layer.lateral_model.spring_signature[3] and self.base_moment:
 
-                        # Mb curve
-                        if layer.lateral_model.spring_signature[3] and self.base_moment:
+                                (Mb[0, 0, 1], Mb[0, 0, 0]) = layer.lateral_model.Mb_spring_fct(
+                                    sig=sig_v_tip,
+                                    X=(self.soil.top_elevation - self.soil.bottom_elevation),
+                                    layer_height=(layer.top - layer.bottom),
+                                    depth_from_top_of_layer=(
+                                        layer.top - self.pile.bottom_elevation
+                                    ),
+                                    D=pile_width,
+                                    L=(self.soil.top_elevation - self.pile.bottom_elevation),
+                                    below_water_table=self.pile.bottom_elevation
+                                    <= self.soil.water_line,
+                                    output_length=spring_dim,
+                                )
 
-                            (Mb[0, 0, 1], Mb[0, 0, 0]) = layer.lateral_model.Mb_spring_fct(
-                                sig=sig_v_tip,
-                                X=(self.soil.top_elevation - self.soil.bottom_elevation),
-                                layer_height=(layer.top - layer.bottom),
-                                depth_from_top_of_layer=(layer.top - self.pile.bottom_elevation),
-                                D=pile_width,
-                                L=(self.soil.top_elevation - self.pile.bottom_elevation),
-                                below_water_table=self.pile.bottom_elevation
-                                <= self.soil.water_line,
-                                output_length=spring_dim,
-                            )
+            # ensure springs are oriented correctly with respect to z-axis
+            # going down is compression and should be negative in "z" values
+            tz[:, :, :] = tz[:, :, :] * (-1)
+            qz[:, :, :] = qz[:, :, :] * (-1)
 
             if check_springs(py):
                 print("py springs have negative or NaN values.")
@@ -1120,63 +1340,10 @@ class Model:
                 Please check that: 2 < L/D < 6.
                 """
                 )
-            return py, mt, Hb, Mb, tz
 
-        # creates mesh coordinates
-        self.nodes_coordinates, self.element_coordinates = get_coordinates()
-        self.element_number = int(self.element_coordinates.shape[0])
+            return py, mt, Hb, Mb, tz, qz
 
-        # creates element structural properties
-        # merge Pile.data and self.coordinates
-        self.element_properties = pd.merge_asof(
-            left=self.element_coordinates.sort_values(by=["x_top [m]"]),
-            right=self.pile.data.sort_values(by=["Elevation [m]"]),
-            left_on="x_top [m]",
-            right_on="Elevation [m]",
-            direction="forward",
-        ).sort_values(by=["x_top [m]"], ascending=False)
-        # add young modulus to data
-        self.element_properties["E [kPa]"] = self.pile.E
-        # delete Elevation [m] column
-        self.element_properties.drop("Elevation [m]", inplace=True, axis=1)
-        # reset index
-        self.element_properties.reset_index(inplace=True, drop=True)
-
-        # create soil properties
         if self.soil is not None:
-            self.soil_properties = pd.merge_asof(
-                left=self.element_coordinates[["x_top [m]", "x_bottom [m]"]].sort_values(
-                    by=["x_top [m]"]
-                ),
-                right=get_soil_profile().sort_values(by=["Top soil layer [m]"]),
-                left_on="x_top [m]",
-                right_on="Top soil layer [m]",
-                direction="forward",
-            ).sort_values(by=["x_top [m]"], ascending=False)
-            # add elevation of element w.r.t. ground level
-            self.soil_properties["xg_top [m]"] = (
-                self.soil_properties["x_top [m]"] - self.soil.top_elevation
-            )
-            self.soil_properties["xg_bottom [m]"] = (
-                self.soil_properties["x_bottom [m]"] - self.soil.top_elevation
-            )
-            # add vertical stress at top and bottom of each element
-            condition_below_water_table = self.soil_properties["x_top [m]"] <= self.soil.water_line
-            self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] = (
-                self.soil_properties["Unit Weight [kN/m3]"][condition_below_water_table] - 10.0
-            )
-            s = (
-                self.soil_properties["x_top [m]"] - self.soil_properties["x_bottom [m]"]
-            ) * self.soil_properties["Unit Weight [kN/m3]"]
-            self.soil_properties["sigma_v top [kPa]"] = np.insert(
-                s.cumsum().values[:-1],
-                np.where(self.soil_properties["x_top [m]"].values == self.soil.top_elevation)[0],
-                0.0,
-            )
-            self.soil_properties["sigma_v bottom [kPa]"] = s.cumsum()
-            # reset index
-            self.soil_properties.reset_index(inplace=True, drop=True)
-
             # Create arrays of springs
             (
                 self._py_springs,
@@ -1184,25 +1351,8 @@ class Model:
                 self._Hb_spring,
                 self._Mb_spring,
                 self._tz_springs,
+                self._qz_spring,
             ) = create_springs()
-
-        # Initialise nodal global forces with link to nodes_coordinates (used for force-driven calcs)
-        self.global_forces = self.nodes_coordinates.copy()
-        self.global_forces["Px [kN]"] = 0
-        self.global_forces["Py [kN]"] = 0
-        self.global_forces["Mz [kNm]"] = 0
-
-        # Initialise nodal global displacement with link to nodes_coordinates (used for displacement-driven calcs)
-        self.global_disp = self.nodes_coordinates.copy()
-        self.global_disp["Tx [m]"] = 0
-        self.global_disp["Ty [m]"] = 0
-        self.global_disp["Rz [rad]"] = 0
-
-        # Initialise nodal global support with link to nodes_coordinates (used for defining boundary conditions)
-        self.global_restrained = self.nodes_coordinates.copy()
-        self.global_restrained["Tx"] = False
-        self.global_restrained["Ty"] = False
-        self.global_restrained["Rz"] = False
 
     @property
     def embedment(self) -> float:
@@ -1245,6 +1395,108 @@ class Model:
         else:
             return min(self.pile.bottom_elevation, self.soil.bottom_elevation)
 
+    @property
+    def effective_pile_weight(self) -> float:
+        if self.soil is not None:
+            submerged_element = self.element_properties["z_top [m]"].values <= self.soil.water_line
+
+            elem_z_top = self.element_properties["z_top [m]"].values
+            elem_z_bottom = self.element_properties["z_bottom [m]"].values
+            V = (elem_z_top - elem_z_bottom) * parameter2elements(
+                self.pile.sections, lambda x: x.area, elem_z_top, elem_z_bottom
+            )
+            W = np.zeros(shape=V.shape)
+            W[submerged_element] = V[submerged_element] * (self.pile.material.unitweight - 10)
+            W[~submerged_element] = V[~submerged_element] * (self.pile.material.unitweight)
+            return W.sum()
+
+        else:
+            raise Exception(
+                "Model must be linked to a soil profile, use `openpile.construct.Pile.weight instead.`"
+            )
+
+    @property
+    def shaft_resistance(self) -> float:
+        "the shaft resistances [kN] in compression and tension respectively calculated from the provided axial models along the pile."
+
+        if self.soil is None:
+            raise Exception("Model must be linked to a soil profile with provided axial models.")
+        else:
+            # influence zones
+            influence = np.abs(np.gradient(self.nodes_coordinates["z [m]"].values))
+            influence = influence / 2
+            influence
+
+            # Shaft resistance calc compression
+            comp = np.sum(
+                np.abs(
+                    np.min(self._tz_springs[:, 0, 0, :], axis=1) * influence[:-1]
+                    + np.min(self._tz_springs[:, 1, 0, :], axis=1) * influence[1:]
+                )
+            )
+            # Shaft resistance calc tension
+            tens = np.sum(
+                np.abs(
+                    np.max(self._tz_springs[:, 0, 0, :], axis=1) * influence[:-1]
+                    + np.max(self._tz_springs[:, 1, 0, :], axis=1) * influence[1:]
+                )
+            )
+
+            return comp, tens
+
+    @property
+    def tip_resistance(self) -> float:
+        "the end bearing resistance [kN] calculated from the provided axial model at tip elevation"
+        if self.soil is not None:
+            return float(np.abs(np.min(self._qz_spring[0, 0, 0, :])))
+        else:
+            raise Exception("Model must be linked to a soil profile with provided axial models.")
+
+    @property
+    def entrapped_soil_weight(self) -> float:
+        """calculates total weight of soil inside the pile. (Unit: kN)"""
+
+        if self.soil is not None:
+
+            # weight water in kN/m3
+            uw_water = 10
+
+            # soil volume
+            elem_z_top = self.element_properties["z_top [m]"].values
+            elem_z_bottom = self.element_properties["z_bottom [m]"].values
+            L = elem_z_top - elem_z_bottom
+            area_inside = parameter2elements(
+                self.pile.sections, lambda x: x.entrapped_area, elem_z_top, elem_z_bottom
+            )
+            Vi = area_inside * L
+            # element mid-point elevation
+            elevation = 0.5 * (
+                self.soil_properties["z_top [m]"] + self.soil_properties["z_bottom [m]"]
+            )
+            # soil weight for each element where we have soil and pile
+            elem_number = int(self.element_properties.shape[0])
+            element_sw = np.zeros(elem_number)
+
+            for layer in self.soil.layers:
+                elements_for_layer = self.soil_properties.loc[
+                    (self.soil_properties["z_top [m]"] <= layer.top)
+                    & (self.soil_properties["z_bottom [m]"] >= layer.bottom)
+                ].index
+
+                # Set local layer parameters for each element of the layer
+                for i in elements_for_layer:
+                    # Calculate inner soil weight
+                    element_sw[i] = (
+                        layer.weight * Vi[i]
+                        if elem_z_top[i] > self.soil.water_line
+                        else (layer.weight - uw_water) * Vi[i]
+                    )
+            return element_sw.sum()
+        else:
+            raise Exception(
+                "Model must be linked to a soil profile, the argument `soil` must be provided."
+            )
+
     def get_structural_properties(self) -> pd.DataFrame:
         """
         Returns a table with the structural properties of the pile sections.
@@ -1267,44 +1519,39 @@ class Model:
         except Exception as e:
             print(e)
 
-    def get_pointload(self, output=False, verbose=True):
-        """
-        Returns the point loads currently defined in the mesh via printout statements.
+    def _update_bc(self, elevation, x, y, z, BC_class):
+        # list existing
+        existing_bcs = [
+            bc
+            for bc in self.boundary_conditions
+            if bc.elevation == elevation and isinstance(bc, BC_class)
+        ]
 
-        Parameters
-        ----------
-        output : bool, optional
-            If true, it returns the printout statements as a variable, by default False.
-        verbose : float, optional
-            if True, printout statements printed automaically (ideal for use with iPython), by default True.
-        """
-        out = ""
-        try:
-            for idx, elevation, _, Px, Py, Mz in self.global_forces.itertuples(name=None):
-                if any([Px, Py, Mz]):
-                    string = f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
-                    if verbose is True:
-                        print(string)
-                    out += f"\nLoad applied at elevation {elevation} m (node no. {idx}): Px = {Px} kN, Py = {Py} kN, Mx = {Mz} kNm."
-            if output is True:
-                return out
-        except Exception:
-            print("No data found. Please create the Model first.")
-            raise
+        # check if elevation already exists for the provided axis
+        if len(existing_bcs) == 1:
+            # check if elevation already exists for the provided axis and modify boundary condition object
+            if x is not None:
+                existing_bcs[0].x = x
+            if y is not None:
+                existing_bcs[0].y = y
+            if z is not None:
+                existing_bcs[0].z = z
+        else:
+            self.boundary_conditions.append(BC_class(elevation=elevation, x=x, y=y, z=z))
 
     def set_pointload(
         self,
+        *,
         elevation: float = 0.0,
         Py: float = None,
-        Px: float = None,
-        Mz: float = None,
+        Pz: float = None,
+        Mx: float = None,
     ):
         """
         Defines the point load(s) at a given elevation.
 
         .. note:
-            If run several times at the same elevation, the loads are overwritten by the last command.
-
+            If run several times at the same elevation, the loads along relevant axes are overwritten by the last command.
 
         Parameters
         ----------
@@ -1312,50 +1559,19 @@ class Model:
             the elevation must match the elevation of a node, by default 0.0.
         Py : float, optional
             Shear force in kN, by default None.
-        Px : float, optional
+        Pz : float, optional
             Normal force in kN, by default None.
-        Mz : float, optional
+        Mx : float, optional
             Bending moment in kNm, by default None.
         """
-
-        # identify if one node is at given elevation or if load needs to be split
-        nodes_elevations = self.nodes_coordinates["x [m]"].values
-        # check if corresponding node exist
-        check = np.isclose(nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001)
-
-        try:
-            if any(check):
-                # one node correspond, extract node
-                node_idx = int(np.where(check == True)[0])
-                # apply loads at this node
-                if Px is not None:
-                    self.global_forces.loc[node_idx, "Px [kN]"] = Px
-                if Py is not None:
-                    self.global_forces.loc[node_idx, "Py [kN]"] = Py
-                if Mz is not None:
-                    self.global_forces.loc[node_idx, "Mz [kNm]"] = Mz
-            else:
-                if (
-                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
-                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
-                ):
-                    print(
-                        "Load not applied! The chosen elevation is outside the mesh. The load must be applied on the structure."
-                    )
-                else:
-                    print(
-                        "Load not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
-                    )
-        except Exception:
-            print("\n!User Input Error! Please create Model first with the Model.create().\n")
-            raise
+        self._update_bc(elevation, z=Pz, y=Py, x=Mx, BC_class=BoundaryForce)
 
     def set_pointdisplacement(
         self,
         elevation: float = 0.0,
         Ty: float = None,
-        Tx: float = None,
-        Rz: float = None,
+        Tz: float = None,
+        Rx: float = None,
     ):
         """
         Defines the displacement at a given elevation.
@@ -1363,69 +1579,34 @@ class Model:
         .. note::
             for defining supports, this function should not be used, rather use `.set_support()`.
 
+        .. note:
+            If run several times at the same elevation, the displacements along relevant axes are overwritten by the last command.
+
         Parameters
         ----------
         elevation : float, optional
             the elevation must match the elevation of a node, by default 0.0.
         Ty : float, optional
             Translation along y-axis, by default None.
-        Tx : float, optional
-            Translation along x-axis, by default None.
-        Rz : float, optional
-            Rotation around z-axis, by default None.
+        Tz : float, optional
+            Translation along z-axis, by default None.
+        Rx : float, optional
+            Rotation around x-axis, by default None.
         """
-
-        try:
-            # identify if one node is at given elevation or if load needs to be split
-            nodes_elevations = self.nodes_coordinates["x [m]"].values
-            # check if corresponding node exist
-            check = np.isclose(
-                nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
-            )
-
-            if any(check):
-                # one node correspond, extract node
-                node_idx = int(np.where(check == True)[0])
-                # apply displacements at this node
-                if Tx is not None:
-                    self.global_disp.loc[node_idx, "Tx [m]"] = Tx
-                    self.global_restrained.loc[node_idx, "Tx"] = Tx > 0.0
-                if Ty is not None:
-                    self.global_disp.loc[node_idx, "Ty [m]"] = Ty
-                    self.global_restrained.loc[node_idx, "Ty"] = Ty > 0.0
-                if Rz is not None:
-                    self.global_disp.loc[node_idx, "Rz [rad]"] = Rz
-                    self.global_restrained.loc[node_idx, "Rz"] = Rz > 0.0
-                # set restrain at this node
-
-            else:
-                if (
-                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
-                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
-                ):
-                    print(
-                        "Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure."
-                    )
-                else:
-                    print(
-                        "Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
-                    )
-        except Exception:
-            print("\n!User Input Error! Please create Model first with the Model.create().\n")
-            raise
+        self._update_bc(elevation, z=Tz, y=Ty, x=Rx, BC_class=BoundaryDisplacement)
 
     def set_support(
         self,
         elevation: float = 0.0,
-        Ty: bool = False,
-        Tx: bool = False,
-        Rz: bool = False,
+        Ty: bool = None,
+        Tz: bool = None,
+        Rx: bool = None,
     ):
         """
         Defines the supports at a given elevation. If True, the relevant degree of freedom is restrained.
 
         .. note:
-            If run several times at the same elevation, the support are overwritten by the last command.
+            If run several times at the same elevation, the support along relevant axes are overwritten by the last command.
 
 
         Parameters
@@ -1433,120 +1614,123 @@ class Model:
         elevation : float, optional
             the elevation must match the elevation of a node, by default 0.0.
         Ty : bool, optional
-            Translation along y-axis, by default False.
-        Tx : bool, optional
-            Translation along x-axis, by default False.
-        Rz : bool, optional
-            Rotation around z-axis, by default False.
+            Translation along y-axis, by default None.
+        Tz : bool, optional
+            Translation along z-axis, by default None.
+        Rx : bool, optional
+            Rotation around x-axis, by default None.
         """
+        self._update_bc(elevation, z=Tz, y=Ty, x=Rx, BC_class=BoundaryFixation)
 
-        try:
-            # identify if one node is at given elevation or if load needs to be split
-            nodes_elevations = self.nodes_coordinates["x [m]"].values
-            # check if corresponding node exist
-            check = np.isclose(
-                nodes_elevations, np.tile(elevation, nodes_elevations.shape), atol=0.001
-            )
+    def get_distributed_axial_springs(self, kind: str = "lumped") -> pd.DataFrame:
+        """Table with t-z springs computed for the given Model with t-value [kN/m] and y-value [m].
 
-            if any(check):
-                # one node correspond, extract node
-                node_idx = int(np.where(check == True)[0])
-                # apply loads at this node
-                self.global_restrained.loc[node_idx, "Tx"] = Tx
-                self.global_restrained.loc[node_idx, "Ty"] = Ty
-                self.global_restrained.loc[node_idx, "Rz"] = Rz
-            else:
-                if (
-                    elevation > self.nodes_coordinates["x [m]"].iloc[0]
-                    or elevation < self.nodes_coordinates["x [m]"].iloc[-1]
-                ):
-                    print(
-                        "Support not applied! The chosen elevation is outside the mesh. The support must be applied on the structure."
-                    )
-                else:
-                    print(
-                        "Support not applied! The chosen elevation is not meshed as a node. Please include elevation in `x2mesh` variable when creating the Model."
-                    )
-        except Exception:
-            print("\n!User Input Error! Please create Model first with the Model.create().\n")
-            raise
-
-    def get_py_springs(self, kind: str = "node") -> pd.DataFrame:
-        """Table with p-y springs computed for the given Model.
-
-        Posible to extract the springs at the node level (i.e. spring at each node)
-        or element level (i.e. top and bottom springs at each element)
+        Posible to extract the springs as typical structural springs (which are also the raw
+        springs used in the model) or element level (i.e. top and bottom springs at each element)
 
         Parameters
         ----------
         kind : str
-            can be of ("node", "element").
+            can be of ("lumped", "distributed").
 
         Returns
         -------
         pd.DataFrame (or None if no SoilProfile is present)
-            Table with p-y springs, i.e. p-value [kN/m] and y-value [m].
+            Table with t-z springs
         """
         if self.soil is None:
             return None
         else:
-            if kind == "element":
-                return misc.get_full_springs(
+            if kind == "distributed":
+                return misc.get_distributed_soil_springs(
+                    springs=self._tz_springs,
+                    elevations=self.nodes_coordinates["z [m]"].values,
+                    kind="t-z",
+                )
+            elif kind == "lumped":
+                return misc.get_lumped_soil_springs(
+                    springs=self._tz_springs,
+                    elevations=self.nodes_coordinates["z [m]"].values,
+                    kind="t-z",
+                )
+            else:
+                return None
+
+    def get_distributed_lateral_springs(self, kind: str = "lumped") -> pd.DataFrame:
+        """Table with p-y springs computed for the given Model with p-value [kN/m] and y-value [m].
+
+        Posible to extract the springs as typical structural springs (which are also the raw
+        springs used in the model) or element level (i.e. top and bottom springs at each element)
+
+        Parameters
+        ----------
+        kind : str
+            can be of ("lumped", "distributed").
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with p-y springs
+        """
+        if self.soil is None:
+            return None
+        else:
+            if kind == "distributed":
+                return misc.get_distributed_soil_springs(
                     springs=self._py_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
+                    elevations=self.nodes_coordinates["z [m]"].values,
                     kind="p-y",
                 )
-            elif kind == "node":
-                return misc.get_reduced_springs(
+            elif kind == "lumped":
+                return misc.get_lumped_soil_springs(
                     springs=self._py_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
+                    elevations=self.nodes_coordinates["z [m]"].values,
                     kind="p-y",
                 )
             else:
                 return None
 
-    def get_mt_springs(self, kind: str = "node") -> pd.DataFrame:
-        """Table with m-t (rotational) springs computed for the given Model.
+    def get_distributed_rotational_springs(self, kind: str = "lumped") -> pd.DataFrame:
+        """Table with m-t (rotational) springs computed for the given Model with m-value [kNm] and t-value [radians]
 
-        Posible to extract the springs at the node level (i.e. spring at each node)
-        or element level (i.e. top and bottom springs at each element)
+        Posible to extract the springs as typical structural springs (which are also the raw
+        springs used in the model) or element level (i.e. top and bottom springs at each element)
 
         Parameters
         ----------
         kind : str
-            can be of ("node", "element").
+            can be of ("lumped", "distributed").
 
         Returns
         -------
         pd.DataFrame (or None if no SoilProfile is present)
-            Table with m-t springs, i.e. m-value [kNm] and t-value [-].
+            Table with m-t springs.
         """
         if self.soil is None:
             return None
         else:
-            if kind == "element":
-                return misc.get_full_springs(
+            if kind == "distributed":
+                return misc.get_soil_springs(
                     springs=self._mt_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
+                    elevations=self.nodes_coordinates["z [m]"].values,
                     kind="m-t",
                 )
-            elif kind == "node":
-                return misc.get_reduced_springs(
+            elif kind == "lumped":
+                return misc.get_lumped_soil_springs(
                     springs=self._mt_springs,
-                    elevations=self.nodes_coordinates["x [m]"].values,
+                    elevations=self.nodes_coordinates["z [m]"].values,
                     kind="m-t",
                 )
             else:
                 return None
 
-    def get_Hb_spring(self) -> pd.DataFrame:
-        """Table with Hb (base shear) spring computed for the given Model.
-
+    def get_base_shear_spring(self) -> pd.DataFrame:
+        """Table with Hb (base shear) spring computed for the given Model with Hb-value [kN] and y-value [m].
 
         Returns
         -------
         pd.DataFrame (or None if no SoilProfile is present)
-            Table with Hb spring, i.e. H-value [kN] and y-value [m].
+            Table with Hb spring.
         """
         if self.soil is None:
             return None
@@ -1566,19 +1750,45 @@ class Model:
 
             return df
 
-    def get_Mb_spring(self) -> pd.DataFrame:
-        """Table with Mb (base moment) spring computed for the given Model.
+    def get_base_axial_spring(self) -> pd.DataFrame:
+        """Table with Q-z (base axial) spring computed for the given Model with Q-value [kN] and z-value [m].
+
+        Returns
+        -------
+        pd.DataFrame (or None if no SoilProfile is present)
+            Table with Q-z spring.
+        """
+        if self.soil is None:
+            return None
+        else:
+            spring_dim = self._qz_spring.shape[-1]
+
+            column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
+
+            df = pd.DataFrame(
+                data={
+                    "Node no.": [self.element_number + 1] * 2,
+                    "Elevation [m]": [self.pile.bottom_elevation] * 2,
+                }
+            )
+            df["type"] = ["q", "z"]
+            df[column_values_spring] = self._qz_spring.reshape(2, spring_dim)
+
+            return df
+
+    def get_base_rotational_spring(self) -> pd.DataFrame:
+        """Table with Mb (base moment) spring computed for the given Model with M-value [kNn] and t-value [radians].
 
 
         Returns
         -------
         pd.DataFrame (or None if no SoilProfile is present)
-            Table with Mb spring, i.e. M-value [kNn] and t-value [-].
+            Table with Mb spring, i.e.
         """
         if self.soil is None:
             return None
         else:
-            spring_dim = self._Hb_spring.shape[-1]
+            spring_dim = self._Mb_spring.shape[-1]
 
             column_values_spring = [f"VAL {i}" for i in range(spring_dim)]
 
@@ -1589,38 +1799,62 @@ class Model:
                 }
             )
             df["type"] = ["Mb", "t"]
-            df[column_values_spring] = self._Hb_spring.reshape(2, spring_dim)
+            df[column_values_spring] = self._Mb_spring.reshape(2, spring_dim)
 
             return df
 
-    def plot(self, assign=False):
+    def plot(self, ax=None):
         """Create a plot of the model with the mesh and boundary conditions.
 
         Parameters
         ----------
-        assign : bool, optional
-            this parameter can be set to True to return the figure, by default False.
-
-        Returns
-        -------
-        matplotlib.pyplot.figure
-            only return the object if assign=True.
+        ax : axis handle from matplotlib figure, optional
+            if None, a new axis handle is created
 
         Examples
         --------
 
         *Plot without SoilProfile fed to the model:*
 
-        .. image:: _static/plots/Model_no_soil_plot.png
-           :scale: 70%
+        .. plot::
+            :context: close-figs
+            :include-source: False
+
+            from openpile.construct import Model
+
+            # save the figure generated by Model.plot()
+            m = Model(name="<Model name>", pile=p)
+            m.set_pointload(elevation=0, Py=-500)
+            m.set_support(elevation=-40, Tz=True, Ty=True)
+            m.set_support(elevation=-10, Ty=True)
+            m.plot()
 
         *Plot with SoilProfile fed to the model:*
 
-        .. image:: _static/plots/Model_with_soil_plot.png
-           :scale: 70%
+        .. plot::
+            :context: close-figs
+            :include-source: False
+
+            m = Model(name="<Model name>", pile=p, soil=sp)
+            m.set_pointload(elevation=0, Py=500)
+            m.plot()
         """
-        fig = graphics.connectivity_plot(self)
-        return fig if assign else None
+        graphics.connectivity_plot(self, ax=ax)
+
+    def solve(self):
+        """
+        Solves the boundary conditions by calling either:
+         - :py:func:`openpile.analyze.beam` if no SoilProfile is provided
+         - :py:func:`openpile.analyze.winkler` if a SoilProfile is provided
+
+        Returns
+        -------
+        WinklerResult
+            objects that stores results of the analysis.
+        """
+        from openpile.winkler import beam, winkler
+
+        return beam(self) if self.soil is None else winkler(self)
 
     @classmethod
     def create(

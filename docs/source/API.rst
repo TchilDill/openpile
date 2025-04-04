@@ -5,9 +5,21 @@
 API
 ---
 
+.. contents:: API contents
+    :depth: 2
+    :backlinks: top
+
 .. automodule:: openpile.construct
     :members:
-    :exclude-members: __init__, PydanticConfig, soil_and_pile_bottom_elevation_match, create, check_elevations, check_layers_elevations
+    :exclude-members: __init__, PydanticConfig, soil_and_pile_bottom_elevation_match, create, check_elevations, check_layers_elevations,
+                      AbstractPile, AbstractLayer, AbstractSoilProfile, AbstractModel
+
+
+.. automodule:: openpile.materials
+    :members:
+    :exclude-members: __init__, PydanticConfig, AbstractPileMaterial
+
+
 
 .. automodule:: openpile.soilmodels
     :members: 
@@ -15,13 +27,14 @@ API
                       LateralModel, AxialModel, py_spring_fct, mt_spring_fct, Hb_spring_fct, 
                       Mb_spring_fct, spring_signature
 
-.. automodule:: openpile.analyze
+
+.. automodule:: openpile.winkler
     :members: 
-    :exclude-members: simple_winkler_analysis, simple_beam_analysis, PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, AnalyzeResult
+    :exclude-members: simple_winkler_analysis, simple_beam_analysis, PydanticConfig, structural_forces_to_df, springs_mob_to_df, reaction_forces_to_df, disp_to_df, __init__
 
 
-`utils` module
-==============
+.. `utils` module
+.. ==============
 
 .. automodule:: openpile.utils.py_curves
     :members:
@@ -43,14 +56,8 @@ API
     :exclude-members: random
 
 
-.. automodule:: openpile.utils.multipliers
+.. automodule:: openpile.utils.hooks
     :members:
     :exclude-members: 
 
-The `Result` class
-==================
-
-.. autoclass:: openpile.analyze.AnalyzeResult
-    :members:
-    :exclude-members: Config, __init__
 

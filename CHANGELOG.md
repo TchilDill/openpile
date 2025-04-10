@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
+## [1.0.1] - 2025-04-10
+
+### Fixed
+- *Sørensen sand* and *Kallehave sand* py-curves implementation into `openpile.soilmodels.API_sand()` led to some minor bugs that are now corrected.
+
 ## [1.0.0] - 2025-04-04
 
 *OpenPile's kernel now accounts for axial soil springs when running a Winkler analysis. The axial soil springs are by default turned on (`base_axial` and `distributed_axial` arguments of `openpile.construct.Model`) and considered if an `axial_model` is fed to a `openpile.construct.Layer`*

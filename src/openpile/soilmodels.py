@@ -1300,7 +1300,7 @@ class API_sand(LateralModel):
         Small-strain shear modulus [unit: kPa], by default None
     initial_subgrade_modulus: float or list[top_value, bottom_value] or None
         User-defined initial subgrade modulus  [unit: kN/m^3], by default None which default to API definition based on friction angle
-    Modification: str or None, by default None
+    modification: str or None, by default None
         Application of well-known modification to API sand. Modifications available are:
 
         - "Kallehave" - which calls the p-y springs :py:func:`openpile.utils.hooks.InitialSubgradeReaction.kallehave_sand()`.
@@ -1316,7 +1316,8 @@ class API_sand(LateralModel):
 
     See also
     --------
-    :py:func:`openpile.utils.py_curves.api_sand`, :py:func:`openpile.utils.hooks.durkhop`
+    :py:func:`openpile.utils.py_curves.api_sand`, :py:func:`openpile.utils.hooks.durkhop`,
+    :py:class:`openpile.utils.hooks.InitialSubgradeReaction`
 
     """
 
@@ -1342,7 +1343,7 @@ class API_sand(LateralModel):
         ]
     ] = None
     #: Application of well-known modification to API sand
-    Modification: Optional[Literal["Kallehave", "Sørensen"]] = None
+    modification: Optional[Literal["Kallehave", "Sørensen"]] = None
     #: p-multiplier
     p_multiplier: Union[Callable[[float], float], Annotated[float, Field(ge=0.0)]] = 1.0
     #: y-multiplier
@@ -1398,7 +1399,7 @@ class API_sand(LateralModel):
                 + (subgrade_modulus_b - subgrade_modulus_t) * depth_from_top_of_layer / layer_height
             )
 
-        if not self.Modification:
+        if not self.modification:
             y, p = py_curves.api_sand(
                 sig=sig,
                 X=X,
@@ -1410,7 +1411,7 @@ class API_sand(LateralModel):
                 ymax=ymax,
                 output_length=output_length,
             )
-        elif self.Modification == "Kallehave":
+        elif self.modification == "Kallehave":
             y, p = py_curves.api_sand(
                 sig=sig,
                 X=X,
@@ -1418,11 +1419,11 @@ class API_sand(LateralModel):
                 D=D,
                 kind=self.kind,
                 below_water_table=below_water_table,
-                k=InitialSubgradeReaction.kallehave_sand(phi),
+                k=InitialSubgradeReaction.kallehave_sand(phi, below_water_table, X, D),
                 ymax=ymax,
                 output_length=output_length,
             )
-        elif self.Modification == "Sørensen":
+        elif self.modification == "Sørensen":
             y, p = py_curves.api_sand(
                 sig=sig,
                 X=X,
@@ -1430,7 +1431,7 @@ class API_sand(LateralModel):
                 D=D,
                 kind=self.kind,
                 below_water_table=below_water_table,
-                k=InitialSubgradeReaction.sørensen2010_sand(phi),
+                k=InitialSubgradeReaction.sørensen2010_sand(phi, X, D),
                 ymax=ymax,
                 output_length=output_length,
             )

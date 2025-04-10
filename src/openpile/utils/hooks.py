@@ -594,4 +594,5 @@ class InitialSubgradeReaction:
         """
         Dref = 1.0
         Xref = 1.0
+        X = max(X, 0.01)
         return 1 / X * 50e3 * (X / Xref) ** 0.6 * (D / Dref) ** 0.5 * m.radians(phi) ** 3.6

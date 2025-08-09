@@ -2196,6 +2196,7 @@ class Custom_pisa_sand(LateralModel):
             t[count, :], m[count] = mt_curves.custom_pisa_sand(
                 sig=sig,
                 G0=get_value_at_current_depth(self.G0, depth_from_top_of_layer, layer_height, X),
+                p=p_iter,
                 D=D,
                 X_ult=get_value_at_current_depth(
                     self.mt_X, depth_from_top_of_layer, layer_height, X

@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
+
+## [1.0.2] - 2025-08-09
+
+### Fixed
+- The soil model `custom_pisa_sand()` did not consider the p_value of the py springs when creating rotational springs. This is now corrected and tested against the soil model `dunkirk_sand()`
+
 ## [1.0.1] - 2025-04-10
 
 ### Fixed

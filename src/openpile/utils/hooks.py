@@ -438,17 +438,19 @@ class PISA_depth_variation:
         k_func = lambda x: max(0.001, k_h1 + k_h2 * L / D)
 
         # normalized curvature
-        n_h1 = 0.8793
-        n_h2 = -0.03150
+        n_h1 = 0.09978 + 0.7974 * Dr
+        n_h2 = 0.004994 - 0.07005 * Dr
         n_func = lambda x: min(0.999, max(0.0, n_h1 + n_h2 * L / D))
 
         # normalized peak resistance
-        p_u1 = 0.4038
-        p_u2 = 0.04812
+        p_u1 = 0.09952 + 0.7996 * Dr
+        p_u2 = 0.03988 - 0.1606 * Dr
         Y_func = lambda x: max(0.001, p_u1 + p_u2 * L / D)
 
         # normalized displacement at peak resistance
-        X_func = lambda x: 235.7
+        v_hu1 = 0.5150 + 2.883 * Dr
+        v_hu2 = 0.1695 - 0.7018 * Dr
+        X_func = lambda x: v_hu1 + v_hu2 * L / D
 
         return {"Hb_k": k_func, "Hb_n": n_func, "Hb_X": X_func, "Hb_Y": Y_func}
 
@@ -478,8 +480,6 @@ class PISA_depth_variation:
         k_func = lambda x: 0.3515
 
         # normalized curvature
-        n_h1 = 0.8793
-        n_h2 = -0.03150
         n_func = lambda x: min(0.999, max(0.0, 0.3 + 0.4986 * Dr))
 
         # normalized peak resistance

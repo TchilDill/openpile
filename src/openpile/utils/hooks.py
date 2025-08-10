@@ -149,7 +149,7 @@ class PISA_depth_variation:
     """
 
     @staticmethod
-    def dunkirk_sand_pisa_norm_param(D: float, L: float):
+    def dunkirk_sand_pisa_norm_param(D: float, L: float, Dr: float):
         """returns the depth variation functions for all normalized parameters
         of the dunkirk sand conic formulations as per [BTZA20]_.
 
@@ -159,12 +159,14 @@ class PISA_depth_variation:
             pile diameter [m]
         L : float
             pile embedment [m]
+        Dr : float
+            sand relative density [%]
         """
 
-        py = PISA_depth_variation.dunkirk_sand_py_pisa_norm_param(D=D)
-        mt = PISA_depth_variation.dunkirk_sand_mt_pisa_norm_param(D=D)
-        Hb = PISA_depth_variation.dunkirk_sand_Hb_pisa_norm_param(D=D, L=L)
-        Mb = PISA_depth_variation.dunkirk_sand_Mb_pisa_norm_param(D=D, L=L)
+        py = PISA_depth_variation.dunkirk_sand_py_pisa_norm_param(D=D, L=L, Dr=Dr)
+        mt = PISA_depth_variation.dunkirk_sand_mt_pisa_norm_param(L=L, Dr=Dr)
+        Hb = PISA_depth_variation.dunkirk_sand_Hb_pisa_norm_param(D=D, L=L, Dr=Dr)
+        Mb = PISA_depth_variation.dunkirk_sand_Mb_pisa_norm_param(D=D, L=L, Dr=Dr)
 
         return {**py, **mt, **Hb, **Mb}
 

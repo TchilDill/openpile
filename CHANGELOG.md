@@ -10,8 +10,11 @@ and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 ## [1.0.2] - 2025-08-09
 
+### Added
+- tests for Custom pisa models: `Custom_pisa_sand()` and `Custom_pisa_clay()`.
+
 ### Fixed
-- The soil model `custom_pisa_sand()` did not consider the p_value of the py springs when creating rotational springs. This is now corrected and tested against the soil model `dunkirk_sand()`
+- Issue#44: The soil model `Custom_pisa_sand()` did not consider the p_value of the py springs when creating rotational springs. This is now corrected and tested against the soil model `Dunkirk_sand()`
 
 ## [1.0.1] - 2025-04-10
 

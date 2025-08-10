@@ -149,7 +149,7 @@ class PISA_depth_variation:
     """
 
     @staticmethod
-    def dunkirk_sand_pisa_norm_param(D: float, L: float):
+    def dunkirk_sand_pisa_norm_param(D: float, L: float, Dr: float):
         """returns the depth variation functions for all normalized parameters
         of the dunkirk sand conic formulations as per [BTZA20]_.
 
@@ -159,12 +159,14 @@ class PISA_depth_variation:
             pile diameter [m]
         L : float
             pile embedment [m]
+        Dr : float
+            sand relative density [%]
         """
 
-        py = PISA_depth_variation.dunkirk_sand_py_pisa_norm_param(D=D)
-        mt = PISA_depth_variation.dunkirk_sand_mt_pisa_norm_param(D=D)
-        Hb = PISA_depth_variation.dunkirk_sand_Hb_pisa_norm_param(D=D, L=L)
-        Mb = PISA_depth_variation.dunkirk_sand_Mb_pisa_norm_param(D=D, L=L)
+        py = PISA_depth_variation.dunkirk_sand_py_pisa_norm_param(D=D, L=L, Dr=Dr)
+        mt = PISA_depth_variation.dunkirk_sand_mt_pisa_norm_param(L=L, Dr=Dr)
+        Hb = PISA_depth_variation.dunkirk_sand_Hb_pisa_norm_param(D=D, L=L, Dr=Dr)
+        Mb = PISA_depth_variation.dunkirk_sand_Mb_pisa_norm_param(D=D, L=L, Dr=Dr)
 
         return {**py, **mt, **Hb, **Mb}
 
@@ -438,17 +440,19 @@ class PISA_depth_variation:
         k_func = lambda x: max(0.001, k_h1 + k_h2 * L / D)
 
         # normalized curvature
-        n_h1 = 0.8793
-        n_h2 = -0.03150
+        n_h1 = 0.09978 + 0.7974 * Dr
+        n_h2 = 0.004994 - 0.07005 * Dr
         n_func = lambda x: min(0.999, max(0.0, n_h1 + n_h2 * L / D))
 
         # normalized peak resistance
-        p_u1 = 0.4038
-        p_u2 = 0.04812
+        p_u1 = 0.09952 + 0.7996 * Dr
+        p_u2 = 0.03988 - 0.1606 * Dr
         Y_func = lambda x: max(0.001, p_u1 + p_u2 * L / D)
 
         # normalized displacement at peak resistance
-        X_func = lambda x: 235.7
+        v_hu1 = 0.5150 + 2.883 * Dr
+        v_hu2 = 0.1695 - 0.7018 * Dr
+        X_func = lambda x: v_hu1 + v_hu2 * L / D
 
         return {"Hb_k": k_func, "Hb_n": n_func, "Hb_X": X_func, "Hb_Y": Y_func}
 
@@ -478,8 +482,6 @@ class PISA_depth_variation:
         k_func = lambda x: 0.3515
 
         # normalized curvature
-        n_h1 = 0.8793
-        n_h2 = -0.03150
         n_func = lambda x: min(0.999, max(0.0, 0.3 + 0.4986 * Dr))
 
         # normalized peak resistance

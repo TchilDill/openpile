@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
+## [1.1.0] - 2026-01-XX (NOT PUBLISHED YET)
+
+This version of OpenPile includes some major changes in the Data Model and how it integrates and interacts with the underlying code. 
+
+This version aims to:
+- create new objects, namely Springs, MeshNode, MeshElement.
+- integrates those objects to the existing code
+- finally, ensure serializations with Pydantic is by default possible for all OpenPile objects.
 
 ## [1.0.2] - 2025-08-09
 

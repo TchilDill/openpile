@@ -232,12 +232,10 @@ def conic(
     y_u: float,
     output_length: int,
 ):
-    # if k is less than y_u/x_u, k overwritten to equate y_u/x_u
-    k = max(y_u / x_u, k)
 
     # Create x vector with 10% extension
-    x = np.array([0, 0.02, 0.05, 0.1]).astype(np.float32) * x_u
-    x = np.append(x, np.linspace(0.2 * x_u, x_u, output_length - 5).astype(np.float32))
+    x = np.array([0, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]).astype(np.float32) * x_u
+    x = np.append(x, np.linspace(0.2 * x_u, x_u, output_length - 9).astype(np.float32))
     x = np.append(x, 1.1 * x_u)
 
     a = 1 - 2 * n
@@ -245,13 +243,15 @@ def conic(
     y = np.zeros((len(x)), dtype=np.float32)
 
     for i in range(len(x)):
-        if abs(x[i] - x_u) < 1e-2:
-            y[i] = y_u
-        elif x[i] < x_u:
-            b = 2 * n * x[i] / x_u - (1 - n) * (1 + x[i] * k / y_u)
-            c = x[i] * (k / y_u) * (1 - n) - n * (x[i] ** 2 / x_u**2)
+        if x[i] < x_u:
+            # if k is less than y_u/x_u, k overwritten to equate y_u/x_u
+            if y_u / x_u > k:
+                y[i] = x[i] * y_u / x_u
+            else:
+                b = 2 * n * x[i] / x_u - (1 - n) * (1 + x[i] * k / y_u)
+                c = x[i] * (k / y_u) * (1 - n) - n * (x[i] ** 2 / x_u**2)
 
-            y[i] = y_u * 2 * c / (-b + (b**2 - 4 * a * c) ** 0.5)
+                y[i] = y_u * 2 * c / (-b + (b**2 - 4 * a * c) ** 0.5)
         else:
             y[i] = y_u
 

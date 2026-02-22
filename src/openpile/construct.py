@@ -53,6 +53,7 @@ from pydantic import (
     Field,
     model_validator,
     computed_field,
+    AfterValidator
 )
 from functools import cached_property
 
@@ -159,7 +160,6 @@ class CircularPileSection(PileSection):
     thickness : Optional[float], optional
         the wall thickness of the circular section if the section is hollow, in meters,
         by default None which means the section is solid.
-
     """
 
     top: float
@@ -231,7 +231,7 @@ class CircularPileSection(PileSection):
 class Pile(AbstractPile):
     #: name of the pile
     name: str
-    #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections.
+    #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections. 
     sections: List[InstanceOf[PileSection]]
     #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
     material: Union[Literal["Steel", "Concrete"], PileMaterial]
@@ -289,10 +289,14 @@ class Pile(AbstractPile):
             raise ValueError("No pile sections provided.")
         return self
 
+    @model_validator(mode="after")
+    def sections_must_be_sorted(self):
+        self.sections = sorted(self.sections, key=lambda x: -x.top_elevation)
+        return self
+
     # check that dict is correctly entered
     @model_validator(mode="after")
     def sections_must_not_overlap(self):
-        self.sections = sorted(self.sections, key=lambda x: -x.top_elevation)
         for i, segment in enumerate(self.sections):
             if i == 0:
                 pass
@@ -323,6 +327,7 @@ class Pile(AbstractPile):
         # Create top and bottom elevations
         return pd.DataFrame(
             data={
+                "Section no.": [i+1 for i in range(len(self.sections)) for _ in range(2)],
                 "Elevation [m]": [
                     x for x in self.sections for x in [x.top_elevation, x.bottom_elevation]
                 ],
@@ -336,29 +341,7 @@ class Pile(AbstractPile):
         )
 
     def __str__(self):
-        if self.shape == "Circular":
-            return pd.DataFrame(
-                data={
-                    "Elevation [m]": [
-                        x for x in self.sections for x in [x.top_elevation, x.bottom_elevation]
-                    ],
-                    "Diameter [m]": [x.width for x in self.sections for x in [x, x]],
-                    "Wall thickness [m]": [x.thickness for x in self.sections for x in [x, x]],
-                    "Area [m2]": [x.area for x in self.sections for x in [x, x]],
-                    "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x, x]],
-                }
-            ).to_string()
-        else:
-            return pd.DataFrame(
-                data={
-                    "Elevation [m]": [
-                        x for x in self.sections for x in [x.top_elevation, x.bottom_elevation]
-                    ],
-                    "Width [m]": [x.width for x in self.sections for x in [x, x]],
-                    "Area [m2]": [x.area for x in self.sections for x in [x, x]],
-                    "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x, x]],
-                }
-            ).to_string()
+        return self.data.to_string(index=False)
 
     @property
     def bottom_elevation(self) -> float:

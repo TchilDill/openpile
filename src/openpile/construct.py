@@ -90,6 +90,14 @@ class PileSection(BaseModel, ABC):
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
+    @model_validator(mode="after")
+    def check_materials(self):
+        if self.material == "Steel":
+            self.material = materials.steel
+        elif self.material == "Concrete":
+            self.material = materials.concrete
+        return self
+
     @property
     @abstractmethod
     def top_elevation(self) -> float: #TODO: Deprecate and replace with top
@@ -168,7 +176,7 @@ class CircularPileSection(PileSection):
         by default None which means the section is solid.
     """
 
-    #top and bottom attributes comes from PileSection, 
+    #top and bottom, material attributes comes from PileSection, 
     # we add diameter and thickness for circular section
     diameter: Annotated[float, Field(gt=0)]
     thickness: Optional[Annotated[float, Field(gt=0)]] = None
@@ -239,8 +247,6 @@ class Pile(AbstractPile):
     name: str
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections. 
     sections: List[InstanceOf[PileSection]]
-    #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
-    material: Union[Literal["Steel", "Concrete"], PileMaterial]
     """
     A class to create the pil.e.
 
@@ -250,8 +256,6 @@ class Pile(AbstractPile):
         Pile/Structure's name.
     sections : List[PileSection]
         argument that stores the relevant data of each pile segment. numbering of sections is made from uppermost elevation and 0-indexed.
-    material : Literal["Steel",]
-        material the pile is made of. by default "Steel"
 
 
     Example
@@ -285,6 +289,7 @@ class Pile(AbstractPile):
     ...         bottom_elevation = -40,
     ...         diameter=7.5,
     ...         wt=0.07,
+    ...         material='Steel'
     ...         )
     """
 
@@ -312,15 +317,6 @@ class Pile(AbstractPile):
                     raise ValueError(
                         f"Pile sections are not consistent. Pile section No. {i} and No. {i-1} do not connect."
                     )
-        return self
-
-    # check that dict is correctly entered
-    @model_validator(mode="after")
-    def check_materials(self):
-        if self.material == "Steel":
-            self.material = materials.steel
-        elif self.material == "Concrete":
-            self.material = materials.concrete
         return self
 
     @property
@@ -375,21 +371,7 @@ class Pile(AbstractPile):
         """
         Pile weight [kN].
         """
-        return self.volume * self.material.unitweight
-
-    @property
-    def G(self) -> float:
-        """
-        Shear modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
-        """
-        return self.material.shear_modulus
-
-    @property
-    def E(self) -> float:
-        """
-        Young modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
-        """
-        return self.material.young_modulus
+        return np.sum([x.area * x.length * x.material.unitweight for x in self.sections])
 
     @property
     def tip_area(self) -> float:
@@ -448,13 +430,13 @@ class Pile(AbstractPile):
 
         obj = cls(
             name=name,
-            material=material,
             sections=[
                 CircularPileSection(
                     top=top_elevation,
                     bottom=bottom_elevation,
                     diameter=diameter,
                     thickness=wt,
+                    material=material,
                 )
             ],
         )

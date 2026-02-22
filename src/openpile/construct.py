@@ -84,17 +84,20 @@ class PileSection(BaseModel, ABC):
     """
     An abstract Pile Segment is a section of a pile.
     """
+    top: float
+    bottom: float
+    material: Union[Literal["Steel", "Concrete"], PileMaterial]
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     @property
     @abstractmethod
-    def top_elevation(self) -> float:
+    def top_elevation(self) -> float: #TODO: Deprecate and replace with top
         pass
 
     @property
     @abstractmethod
-    def bottom_elevation(self) -> float:
+    def bottom_elevation(self) -> float: #TODO: Deprecate and replace with top
         pass
 
     @property
@@ -155,6 +158,9 @@ class CircularPileSection(PileSection):
         the top elevation of the circular section, in meters
     bottom : float
         the bottom elevation of the circular section, in meters
+    material : Union[Literal["Steel", "Concrete"], PileMaterial]
+        the material of the section, can be a string of ('Steel', 'Concrete') 
+        or a material created from openpile.materials.PileMaterial.custom()
     diameter : float
         the diameter of the circular section, in meters
     thickness : Optional[float], optional
@@ -162,8 +168,8 @@ class CircularPileSection(PileSection):
         by default None which means the section is solid.
     """
 
-    top: float
-    bottom: float
+    #top and bottom attributes comes from PileSection, 
+    # we add diameter and thickness for circular section
     diameter: Annotated[float, Field(gt=0)]
     thickness: Optional[Annotated[float, Field(gt=0)]] = None
 

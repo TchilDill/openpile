@@ -125,8 +125,6 @@ from pydantic import BaseModel, AfterValidator, ConfigDict, Field, model_validat
 
 
 # CONSTITUTIVE MODELS CLASSES ---------------------------------
-
-
 class LateralModel(BaseModel, ABC):
     model_config = ConfigDict(
         extra="allow",

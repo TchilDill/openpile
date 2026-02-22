@@ -54,6 +54,8 @@ class FancySpring(BaseModel):
 
     signature = "NonLinearElasticSpring"                         # info on spring
 
+    
+
 class ConstantSpring(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -63,18 +65,28 @@ class ConstantSpring(BaseModel):
     k: Union[NdArray, List[float]]         # stiffness
 
 
-class Node(BaseModel, ABC):
+class Node(BaseModel):
+    number: int
+    x: float
+    y: float
+    z: float
+
+class BeamElement(BaseModel):
+    number: int
+    nodes: Annotated[List[Node],conlist(min_length=2, max_length=2)]
+
+    model_config = ConfigDict(
+        extra="forbid",
+        arbitrary_types_allowed=True,
+    )
 
     @property
-    @abstractmethod
-    def coordinates(self) -> tuple[float, float, float]:
-        # coordinates are x, y, z 
-        # z is the elevation upward positive, 
-        # y is lateral leftward positive, 
-        # x is out of plane towards us being positive
-        pass
+    def length(self) -> float:
+        # calculate length of beam element from the coordinates of the nodes
+        return m.sqrt(
+            (self.nodes[1].x - self.nodes[0].x)**2 + 
+            (self.nodes[1].y - self.nodes[0].y)**2 + 
+            (self.nodes[1].z - self.nodes[0].z)**2
+            )
 
-    @property
-    @abstractmethod
-    def number(self) -> str:
-        pass
+

@@ -264,19 +264,20 @@ class Pile(AbstractPile):
     >>> from openpile.construct import Pile, CircularPileSection
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
     >>> pile = Pile(name = "",
-    ...         material='Steel',
     ...         sections=[
     ...             CircularPileSection(
     ...                 top=0, 
     ...                 bottom=-10, 
     ...                 diameter=7.5, 
-    ...                 thickness=0.07
+    ...                 thickness=0.07,
+    ...                 material='Steel'
     ...             ),
     ...             CircularPileSection(
     ...                 top=-10, 
     ...                 bottom=-40, 
     ...                 diameter=7.5, 
-    ...                 thickness=0.08
+    ...                 thickness=0.08,
+    ...                 material='Steel'
     ...             ),
     ...         ]
     ...     )
@@ -335,10 +336,13 @@ class Pile(AbstractPile):
                 ],
                 "Width [m]": [x.width for x in self.sections for x in [x, x]],
                 "Area [m2]": [x.area for x in self.sections for x in [x, x]],
+                "E [kPa]": [x.material.E for x in self.sections for x in [x, x]],
                 "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x, x]],
+                "Unit weight [kN/m3]": [x.material.unitweight for x in self.sections for x in [x, x]],
                 "Entrapped Area [m2]": [x.entrapped_area for x in self.sections for x in [x, x]],
                 "Outer Perimeter [m]": [x.outer_perimeter for x in self.sections for x in [x, x]],
                 "Inner Perimeter [m]": [x.inner_perimeter for x in self.sections for x in [x, x]],
+                "Poisson ratio [-]": [x.material.poisson for x in self.sections for x in [x, x]],
             }
         )
 
@@ -740,7 +744,6 @@ class SoilProfile(AbstractSoilProfile):
             from openpile.construct import Pile, CircularPileSection
             # Create a pile instance with two sections of respectively 10m and 30m length.
             p = Pile(name = "",
-                    material='Steel',
                     sections=[
                         CircularPileSection(
                             top=0,
@@ -890,7 +893,6 @@ class Model(AbstractModel):
     >>> from openpile.soilmodels import API_sand
     >>> # create pile
     ... p = Pile(name = "",
-    ...          material='Steel',
     ...          sections=[
     ...             CircularPileSection(
     ...                 top=0,
@@ -1004,8 +1006,6 @@ class Model(AbstractModel):
             right_on="Elevation [m]",
             direction="forward",
         ).sort_values(by=["z_top [m]"], ascending=False)
-        # add young modulus to data
-        element_properties["E [kPa]"] = self.pile.material.young_modulus
         # delete Elevation [m] column
         element_properties.drop("Elevation [m]", inplace=True, axis=1)
         # reset index
@@ -1363,12 +1363,13 @@ class Model(AbstractModel):
 
             elem_z_top = self.element_properties["z_top [m]"].values
             elem_z_bottom = self.element_properties["z_bottom [m]"].values
+            elem_unit_weight = self.element_properties["Unit weight [kN/m3]"].values
             V = (elem_z_top - elem_z_bottom) * parameter2elements(
                 self.pile.sections, lambda x: x.area, elem_z_top, elem_z_bottom
             )
             W = np.zeros(shape=V.shape)
-            W[submerged_element] = V[submerged_element] * (self.pile.material.unitweight - 10)
-            W[~submerged_element] = V[~submerged_element] * (self.pile.material.unitweight)
+            W[submerged_element] = V[submerged_element] * (elem_unit_weight[submerged_element] - 10)
+            W[~submerged_element] = V[~submerged_element] * (elem_unit_weight[~submerged_element])
             return W.sum()
 
         else:

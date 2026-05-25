@@ -514,6 +514,8 @@ class Layer(AbstractLayer):
     axial_model: Optional[AxialModel] = None
     #: Layer's color when plotted
     color: Optional[Annotated[str, Field(min_length=7, max_length=7)]] = None
+    # earth pressure coefficient that relates horizontal and vertical effective stresses
+    k0: Optional[Annotated[float, Field(gt=0.0)]] = 1.0
 
     def model_post_init(self, *args, **kwargs):
         if self.color is None:
@@ -549,12 +551,6 @@ class SoilProfile(AbstractSoilProfile):
         elevation of the water table in [m VREF].
     layers : list[Layer]
         list of layers for the soil profile.
-    cpt_data : np.ndarray
-        cpt data table with
-        1st col: elevation [m],
-        2nd col: cone resistance [kPa],
-        3rd col: sleeve friction [kPa],
-        4th col: pore pressure u2 [kPa].
 
     Example
     -------
@@ -616,13 +612,7 @@ class SoilProfile(AbstractSoilProfile):
     water_line: float
     #: soil layers to consider in the soil propfile
     layers: List[Layer]
-    #: Cone Penetration Test data with folloeing structure:
-    #: 1st col: elevation[m],
-    #: 2nd col: cone resistance[kPa],
-    #: 3rd col: sleeve friction [kPa]
-    #: 4th col: pore pressure u2 [kPa]
-    #: (the cpt data outside the soil profile boundaries will be ignored)
-    cpt_data: Optional[np.ndarray] = None
+
 
     @model_validator(mode="after")
     def check_layers_elevations(self):

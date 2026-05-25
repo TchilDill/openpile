@@ -1,6 +1,7 @@
 from openpile.core import misc
 import pytest
 
+
 def test_from_list2x_parse_top_bottom():
     # check if integer is passed
     t, b = misc.from_list2x_parse_top_bottom(2)
@@ -15,7 +16,8 @@ def test_from_list2x_parse_top_bottom():
     assert t == 0.4
     assert b == 50.6
 
-#create a matrix of test for misc.conic where the input varies and where we check that the output is a vector of ascending values
+
+# create a matrix of test for misc.conic where the input varies and where we check that the output is a vector of ascending values
 @pytest.mark.parametrize("Xbar", [0.1, 1, 5, 10, 50, 100, 1000])
 @pytest.mark.parametrize("k", [0, 0.1, 0.5, 1, 10, 100])
 @pytest.mark.parametrize("n", [0, 0.2, 0.8, 0.99])
@@ -26,6 +28,7 @@ def test_conic(Xbar, k, n, Ybar):
     # check that the output is a vector of ascending values
     assert all(x[i] <= x[i + 1] for i in range(len(x) - 1))
     assert all(y[i] <= y[i + 1] for i in range(len(y) - 1))
+
 
 def test_var_to_str():
     print_out = misc.var_to_str(11)

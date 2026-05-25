@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/),
 and [PEP 440](https://www.python.org/dev/peps/pep-0440/).
 
 
+
+## [1.0.3] - 2026-05-xx (not released yet)
+
+### Fixed
+- the "PISA" conic function had a flawed logic which in some cases led to a discontinuous spring.
+
+
 ## [1.0.2] - 2025-08-09
 
 ### Added

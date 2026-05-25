@@ -16,6 +16,13 @@ This version aims to:
 - integrates those objects to the existing code
 - finally, ensure serializations with Pydantic is by default possible for all OpenPile objects.
 
+
+## [1.0.3] - 2026-05-25
+
+### Fixed
+- the "PISA" conic function had a flawed logic which in some cases led to a discontinuous spring.
+
+
 ## [1.0.2] - 2025-08-09
 
 ### Added

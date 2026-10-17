@@ -395,7 +395,7 @@ def api_sand(
 
     ## calculate p vector
     p = np.zeros(shape=len(y), dtype=np.float32)
-    for i in prange(len(y)):
+    for i in range(len(y)):
         if Pmax == 0:
             p[i] = 0
         else:
@@ -543,7 +543,7 @@ def api_clay(
     # define p vector
     p = np.zeros(shape=len(y), dtype=np.float32)
 
-    for i in prange(len(y)):
+    for i in range(len(y)):
         if kind == "static":
             # derive static curve
             if y[i] > 8 * y50:
@@ -752,7 +752,7 @@ def matlock_1970(
     # define p vector
     p = np.zeros(shape=len(y), dtype=np.float32)
 
-    for i in prange(len(y)):
+    for i in range(len(y)):
         if kind == "static":
             # derive static curve
             if y[i] > 8 * y50:
@@ -879,7 +879,7 @@ def modified_Matlock(
     # define p vector
     p = np.zeros(shape=len(y), dtype=np.float32)
 
-    for i in prange(len(y)):
+    for i in range(len(y)):
         if kind == "static":
             # derive static curve
             if y[i] > 8 * y50:

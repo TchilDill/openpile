@@ -52,7 +52,9 @@ class FancySpring(BaseModel):
     X: Union[NdArray, List[float]]         # Return the x-axis values for the spring
     Y: Union[NdArray, List[float]]         # Return the y-axis values for the spring
 
-    signature = "NonLinearElasticSpring"                         # info on spring
+    @property
+    def signature() -> str:
+        return "NonLinearElasticSpring"                         # info on spring
 
     
 
@@ -73,7 +75,7 @@ class Node(BaseModel):
 
 class BeamElement(BaseModel):
     number: int
-    nodes: Annotated[List[Node],conlist(min_length=2, max_length=2)]
+    nodes: Annotated[List[Node],Field(min_length=2, max_length=2)]
 
     model_config = ConfigDict(
         extra="forbid",

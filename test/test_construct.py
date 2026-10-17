@@ -320,7 +320,7 @@ class TestModel:
             circular_slender_pile.length**3
             / (
                 3
-                * circular_slender_pile.E
+                * circular_slender_pile.sections[0].material.young_modulus
                 * circular_slender_pile.sections[0].second_moment_of_area
             ),
             abs_tol=1e-5,

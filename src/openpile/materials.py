@@ -4,34 +4,6 @@
 
 This module can be used to create new materials for structure components, e.g. a Pile object.
 
-Example
--------
-
-.. doctest::
-
-    >>> from openpile.construct import Pile, CircularPileSection
-    >>> from openpile.materials import PileMaterial
-
-    >>> # Create a Pile
-    >>> pile = Pile(
-    ...     name = "",
-    ...     material=PileMaterial.custom(
-    ...         name="concrete",unitweight=25, young_modulus=30e6, poisson_ratio=0.15
-    ...         ),
-    ...     sections=[
-    ...         CircularPileSection(
-    ...             top=0, 
-    ...             bottom=-10, 
-    ...             diameter=1.0, 
-    ...             thickness=0.05
-    ...         ),
-    ...     ]
-    ... )
-
-    >>> pile.weight
-    37.30641276137878
-
-
 
 """
 
@@ -67,6 +39,35 @@ class PileMaterial(AbstractPileMaterial):
         The Young's modulus of the material in kN/m².
     nu : float
         The Poisson's ratio of the material. Must be between -1 and 0.5.
+    
+    Example
+    -------
+
+    .. doctest::
+
+        >>> from openpile.construct import Pile, CircularPileSection
+        >>> from openpile.materials import PileMaterial
+
+        >>> # Create a custom material
+        >>> mat1 = PileMaterial.custom(
+        ...     name="concrete",unitweight=25, young_modulus=30e6, poisson_ratio=0.15
+        ... )
+        >>> # Create a Pile
+        >>> pile = Pile(
+        ...     name = "",
+        ...     sections=[
+        ...         CircularPileSection(
+        ...             top=0, 
+        ...             bottom=-10, 
+        ...             material=mat1,
+        ...             diameter=1.0, 
+        ...             thickness=0.05
+        ...         ),
+        ...     ]
+        ... )
+
+        >>> pile.weight
+        37.30641276137878
     """
 
     #: name of the material

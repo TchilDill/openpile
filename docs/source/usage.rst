@@ -43,12 +43,12 @@ A pile can be created in the simple following way in openpile.
     ...     )
 
     >>> # Print the pile data
-    >>> print(pile)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0           7.5                0.07   1.633942  11.276204
-    1          -10.0           7.5                0.07   1.633942  11.276204
-    2          -10.0           7.5                0.08   1.864849  12.835479
-    3          -40.0           7.5                0.08   1.864849  12.835479
+    >>> print(pile) # doctest: +NORMALIZE_WHITESPACE
+    Section no.  Elevation [m]  Width [m]  Area [m2]     E [kPa]    I [m4]  Unit weight [kN/m3]  Entrapped Area [m2]  Outer Perimeter [m]  Inner Perimeter [m]  Poisson ratio [-]
+            1            0.0        7.5   1.633942 210000000.0 11.276204                 78.0            42.544704            23.561945            23.122122                0.3
+            1          -10.0        7.5   1.633942 210000000.0 11.276204                 78.0            42.544704            23.561945            23.122122                0.3
+            2          -10.0        7.5   1.864849 210000000.0 12.835479                 78.0            42.313797            23.561945            23.059290                0.3
+            2          -40.0        7.5   1.864849 210000000.0 12.835479                 78.0            42.313797            23.561945            23.059290                0.3
 
 Alternative methods can be used to create a Pile, these methods can shorten the lines of codes needed to create the pile.
 A pile can also be created with a custom material.
@@ -70,10 +70,10 @@ For instance, the below snippet of code with another pile made of a custom mater
     >>> p = Pile.create_tubular(
     ...     name="<pile name>", top_elevation=0, bottom_elevation=-40, diameter=10, wt=0.050, material=my_concrete
     ... )
-    >>> print(p)
-       Elevation [m]  Diameter [m]  Wall thickness [m]  Area [m2]     I [m4]
-    0            0.0          10.0                0.05   1.562942  19.342388
-    1          -40.0          10.0                0.05   1.562942  19.342388
+    >>> print(p) # doctest: +NORMALIZE_WHITESPACE
+    Section no.  Elevation [m]  Width [m]  Area [m2]    E [kPa]    I [m4]  Unit weight [kN/m3]  Entrapped Area [m2]  Outer Perimeter [m]  Inner Perimeter [m]  Poisson ratio [-]
+            1            0.0       10.0   1.562942 30000000.0 19.342388                 24.0            76.976874            31.415927            31.101767                0.2
+            1          -40.0       10.0   1.562942 30000000.0 19.342388                 24.0            76.976874            31.415927            31.101767                0.2
 
 
 Once the pile (object) is created, the user can use its properties and methods to interact with it. 
@@ -94,10 +94,10 @@ axial or lateral loading.
 
 .. versionadded:: 1.0.0
     The user cannot anymore override the pile width or the second moment of area `I`  but 
-    we can now create a custom PileSegment object by creating a subclass of the 
-    class :py:class:`openpile.materials.PileSegment`. 
+    we can now create a custom PileSection object by creating a subclass of the 
+    class :py:class:`openpile.construct.PileSection`. 
 
-.. todo: add a doctest with the PileSegment class
+.. todo: add a doctest with the PileSection class
 .. todo: add a doctest with the PileMaterial class
 
 

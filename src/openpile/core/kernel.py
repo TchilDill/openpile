@@ -32,29 +32,12 @@ def reverse_indices(A, B):
 
 
 def double_inner_njit(in_arr):
-    # d = misc.repeat_inner(u)
+    # equivalent to misc.repeat_inner(u)
     out_arr = np.zeros(((len(in_arr) - 1) * 2), dtype=np.float64)
-    i = 0
-    while i < len(out_arr) + 1:
-        if i == 0:
-            out_arr[i] = in_arr[0]
-            i += 1
-        elif i == len(out_arr):
-            out_arr[i] = in_arr[-1]
-            i += 1
-        elif i == len(out_arr) - 1:
-            out_arr[i] = in_arr[-2]
-            i += 1
-        elif i % 2 != 0:
-            x = int((i + 1) / 2)
-            out_arr[i] = in_arr[x]
-            out_arr[i + 1] = in_arr[x]
-            i += 2
-        elif i % 2 == 0:
-            x = int(i / 2)
-            out_arr[i] = in_arr[x]
-            out_arr[i + 1] = in_arr[x]
-            i += 2
+    if len(in_arr) >= 2:
+        out_arr[0] = in_arr[0]
+        out_arr[-1] = in_arr[-1]
+        out_arr[1:-1] = np.repeat(in_arr[1:-1], 2)
 
     return out_arr
 
@@ -826,7 +809,9 @@ def pile_internal_forces(model, u):
     node_per_element = 2
 
     # create mech consistent stiffness matrix
-    k = elem_mechanical_stiffness_matrix(model) + elem_mt_stiffness_matrix(model, u, kind="secant")
+    # (soil m-t springs act as a stress stiffness matrix and are therefore
+    # not included in the internal force recovery)
+    k = elem_mechanical_stiffness_matrix(model)
 
     # create array u of shape [n_elem x 6 x 1]
     u = global_dof_vector_to_consistent_stacked_array(u, ndof_per_node * node_per_element)

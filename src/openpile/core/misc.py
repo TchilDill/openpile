@@ -224,7 +224,7 @@ def get_lumped_soil_springs(springs: np.ndarray, elevations: np.ndarray, kind: s
     return df
 
 
-@njit(cache=True)
+# @njit(cache=True)
 def conic(
     x_u: float,
     n: float,
@@ -234,13 +234,19 @@ def conic(
 ):
 
     # Create x vector with 10% extension
-    x = np.array([0, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]).astype(np.float32) * x_u
+    x = np.array([0, 0.0001, 0.001, 0.005, 0.01, 0.02, 0.05, 0.1]).astype(np.float32) * x_u
     x = np.append(x, np.linspace(0.2 * x_u, x_u, output_length - 9).astype(np.float32))
     x = np.append(x, 1.1 * x_u)
+
+    if abs(n-0.5) < 0.01:
+        n = 0.49
 
     a = 1 - 2 * n
 
     y = np.zeros((len(x)), dtype=np.float32)
+
+    if y_u == 0:
+        return x, y
 
     for i in range(len(x)):
         if x[i] < x_u:

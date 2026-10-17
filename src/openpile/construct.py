@@ -90,6 +90,14 @@ class PileSection(BaseModel, ABC):
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
+    @model_validator(mode="after")
+    def check_materials(self):
+        if self.material == "Steel":
+            self.material = materials.steel
+        elif self.material == "Concrete":
+            self.material = materials.concrete
+        return self
+
     @property
     @abstractmethod
     def top_elevation(self) -> float: #TODO: Deprecate and replace with top
@@ -168,7 +176,7 @@ class CircularPileSection(PileSection):
         by default None which means the section is solid.
     """
 
-    #top and bottom attributes comes from PileSection, 
+    #top and bottom, material attributes comes from PileSection, 
     # we add diameter and thickness for circular section
     diameter: Annotated[float, Field(gt=0)]
     thickness: Optional[Annotated[float, Field(gt=0)]] = None
@@ -239,8 +247,6 @@ class Pile(AbstractPile):
     name: str
     #: There can be as many sections as needed by the user. The length of the listsdictates the number of pile sections. 
     sections: List[InstanceOf[PileSection]]
-    #: select the type of material the pile is made of, can be of ('Steel', 'Concrete') or a material created from openpile.materials.PileMaterial.custom()
-    material: Union[Literal["Steel", "Concrete"], PileMaterial]
     """
     A class to create the pil.e.
 
@@ -250,8 +256,6 @@ class Pile(AbstractPile):
         Pile/Structure's name.
     sections : List[PileSection]
         argument that stores the relevant data of each pile segment. numbering of sections is made from uppermost elevation and 0-indexed.
-    material : Literal["Steel",]
-        material the pile is made of. by default "Steel"
 
 
     Example
@@ -260,19 +264,20 @@ class Pile(AbstractPile):
     >>> from openpile.construct import Pile, CircularPileSection
     >>> # Create a pile instance with two sections of respectively 10m and 30m length.
     >>> pile = Pile(name = "",
-    ...         material='Steel',
     ...         sections=[
     ...             CircularPileSection(
     ...                 top=0, 
     ...                 bottom=-10, 
     ...                 diameter=7.5, 
-    ...                 thickness=0.07
+    ...                 thickness=0.07,
+    ...                 material='Steel'
     ...             ),
     ...             CircularPileSection(
     ...                 top=-10, 
     ...                 bottom=-40, 
     ...                 diameter=7.5, 
-    ...                 thickness=0.08
+    ...                 thickness=0.08,
+    ...                 material='Steel'
     ...             ),
     ...         ]
     ...     )
@@ -285,6 +290,7 @@ class Pile(AbstractPile):
     ...         bottom_elevation = -40,
     ...         diameter=7.5,
     ...         wt=0.07,
+    ...         material='Steel'
     ...         )
     """
 
@@ -314,15 +320,6 @@ class Pile(AbstractPile):
                     )
         return self
 
-    # check that dict is correctly entered
-    @model_validator(mode="after")
-    def check_materials(self):
-        if self.material == "Steel":
-            self.material = materials.steel
-        elif self.material == "Concrete":
-            self.material = materials.concrete
-        return self
-
     @property
     def top_elevation(self) -> float:
         return self.sections[0].top_elevation
@@ -339,10 +336,13 @@ class Pile(AbstractPile):
                 ],
                 "Width [m]": [x.width for x in self.sections for x in [x, x]],
                 "Area [m2]": [x.area for x in self.sections for x in [x, x]],
+                "E [kPa]": [x.material.E for x in self.sections for x in [x, x]],
                 "I [m4]": [x.second_moment_of_area for x in self.sections for x in [x, x]],
+                "Unit weight [kN/m3]": [x.material.unitweight for x in self.sections for x in [x, x]],
                 "Entrapped Area [m2]": [x.entrapped_area for x in self.sections for x in [x, x]],
                 "Outer Perimeter [m]": [x.outer_perimeter for x in self.sections for x in [x, x]],
                 "Inner Perimeter [m]": [x.inner_perimeter for x in self.sections for x in [x, x]],
+                "Poisson ratio [-]": [x.material.poisson for x in self.sections for x in [x, x]],
             }
         )
 
@@ -375,21 +375,7 @@ class Pile(AbstractPile):
         """
         Pile weight [kN].
         """
-        return self.volume * self.material.unitweight
-
-    @property
-    def G(self) -> float:
-        """
-        Shear modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
-        """
-        return self.material.shear_modulus
-
-    @property
-    def E(self) -> float:
-        """
-        Young modulus of the pile material [kPa]. Thie value does not vary across and along the pile.
-        """
-        return self.material.young_modulus
+        return np.sum([x.area * x.length * x.material.unitweight for x in self.sections])
 
     @property
     def tip_area(self) -> float:
@@ -448,13 +434,13 @@ class Pile(AbstractPile):
 
         obj = cls(
             name=name,
-            material=material,
             sections=[
                 CircularPileSection(
                     top=top_elevation,
                     bottom=bottom_elevation,
                     diameter=diameter,
                     thickness=wt,
+                    material=material,
                 )
             ],
         )
@@ -532,6 +518,8 @@ class Layer(AbstractLayer):
     axial_model: Optional[AxialModel] = None
     #: Layer's color when plotted
     color: Optional[Annotated[str, Field(min_length=7, max_length=7)]] = None
+    # earth pressure coefficient that relates horizontal and vertical effective stresses
+    k0: Optional[Annotated[float, Field(gt=0.0)]] = 1.0
 
     def model_post_init(self, *args, **kwargs):
         if self.color is None:
@@ -567,12 +555,6 @@ class SoilProfile(AbstractSoilProfile):
         elevation of the water table in [m VREF].
     layers : list[Layer]
         list of layers for the soil profile.
-    cpt_data : np.ndarray
-        cpt data table with
-        1st col: elevation [m],
-        2nd col: cone resistance [kPa],
-        3rd col: sleeve friction [kPa],
-        4th col: pore pressure u2 [kPa].
 
     Example
     -------
@@ -634,13 +616,7 @@ class SoilProfile(AbstractSoilProfile):
     water_line: float
     #: soil layers to consider in the soil propfile
     layers: List[Layer]
-    #: Cone Penetration Test data with folloeing structure:
-    #: 1st col: elevation[m],
-    #: 2nd col: cone resistance[kPa],
-    #: 3rd col: sleeve friction [kPa]
-    #: 4th col: pore pressure u2 [kPa]
-    #: (the cpt data outside the soil profile boundaries will be ignored)
-    cpt_data: Optional[np.ndarray] = None
+
 
     @model_validator(mode="after")
     def check_layers_elevations(self):
@@ -768,7 +744,6 @@ class SoilProfile(AbstractSoilProfile):
             from openpile.construct import Pile, CircularPileSection
             # Create a pile instance with two sections of respectively 10m and 30m length.
             p = Pile(name = "",
-                    material='Steel',
                     sections=[
                         CircularPileSection(
                             top=0,
@@ -918,7 +893,6 @@ class Model(AbstractModel):
     >>> from openpile.soilmodels import API_sand
     >>> # create pile
     ... p = Pile(name = "",
-    ...          material='Steel',
     ...          sections=[
     ...             CircularPileSection(
     ...                 top=0,
@@ -1032,8 +1006,6 @@ class Model(AbstractModel):
             right_on="Elevation [m]",
             direction="forward",
         ).sort_values(by=["z_top [m]"], ascending=False)
-        # add young modulus to data
-        element_properties["E [kPa]"] = self.pile.material.young_modulus
         # delete Elevation [m] column
         element_properties.drop("Elevation [m]", inplace=True, axis=1)
         # reset index
@@ -1391,12 +1363,13 @@ class Model(AbstractModel):
 
             elem_z_top = self.element_properties["z_top [m]"].values
             elem_z_bottom = self.element_properties["z_bottom [m]"].values
+            elem_unit_weight = self.element_properties["Unit weight [kN/m3]"].values
             V = (elem_z_top - elem_z_bottom) * parameter2elements(
                 self.pile.sections, lambda x: x.area, elem_z_top, elem_z_bottom
             )
             W = np.zeros(shape=V.shape)
-            W[submerged_element] = V[submerged_element] * (self.pile.material.unitweight - 10)
-            W[~submerged_element] = V[~submerged_element] * (self.pile.material.unitweight)
+            W[submerged_element] = V[submerged_element] * (elem_unit_weight[submerged_element] - 10)
+            W[~submerged_element] = V[~submerged_element] * (elem_unit_weight[~submerged_element])
             return W.sum()
 
         else:

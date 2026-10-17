@@ -208,18 +208,27 @@ def elem_mechanical_stiffness_matrix(model):
 
     # calculate length vector
     L = mesh_to_element_length(model)
-    # elastic properties
-    nu = model.pile.material.poisson
-    E = model.pile.material.young_modulus * np.ones(L.shape).reshape((-1, 1, 1))
-    G = E / (2 + 2 * nu)
+
 
     # initialize element properties
     elem_prop = model.element_properties
 
-    # cross-section properties
+    # elastic properties / cross-section properties
+    E = parameter2elements(
+        model.pile.sections,
+        lambda x: x.material.young_modulus,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
     I = parameter2elements(
         model.pile.sections,
         lambda x: x.second_moment_of_area,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
+    nu = parameter2elements(
+        model.pile.sections,
+        lambda x: x.material.poisson,
         elem_prop["z_top [m]"].values,
         elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
@@ -229,6 +238,7 @@ def elem_mechanical_stiffness_matrix(model):
         elem_prop["z_top [m]"].values,
         elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
+    G = E / (2 + 2 * nu)
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
@@ -479,14 +489,22 @@ def elem_mt_stiffness_matrix(model, u, kind):
     # initialize element properties
     elem_prop = model.element_properties
 
-    # elastic properties
-    nu = model.pile.material.poisson
-    E = model.pile.material.young_modulus * np.ones(L.shape).reshape((-1, 1, 1))
-    G = E / (2 + 2 * nu)
-    # cross-section properties
+    # elastic properties / cross-section properties
+    E = parameter2elements(
+        model.pile.sections,
+        lambda x: x.material.young_modulus,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
     I = parameter2elements(
         model.pile.sections,
         lambda x: x.second_moment_of_area,
+        elem_prop["z_top [m]"].values,
+        elem_prop["z_bottom [m]"].values,
+    ).reshape((-1, 1, 1))
+    nu = parameter2elements(
+        model.pile.sections,
+        lambda x: x.material.poisson,
         elem_prop["z_top [m]"].values,
         elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
@@ -496,6 +514,7 @@ def elem_mt_stiffness_matrix(model, u, kind):
         elem_prop["z_top [m]"].values,
         elem_prop["z_bottom [m]"].values,
     ).reshape((-1, 1, 1))
+    G = E / (2 + 2 * nu)
 
     # calculate shear component in stiffness matrix (if Timorshenko)
     if model.element_type == "EulerBernoulli":
@@ -815,7 +834,7 @@ def pile_internal_forces(model, u):
     node_per_element = 2
 
     # create mech consistent stiffness matrix
-    k = elem_mechanical_stiffness_matrix(model)
+    k = elem_mechanical_stiffness_matrix(model) + elem_mt_stiffness_matrix(model, u, kind="secant")
 
     # create array u of shape [n_elem x 6 x 1]
     u = global_dof_vector_to_consistent_stacked_array(u, ndof_per_node * node_per_element)

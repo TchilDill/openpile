@@ -14,10 +14,9 @@ def offshore_wind_pile1():
     # create a steel and circular pile
     return construct.Pile(
         name="",
-        material="Steel",
         sections=[
-            construct.CircularPileSection(top=0, bottom=-10, diameter=7.5, thickness=0.07),
-            construct.CircularPileSection(top=-10, bottom=-40, diameter=7.5, thickness=0.08),
+            construct.CircularPileSection(top=0, bottom=-10, material="Steel", diameter=7.5, thickness=0.07),
+            construct.CircularPileSection(top=-10, bottom=-40, material="Steel", diameter=7.5, thickness=0.08),
         ],
     )
 
@@ -27,10 +26,9 @@ def circular_slender_pile():
     # create a steel and circular pile
     return construct.Pile(
         name="",
-        material="Steel",
         sections=[
-            construct.CircularPileSection(top=0, bottom=-10, diameter=0.7, thickness=0.02),
-            construct.CircularPileSection(top=-10, bottom=-40, diameter=0.7, thickness=0.02),
+            construct.CircularPileSection(top=0, bottom=-10, material="Steel", diameter=0.7, thickness=0.02),
+            construct.CircularPileSection(top=-10, bottom=-40, material="Steel", diameter=0.7, thickness=0.02),
         ],
     )
 
@@ -40,17 +38,16 @@ def circular_slender_pile():
     # create a steel and circular pile
     return construct.Pile(
         name="",
-        material="Steel",
         sections=[
-            construct.CircularPileSection(top=0, bottom=-10, diameter=0.7, thickness=0.02),
-            construct.CircularPileSection(top=-10, bottom=-40, diameter=0.7, thickness=0.02),
+            construct.CircularPileSection(top=0, bottom=-10, material="Steel", diameter=0.7, thickness=0.02),
+            construct.CircularPileSection(top=-10, bottom=-40, material="Steel", diameter=0.7, thickness=0.02),
         ],
     )
 
 
 class TestPileSection:
     def test_pile_section(self):
-        section = construct.CircularPileSection(top=10, bottom=5, diameter=9.4, thickness=0.31)
+        section = construct.CircularPileSection(top=10, bottom=5, material="Steel", diameter=9.4, thickness=0.31)
         assert section.width == 9.4
         assert section.top == 10
         assert section.bottom == 5
@@ -58,10 +55,10 @@ class TestPileSection:
 
     def test_elevations(self):
         with pytest.raises(ValueError):
-            construct.CircularPileSection(top=-10, bottom=5, diameter=9.4, thickness=0.31)
+            construct.CircularPileSection(top=-10, bottom=5, material="Steel", diameter=9.4, thickness=0.31)
 
     def test_default_thickness(self):
-        section = construct.CircularPileSection(top=10, bottom=5, diameter=9)
+        section = construct.CircularPileSection(top=10, bottom=5, material="Steel", diameter=9)
         assert section.thickness == 4.5
 
 
@@ -72,29 +69,27 @@ class TestPile:
         """
 
         # check Young modulus is indeed Steel
-        assert offshore_wind_pile1.E == 210e6
+        assert offshore_wind_pile1.sections[0].material.young_modulus == 210e6
         # check even numbers of row for dataframe
         assert offshore_wind_pile1.data.values.shape[0] % 2 == 0
 
     def test_custom_material(self):
         pile = construct.Pile(
             name="",
-            material="Steel",
             sections=[
-                construct.CircularPileSection(top=0.1, bottom=-9.9, diameter=8.0, thickness=0.07),
+                construct.CircularPileSection(top=0.1, bottom=-9.9, material="Steel", diameter=8.0, thickness=0.07),
             ],
         )
 
-        assert pile.material.name == "Steel"
-        assert isinstance(pile.material, PileMaterial)
+        assert pile.sections[0].material.name == "Steel"
+        assert isinstance(pile.sections[0].material, PileMaterial)
 
     def test_pile_width(self):
         pile = construct.Pile(
             name="",
-            material="Steel",
             sections=[
-                construct.CircularPileSection(top=0.1, bottom=-9.9, diameter=8.0, thickness=0.07),
-                construct.CircularPileSection(top=-9.9, bottom=-39.9, diameter=8.0, thickness=0.08),
+                construct.CircularPileSection(top=0.1, bottom=-9.9, material="Steel", diameter=8.0, thickness=0.07),
+                construct.CircularPileSection(top=-9.9, bottom=-39.9, material="Steel", diameter=8.0, thickness=0.08),
             ],
         )
 
@@ -104,10 +99,9 @@ class TestPile:
     def test_pile_length(self):
         pile = construct.Pile(
             name="",
-            material="Steel",
             sections=[
-                construct.CircularPileSection(top=10, bottom=-12, diameter=7.5, thickness=0.07),
-                construct.CircularPileSection(top=-12, bottom=-28, diameter=8.5, thickness=0.08),
+                construct.CircularPileSection(top=10, bottom=-12, material="Steel", diameter=7.5, thickness=0.07),
+                construct.CircularPileSection(top=-12, bottom=-28, material="Steel", diameter=8.5, thickness=0.08),
             ],
         )
 
@@ -116,10 +110,9 @@ class TestPile:
     def test_pile_bottom(self):
         pile = construct.Pile(
             name="",
-            material="Steel",
             sections=[
-                construct.CircularPileSection(top=10, bottom=-12, diameter=7.5, thickness=0.07),
-                construct.CircularPileSection(top=-12, bottom=-28, diameter=8.5, thickness=0.08),
+                construct.CircularPileSection(top=10, bottom=-12, material="Steel", diameter=7.5, thickness=0.07),
+                construct.CircularPileSection(top=-12, bottom=-28, material="Steel", diameter=8.5, thickness=0.08),
             ],
         )
 
@@ -130,10 +123,9 @@ class TestPile:
         # Create a pile instance with two sections of respectively 10m and 30m length.
         pile = construct.Pile(
             name="",
-            material="Steel",
             sections=[
-                construct.CircularPileSection(top=10, bottom=0, diameter=1.0, thickness=0.5),
-                construct.CircularPileSection(top=0, bottom=-30, diameter=1.0, thickness=0.5),
+                construct.CircularPileSection(top=10, bottom=0, material="Steel", diameter=1.0, thickness=0.5),
+                construct.CircularPileSection(top=0, bottom=-30, material="Steel", diameter=1.0, thickness=0.5),
             ],
         )
 

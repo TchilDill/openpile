@@ -24,17 +24,18 @@ A pile can be created in the simple following way in openpile.
     
     >>> # Create a Pile
     >>> pile = Pile(name = "",
-    ...         material='Steel',
     ...         sections=[
     ...             CircularPileSection(
     ...                 top=0, 
     ...                 bottom=-10, 
+    ...                 material='Steel',
     ...                 diameter=7.5, 
     ...                 thickness=0.07
     ...             ),
     ...             CircularPileSection(
     ...                 top=-10, 
     ...                 bottom=-40, 
+    ...                 material='Steel',
     ...                 diameter=7.5, 
     ...                 thickness=0.08
     ...             ),

@@ -20,8 +20,7 @@ Few features at a glance:
 More details on how to use the library can be found in :ref:`usage`
 
 .. important::
-  This library supports the following versions of python: 3.8-3.10. 
-  Python 3.11+ is not supported as one dependency of OpenPile (namely Numba) does not currently support Python 3.11+. 
+  This library supports the following versions of python: 3.10+. 
 
 .. raw:: html
 

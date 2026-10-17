@@ -15,6 +15,7 @@ This version aims to:
 - create new objects, namely Springs, MeshNode, MeshElement.
 - integrates those objects to the existing code
 - finally, ensure serializations with Pydantic is by default possible for all OpenPile objects.
+- numba has been taken out as a dependency, some rewrite of the code was done to ensure computational time is not affected.
 
 
 ## [1.0.3] - 2026-05-25

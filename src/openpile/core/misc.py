@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import math as m
 
-from numba import njit
 import matplotlib.colors as mcolors
 
 
@@ -224,7 +223,6 @@ def get_lumped_soil_springs(springs: np.ndarray, elevations: np.ndarray, kind: s
     return df
 
 
-# @njit(cache=True)
 def conic(
     x_u: float,
     n: float,

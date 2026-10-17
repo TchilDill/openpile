@@ -7,13 +7,11 @@
 # Import libraries
 import math as m
 import numpy as np
-from numba import njit, prange
 from random import random
 
 from openpile.core.misc import conic
 
 # SPRING FUNCTIONS --------------------------------------------
-@njit(cache=True)
 def bothkennar_clay(
     X: float,
     Su: float,
@@ -73,7 +71,6 @@ def bothkennar_clay(
     return y * (Su * D / G0), p * (Su * D)
 
 
-@njit(cache=True)
 def cowden_clay(
     X: float,
     Su: float,
@@ -133,7 +130,6 @@ def cowden_clay(
     return y * (Su * D / G0), p * (Su * D)
 
 
-@njit(cache=True)
 def dunkirk_sand(
     sig: float,
     X: float,
@@ -210,7 +206,6 @@ def dunkirk_sand(
 
 
 # API sand function
-@njit(parallel=True, cache=True)
 def api_sand(
     sig: float,
     X: float,
@@ -410,7 +405,6 @@ def api_sand(
 
 
 # API clay function
-@njit(parallel=True, cache=True)
 def api_clay(
     sig: float,
     X: float,
@@ -576,7 +570,6 @@ def api_clay(
 
 
 # API clay function
-@njit(parallel=True, cache=True)
 def matlock_1970(
     sig: float,
     X: float,
@@ -786,7 +779,6 @@ def matlock_1970(
 
 
 # API clay function
-@njit(parallel=True, cache=True)
 def modified_Matlock(
     sig: float,
     X: float,
@@ -913,7 +905,6 @@ def modified_Matlock(
     return y, p
 
 
-@njit(parallel=True, cache=True)
 def reese_weakrock(
     Ei: float,
     qu: float,
@@ -1086,7 +1077,6 @@ def custom_pisa_sand(
     return y * (sig * D / G0), p * (sig * D)
 
 
-@njit(cache=True)
 def custom_pisa_clay(
     Su: float,
     G0: float,

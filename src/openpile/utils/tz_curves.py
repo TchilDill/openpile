@@ -10,7 +10,6 @@ from openpile.utils.misc import _fmax_api_clay, _fmax_api_sand
 
 import math as m
 import numpy as np
-from numba import njit, prange
 from random import random
 
 # Kraft et al (1989) formulation aid to ease up implementation
@@ -225,7 +224,6 @@ def api_clay(
     return z * D, t * f
 
 
-@njit(cache=True)
 def api_clay_kraft(
     sig: float,
     Su: float,
@@ -469,7 +467,6 @@ def api_sand(
     return z, t * f
 
 
-@njit(cache=True)
 def api_sand_kraft(
     sig: float,
     delta: float,

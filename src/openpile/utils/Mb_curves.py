@@ -7,13 +7,11 @@
 # Import libraries
 import math as m
 import numpy as np
-from numba import njit, prange
 from random import random
 
 from openpile.core.misc import conic
 
 # SPRING FUNCTIONS --------------------------------------------
-@njit(cache=True)
 def bothkennar_clay(
     X: float,
     Su: float,
@@ -73,7 +71,6 @@ def bothkennar_clay(
     return t * (Su / G0), m * (Su * D**3)
 
 
-@njit(cache=True)
 def cowden_clay(
     X: float,
     Su: float,
@@ -133,7 +130,6 @@ def cowden_clay(
     return t * (Su / G0), m * (Su * D**3)
 
 
-@njit(cache=True)
 def dunkirk_sand(
     sig: float,
     X: float,
@@ -196,7 +192,6 @@ def dunkirk_sand(
     return t * (sig / G0), m * (sig * D**3)
 
 
-@njit(cache=True)
 def custom_pisa_sand(
     sig: float,
     G0: float,
@@ -246,7 +241,6 @@ def custom_pisa_sand(
     return x * (sig / G0), y * (sig * D**3)
 
 
-@njit(cache=True)
 def custom_pisa_clay(
     Su: float,
     G0: float,

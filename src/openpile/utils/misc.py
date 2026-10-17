@@ -1,10 +1,8 @@
 # Import libraries
 import math as m
 import numpy as np
-from numba import njit
 
 # maximum resistance values
-@njit(cache=True)
 def _Qmax_api_clay(
     Su: float,
 ) -> float:
@@ -12,7 +10,6 @@ def _Qmax_api_clay(
     return 9 * Su
 
 
-@njit(cache=True)
 def _Qmax_api_sand(
     sig: float,
     delta: float,
@@ -29,7 +26,6 @@ def _Qmax_api_sand(
     return min(Qmax, sig * Nq)
 
 
-@njit(cache=True)
 def _fmax_api_clay(
     sig: float,
     Su: float,
@@ -73,7 +69,6 @@ def _fmax_api_clay(
 # SPRING FUNCTIONS --------------------------------------------
 
 # API sand function
-@njit(cache=True)
 def _fmax_api_sand(
     sig: float,
     delta: float,

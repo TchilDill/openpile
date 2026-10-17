@@ -11,8 +11,6 @@
 from copy import deepcopy
 import numpy as np
 import pandas as pd
-from numba import njit, prange, f4, f8, b1, char
-import numba as nb
 from typing_extensions import Literal
 
 from openpile.construct import CircularPileSection
@@ -21,22 +19,18 @@ from openpile.core import misc
 from openpile.core._model_build import parameter2elements
 
 
-@njit(f8[:](f8[:, :], f8[:]), cache=True)
 def jit_solve(A, b):
     return np.linalg.solve(A, b)
 
 
-@njit(parallel=True, cache=True)
 def jit_eigh(A):
     return np.linalg.eigh(A)
 
 
-@njit(parallel=True, cache=True)
 def reverse_indices(A, B):
     return np.array([x for x in A if x not in B])
 
 
-@njit(f8[:](f8[:]), cache=True)
 def double_inner_njit(in_arr):
     # d = misc.repeat_inner(u)
     out_arr = np.zeros(((len(in_arr) - 1) * 2), dtype=np.float64)
@@ -65,7 +59,6 @@ def double_inner_njit(in_arr):
     return out_arr
 
 
-@njit(parallel=True, cache=True)
 def numba_ix(arr, rows, cols):
     """
     Numba compatible implementation of arr[np.ix_(rows, cols)] for 2D arrays.
@@ -714,12 +707,11 @@ def elem_p_delta_stiffness_matrix(model, u):
     return k
 
 
-@njit(parallel=True, cache=True)
 def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
     # pre-allocate stiffness matrix
     K = np.zeros((ndim, ndim), dtype=np.float64)
 
-    for i in prange(n_elem):
+    for i in range(n_elem):
         # dummy stiffness matrix that updates at each iteration
         K_temp = np.zeros((ndim, ndim), dtype=np.float64)
         # select relevant rows/columns of dummy stiffness matrix
@@ -844,7 +836,6 @@ def pile_internal_forces(model, u):
     return F_int
 
 
-@njit(cache=True)
 def calculate_base_spring_stiffness(
     u: np.ndarray, spring: np.ndarray, kind: Literal["initial", "secant", "tangent"]
 ):
@@ -898,7 +889,6 @@ def calculate_base_spring_stiffness(
     return k
 
 
-@njit(cache=True)
 def calculate_base_axial_spring_stiffness(
     u: np.ndarray, spring: np.ndarray, kind: Literal["initial", "secant", "tangent"]
 ):
@@ -951,7 +941,6 @@ def calculate_base_axial_spring_stiffness(
     return k
 
 
-@njit(cache=True)
 def calculate_py_springs_stiffness(
     u: np.ndarray, springs: np.ndarray, kind: Literal["initial", "secant", "tangent"]
 ):
@@ -1014,7 +1003,6 @@ def calculate_py_springs_stiffness(
     return k
 
 
-# @njit(cache=True)
 def calculate_tz_springs_stiffness(
     u: np.ndarray, springs: np.ndarray, kind: Literal["initial", "secant", "tangent"]
 ):
@@ -1079,7 +1067,6 @@ def calculate_tz_springs_stiffness(
     return k
 
 
-@njit(cache=True)
 def calculate_mt_springs_stiffness(
     u: np.ndarray,
     mt_springs: np.ndarray,

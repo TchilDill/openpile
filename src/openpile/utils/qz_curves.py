@@ -7,7 +7,6 @@
 # Import libraries
 import math as m
 import numpy as np
-from numba import njit, prange
 from random import random
 
 from openpile.utils.misc import _Qmax_api_clay, _Qmax_api_sand

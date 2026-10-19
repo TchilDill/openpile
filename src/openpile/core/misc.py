@@ -254,8 +254,11 @@ def conic(
             else:
                 b = 2 * n * x[i] / x_u - (1 - n) * (1 + x[i] * k / y_u)
                 c = x[i] * (k / y_u) * (1 - n) - n * (x[i] ** 2 / x_u**2)
+                # discriminant is non-negative in theory, but catastrophic cancellation
+                # rounds it to a tiny negative number when k ~ y_u/x_u (q ~ 1)
+                disc = max(b**2 - 4 * a * c, 0.0)
 
-                y[i] = y_u * 2 * c / (-b + (b**2 - 4 * a * c) ** 0.5)
+                y[i] = y_u * 2 * c / (-b + disc**0.5)
         else:
             y[i] = y_u
 

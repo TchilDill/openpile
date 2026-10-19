@@ -476,7 +476,7 @@ def beam(model):
     d = np.zeros(U.shape)
 
     # initialise global stiffness matrix
-    K = kernel.build_stiffness_matrix(model, d)
+    K = kernel.build_stiffness_matrix(model, model.element_number, u=d)
     # first run with no stress stiffness matrix
     d, Q = kernel.solve_equations(K, F, U, restraints=supports)
 
@@ -528,7 +528,7 @@ def winkler(model, max_iter: int = 100):
         # initialise displacement vectors
         d = np.zeros(U.shape)
         # initialise global stiffness matrix
-        K = kernel.build_stiffness_matrix(model, u=d, kind="initial")
+        K = kernel.build_stiffness_matrix(model, model.element_number, u=d, kind="initial")
         # initialise global supports vector
         supports = (kernel.mesh_to_global_restrained_dof_vector(model.global_restrained)) | (
             U != 0.0
@@ -549,7 +549,7 @@ def winkler(model, max_iter: int = 100):
                 u_inc, Q = kernel.solve_equations(K, Rg, U, restraints=supports)
                 # bump iteration number
                 iter_no += 1
-            except np.linalg.LinAlgError:
+            except (np.linalg.LinAlgError, RuntimeError):
                 print(
                     """Cannot converge. Failure of the pile-soil system.\n
                       Boundary conditions may not be realistic or values may be too large."""
@@ -569,7 +569,7 @@ def winkler(model, max_iter: int = 100):
             d += u_inc
 
             # calculate internal forces
-            K_secant = kernel.build_stiffness_matrix(model, u=d, kind="secant")
+            K_secant = kernel.build_stiffness_matrix(model, model.element_number, u=d, kind="secant")
             F_int = -K_secant.dot(d)
 
             # calculate residual forces
@@ -581,7 +581,7 @@ def winkler(model, max_iter: int = 100):
                 print(f"Converged at iteration no. {iter_no}")
 
                 # final stiffness matrix
-                K_final = kernel.build_stiffness_matrix(model, u=d, kind="secant")
+                K_final = kernel.build_stiffness_matrix(model, model.element_number, u=d, kind="secant")
 
                 # calculate final reaction forces
                 _, Q = kernel.solve_equations(
@@ -601,7 +601,7 @@ def winkler(model, max_iter: int = 100):
                 d = np.full(U.shape, np.nan)
 
             # re-calculate global stiffness matrix for next iterations
-            K = kernel.build_stiffness_matrix(model, u=d, kind="tangent")
+            K = kernel.build_stiffness_matrix(model, model.element_number, u=d, kind="tangent")
 
             # reset prescribed displacements to converge properly in case
             # of displacement-driven analysis

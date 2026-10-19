@@ -9,8 +9,12 @@
 # general utilities for openfile
 
 from copy import deepcopy
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 from typing_extensions import Literal
 
 from openpile.construct import CircularPileSection
@@ -20,6 +24,8 @@ from openpile.core._model_build import parameter2elements
 
 
 def jit_solve(A, b):
+    if sparse.issparse(A):
+        return spsolve(A, b)
     return np.linalg.solve(A, b)
 
 
@@ -40,24 +46,6 @@ def double_inner_njit(in_arr):
         out_arr[1:-1] = np.repeat(in_arr[1:-1], 2)
 
     return out_arr
-
-
-def numba_ix(arr, rows, cols):
-    """
-    Numba compatible implementation of arr[np.ix_(rows, cols)] for 2D arrays.
-    :param arr: 2D array to be indexed
-    :param rows: Row indices
-    :param cols: Column indices
-    :return: 2D array with the given rows and columns of the input array
-    """
-    one_d_index = np.zeros(len(rows) * len(cols), dtype=np.int32)
-    for i, r in enumerate(rows):
-        start = i * len(cols)
-        one_d_index[start : start + len(cols)] = cols + arr.shape[1] * r
-
-    arr_1d = arr.reshape((arr.shape[0] * arr.shape[1], 1))
-    slice_1d = np.take(arr_1d, one_d_index)
-    return slice_1d.reshape((len(rows), len(cols)))
 
 
 def global_dof_vector_to_consistent_stacked_array(dof_vector, dim):
@@ -120,10 +108,11 @@ def solve_equations(K, F, U, restraints):
 
         prescribed_disp = U
 
-        Fred = F[prescribed_dof_false] - numba_ix(K, prescribed_dof_false, prescribed_dof_true).dot(
-            prescribed_disp[prescribed_dof_true]
-        )
-        Kred = numba_ix(K, prescribed_dof_false, prescribed_dof_false)
+        # row/column slicing works for both dense arrays and sparse CSR matrices
+        Kft = K[prescribed_dof_false][:, prescribed_dof_true]
+        Kred = K[prescribed_dof_false][:, prescribed_dof_false]
+
+        Fred = F[prescribed_dof_false] - Kft.dot(prescribed_disp[prescribed_dof_true])
 
         U[prescribed_dof_false] = jit_solve(Kred, Fred)
     else:
@@ -690,25 +679,56 @@ def elem_p_delta_stiffness_matrix(model, u):
     return k
 
 
-def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node):
-    # pre-allocate stiffness matrix
-    K = np.zeros((ndim, ndim), dtype=np.float64)
+@dataclass(frozen=True)
+class StiffnessPattern:
+    """Constant CSR structure of the global stiffness matrix.
 
-    for i in range(n_elem):
-        # dummy stiffness matrix that updates at each iteration
-        K_temp = np.zeros((ndim, ndim), dtype=np.float64)
-        # select relevant rows/columns of dummy stiffness matrix
-        start = ndof_per_node * i
-        end = ndof_per_node * i + ndof_per_node * node_per_element
-        K_temp[start:end, start:end] = k[i]
+    It depends only on the mesh connectivity, not on stiffness values, so it can
+    be computed once and reused at every iteration of the solver.
+    """
 
-        # update global stiffness matrix
-        K += K_temp
-
-    return K
+    order: np.ndarray    # permutation of the element-matrix triplets matching (row, col) sort order
+    group: np.ndarray    # CSR data slot each element-matrix entry contributes to
+    indices: np.ndarray  # CSR column indices
+    indptr: np.ndarray   # CSR row pointer
 
 
-def build_stiffness_matrix(model, u=None, kind=None):
+def stiffness_pattern(ndim, n_elem, node_per_element, ndof_per_node) -> StiffnessPattern:
+    n_loc = ndof_per_node * node_per_element
+    # global dof index of each local dof, shape (n_elem, n_loc)
+    dofs = np.arange(n_elem)[:, None] * ndof_per_node + np.arange(n_loc)[None, :]
+    rows = np.repeat(dofs, n_loc, axis=1).ravel()
+    cols = np.tile(dofs, (1, n_loc)).ravel()
+
+    # sort triplets into CSR layout and fold duplicate entries (shared nodes) into unique slots
+    order = np.lexsort((cols, rows))
+    rows_s, cols_s = rows[order], cols[order]
+    new_slot = np.empty(rows_s.shape, dtype=bool)
+    new_slot[0] = True
+    new_slot[1:] = (rows_s[1:] != rows_s[:-1]) | (cols_s[1:] != cols_s[:-1])
+
+    return StiffnessPattern(
+        order=order,
+        group=np.cumsum(new_slot) - 1,
+        indices=cols_s[new_slot],
+        indptr=np.concatenate(([0], np.cumsum(np.bincount(rows_s[new_slot], minlength=ndim)))),
+    )
+
+
+def jit_build(k, ndim, n_elem, node_per_element, ndof_per_node, pattern: StiffnessPattern = None):
+    # assemble all element matrices into a CSR matrix in one vectorized scatter-add
+    if pattern is None:
+        pattern = stiffness_pattern(ndim, n_elem, node_per_element, ndof_per_node)
+
+    data = np.bincount(
+        pattern.group,
+        weights=k.reshape(n_elem, -1).ravel()[pattern.order],
+        minlength=pattern.indices.size,
+    )
+    return sparse.csr_matrix((data, pattern.indices, pattern.indptr), shape=(ndim, ndim))
+
+
+def build_stiffness_matrix(model, n_elem, u=None, kind=None):
     """Builds the stiffness matrix based on the model(element and node) properties
 
     Element stiffness matrices are first computed for each element and then loaded in the global stiffness matrix through summation.
@@ -718,8 +738,8 @@ def build_stiffness_matrix(model, u=None, kind=None):
     ----------
     model : obj from openpile library
         stores all information about nodes elements, and other model-related items, see #TODO:link to model class
-    f: np.ndarray, Optional
-        Global internal force vector.
+    n_elem: int
+        Number of elements in the mesh
     u: np.ndarray, Optional
         Global displacement vector. Must be given if soil_flag is not None
     p_mobilised: np.ndarray, Optional
@@ -729,7 +749,7 @@ def build_stiffness_matrix(model, u=None, kind=None):
 
     Returns
     -------
-    K : numpy array of dim (ndof, ndof)
+    K : scipy.sparse.csr_matrix of dim (ndof, ndof)
         Global stiffness matrix with all dofs in unit:1/kPa.
     """
 
@@ -737,8 +757,6 @@ def build_stiffness_matrix(model, u=None, kind=None):
     ndof_per_node = 3
     # number of nodes per element
     node_per_element = 2
-    # number of elements in mesh
-    n_elem = model.element_number
     # global dimension of the global stiffness matrix can be inferred
     ndim_global = ndof_per_node * n_elem + ndof_per_node
 
@@ -765,7 +783,14 @@ def build_stiffness_matrix(model, u=None, kind=None):
                     )
                 k += elem_mt_stiffness_matrix(model, u, kind)
 
-    K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node)
+    # the CSR pattern only depends on the mesh connectivity, cache it on the model
+    # so that repeated calls (Newton-Raphson iterations) skip the setup work
+    pattern = getattr(model, "_stiffness_pattern", None)
+    if pattern is None or pattern.indptr.size - 1 != ndim_global:
+        pattern = stiffness_pattern(ndim_global, n_elem, node_per_element, ndof_per_node)
+        model._stiffness_pattern = pattern
+
+    K = jit_build(k, ndim_global, n_elem, node_per_element, ndof_per_node, pattern)
 
     # add base springs contribution
     if model.soil is not None:

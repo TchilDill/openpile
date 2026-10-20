@@ -32,7 +32,7 @@ dependencies = [
 ]
 dynamic = ["version"]
 
-[project.optional-dependencies]
+[dependency-groups]
 docs = [
     "Sphinx==5.3.0",
     "sphinx-rtd-theme==1.3.0",
@@ -44,11 +44,16 @@ docs = [
     "sphinxcontrib-serializinghtml==1.1.5",
     "sphinx-copybutton==0.5.2",
     "autodoc-pydantic==2.0.1",
+]
+test = [
     "pytest",
     "pytest-cov",
     "black==22.12.0",
     "tox==4.4.8",
 ]
+
+[tool.uv]
+default-groups = ["test"]
 
 [project.urls]
 Documentation = "https://openpile.readthedocs.io/en/latest/"

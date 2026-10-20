@@ -1620,6 +1620,7 @@ wheels = [
 [[package]]
 name = "openpile"
 source = { editable = "." }
+default-groups = ["test"]
 dependencies = [
     { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "matplotlib", version = "3.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1634,12 +1635,9 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 docs = [
     { name = "autodoc-pydantic" },
-    { name = "black" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
     { name = "sphinx" },
     { name = "sphinx-copybutton" },
     { name = "sphinx-rtd-theme" },
@@ -1649,33 +1647,43 @@ docs = [
     { name = "sphinxcontrib-jsmath" },
     { name = "sphinxcontrib-qthelp" },
     { name = "sphinxcontrib-serializinghtml" },
+]
+test = [
+    { name = "black" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
     { name = "tox" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "autodoc-pydantic", marker = "extra == 'docs'", specifier = "==2.0.1" },
-    { name = "black", marker = "extra == 'docs'", specifier = "==22.12.0" },
     { name = "matplotlib" },
     { name = "numpy", specifier = ">=1.22" },
     { name = "pandas", specifier = "<=2.3" },
     { name = "pydantic", specifier = ">=2.0" },
-    { name = "pytest", marker = "extra == 'docs'" },
-    { name = "pytest-cov", marker = "extra == 'docs'" },
     { name = "scipy" },
-    { name = "sphinx", marker = "extra == 'docs'", specifier = "==5.3.0" },
-    { name = "sphinx-copybutton", marker = "extra == 'docs'", specifier = "==0.5.2" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'docs'", specifier = "==1.3.0" },
-    { name = "sphinxcontrib-applehelp", marker = "extra == 'docs'", specifier = "==1.0.2" },
-    { name = "sphinxcontrib-devhelp", marker = "extra == 'docs'", specifier = "==1.0.2" },
-    { name = "sphinxcontrib-htmlhelp", marker = "extra == 'docs'", specifier = "==2.0.0" },
-    { name = "sphinxcontrib-jsmath", marker = "extra == 'docs'", specifier = "==1.0.1" },
-    { name = "sphinxcontrib-qthelp", marker = "extra == 'docs'", specifier = "==1.0.3" },
-    { name = "sphinxcontrib-serializinghtml", marker = "extra == 'docs'", specifier = "==1.1.5" },
-    { name = "tox", marker = "extra == 'docs'", specifier = "==4.4.8" },
     { name = "typing-extensions" },
 ]
-provides-extras = ["docs"]
+
+[package.metadata.requires-dev]
+docs = [
+    { name = "autodoc-pydantic", specifier = "==2.0.1" },
+    { name = "sphinx", specifier = "==5.3.0" },
+    { name = "sphinx-copybutton", specifier = "==0.5.2" },
+    { name = "sphinx-rtd-theme", specifier = "==1.3.0" },
+    { name = "sphinxcontrib-applehelp", specifier = "==1.0.2" },
+    { name = "sphinxcontrib-devhelp", specifier = "==1.0.2" },
+    { name = "sphinxcontrib-htmlhelp", specifier = "==2.0.0" },
+    { name = "sphinxcontrib-jsmath", specifier = "==1.0.1" },
+    { name = "sphinxcontrib-qthelp", specifier = "==1.0.3" },
+    { name = "sphinxcontrib-serializinghtml", specifier = "==1.1.5" },
+]
+test = [
+    { name = "black", specifier = "==22.12.0" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "tox", specifier = "==4.4.8" },
+]
 
 [[package]]
 name = "packaging"

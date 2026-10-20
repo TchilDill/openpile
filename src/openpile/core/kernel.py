@@ -60,8 +60,6 @@ def global_dof_vector_to_consistent_stacked_array(dof_vector, dim):
 def solve_equations(K, F, U, restraints):
     r"""function that solves the system of equations
 
-    The function uses numba to speed up the computational time.
-
     The system of equations to solve is the following :eq:`solve_eq_3dof_example` assuming a trivial 3 degree of freedom system:
     
     .. math::

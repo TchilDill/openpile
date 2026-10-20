@@ -331,7 +331,7 @@ Example 7 - Run a simple beam calculation
     result = m.solve()
     
     #closed form solution is max_deflection = PL^3/(48EI)
-    normalized_deflection = result.deflection['Deflection [m]']*(48*p.E*p.sections[0].second_moment_of_area)/10**3
+    normalized_deflection = result.deflection['Deflection [m]']*(48*p.sections[0].material.E*p.sections[0].second_moment_of_area)/10**3
     import matplotlib.pyplot as plt
     _, axs = plt.subplots(nrows=1, ncols=2, figsize=(8,5))
     m.plot(ax=axs[0])

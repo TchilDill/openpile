@@ -748,12 +748,14 @@ class SoilProfile(AbstractSoilProfile):
                         CircularPileSection(
                             top=0,
                             bottom=-10,
+                            material="Steel",
                             diameter=7.5,
                             thickness=0.07
                         ),
                         CircularPileSection(
                             top=-10,
                             bottom=-40,
+                            material="Steel",
                             diameter=7.5,
                             thickness=0.08
                         ),

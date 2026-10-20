@@ -17,6 +17,21 @@ This version aims to:
 - finally, ensure serializations with Pydantic is by default possible for all OpenPile objects.
 - numba has been taken out as a dependency, some rewrite of the code was done to ensure computational time is not affected.
 
+### Added
+- support for numpy 2.x: the dependency pin is relaxed to `numpy >= 1.22` (was `< 2.0`), which was made possible by the removal of numba.
+- `uv` is now the project management tool: a `uv.lock` file is added to the repository and dependency groups `docs` and `test` are declared in `pyproject.toml`.
+- numpy scalars keep the 1.x-style repr (e.g. `37.30641276137878` instead of `np.float64(37.30641276137878)`) everywhere OpenPile is imported; the legacy printing mode is only activated with numpy >= 2.0.
+
+### Modified
+- the minimum supported Python version is now 3.10 (was 3.7), and Python 3.10, 3.11, 3.12 and 3.13 are tested.
+- project metadata now lives exclusively in `pyproject.toml` (PEP 621); `setup.py`, `setup.cfg` and `requirements.txt` are removed, the package version is read dynamically from `openpile.__version__`.
+- the documentation and test dependencies moved from a package extra (`openpile[docs]`) to uv dependency groups, and are therefore not published in the wheel anymore.
+- tox now tests Python 3.10 through 3.13 and provisions its environments with `tox-uv`; the CI test matrix and the publishing workflows are updated accordingly.
+- Read the Docs now builds the documentation on Python 3.10 (was 3.8) and installs the `docs` dependency group with uv.
+
+### Fixed
+- removed stale references to numba in the codebase documentation.
+
 
 ## [1.0.3] - 2026-05-25
 

@@ -261,7 +261,7 @@ class API_clay_axial(AxialModel):
         Annotated[float, Field(gt=0.0)],
         Annotated[List[PositiveFloat], Field(min_length=1, max_length=2)],
     ]
-    # pile behaviour upon axial loading
+    #: pile behaviour upon axial loading
     plugging: Literal["none", "compression", "tension", "both"] = "none"
     #: limiting value of unit shaft friction normalized to undrained shear strength
     alpha_limit: Annotated[float, Field(gt=0.0)] = 1.0

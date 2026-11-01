@@ -218,31 +218,32 @@ class WeapMesh(BaseModel):
             A mesh of bar elements discretizing the pile.
         """
 
-        #check the pile length and get the number of elements needed
-        pile_length = pile.length
-        num_elements = m.ceil(pile_length / max_elem_length)
-        element_length = pile_length / num_elements
-
-        # node elevations, from pile top down to pile bottom
-        z_nodes = pile.top_elevation - element_length * np.arange(num_elements + 1)
+        # node elevations: pile top/bottom and every section boundary are nodes,
+        # and each segment between consecutive boundaries is subdivided into
+        # equally sized elements, so no element crosses a section boundary
+        z_bounds = np.unique(
+            np.concatenate(
+                [[pile.top_elevation, pile.bottom_elevation]]
+                + [[s.top, s.bottom] for s in pile.sections]
+            )
+        )[::-1]  # descending, from pile top to pile bottom
+        z_nodes = [z_bounds[0]]
+        for zt, zb in zip(z_bounds[:-1], z_bounds[1:]):
+            n_seg = m.ceil((zt - zb) / max_elem_length)
+            z_nodes.extend(zt - (zt - zb) / n_seg * np.arange(1, n_seg + 1))
+        z_nodes = np.array(z_nodes)
         z_top, z_bot = z_nodes[:-1], z_nodes[1:]
 
-        # interpolate E and A along the pile for specific elevation for the number of elements needed
-        # we want to consider both values at the top and bottom of elements for that
-        E_top = _section_lookup(pile, z_top, lambda s: s.material.young_modulus)
-        E_bot = _section_lookup(pile, z_bot, lambda s: s.material.young_modulus)
-        A_top = _section_lookup(pile, z_top, lambda s: s.area)
-        A_bot = _section_lookup(pile, z_bot, lambda s: s.area)
-        density_top = _section_lookup(pile, z_top, lambda s: s.material.unitmass)
-        density_bot = _section_lookup(pile, z_bot, lambda s: s.material.unitmass)
+        # look up E, A and density at the element midpoints: since section
+        # boundaries are nodes, each element lies fully inside one section
+        # and gets that section's exact properties (no smearing at boundaries)
+        z_mid = 0.5 * (z_top + z_bot)
+        E = _section_lookup(pile, z_mid, lambda s: s.material.young_modulus)
+        A = _section_lookup(pile, z_mid, lambda s: s.area)
+        rho = _section_lookup(pile, z_mid, lambda s: s.material.unitmass)
 
         elements = [
-            BarElement(
-                z=[zt, zb],
-                E=0.5 * (et + eb),
-                A=0.5 * (at + ab),
-                rho=0.5 * (rt + rb)
-            )
-            for zt, zb, et, eb, at, ab, rt, rb in zip(z_top, z_bot, E_top, E_bot, A_top, A_bot, density_top, density_bot)
+            BarElement(z=[zt, zb], E=e, A=ar, rho=r)
+            for zt, zb, e, ar, r in zip(z_top, z_bot, E, A, rho)
         ]
         return cls(elements=elements)

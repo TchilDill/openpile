@@ -85,6 +85,11 @@ class PileMaterial(AbstractPileMaterial):
         return self.uw
 
     @property
+    def unitmass(self):
+        """The unit mass of the material in kN/m³."""
+        return self.uw*1e3 / 9.81
+    
+    @property
     def young_modulus(self):
         """The Young's modulus of the material in kN/m²."""
         return self.E

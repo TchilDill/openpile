@@ -22,7 +22,7 @@ from openpile.core._model_build import (
 from openpile.construct import Pile
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Optional, Union
+from typing import Callable, List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
 from pydantic import (
     BaseModel,
@@ -150,6 +150,30 @@ class BeamElement(Element):
     I: float = Field(..., description="Moment of inertia of the beam element.")
 
 
+def _section_lookup(pile: Pile, elevations: np.ndarray, key: Callable) -> np.ndarray:
+    """Look up a piecewise-constant pile-section property at given elevations.
+
+    Parameters
+    ----------
+    pile : Pile
+        The pile whose sections define the property steps.
+    elevations : np.ndarray
+        Elevations at which to evaluate the property.
+    key : callable
+        Function mapping a pile section to the property value, e.g. ``lambda s: s.area``.
+
+    Returns
+    -------
+    np.ndarray
+        Property values at the given elevations, same shape as ``elevations``.
+    """
+    sections = sorted(pile.sections, key=lambda s: s.bottom)
+    bottoms = np.array([s.bottom for s in sections])
+    values = np.array([key(s) for s in sections])
+    idx = np.clip(np.searchsorted(bottoms, elevations, side="right") - 1, 0, len(sections) - 1)
+    return values[idx]
+
+
 class WeapMesh(BaseModel):
     """Class representing a mesh of elements in the model.
 
@@ -191,7 +215,7 @@ class WeapMesh(BaseModel):
         Returns
         -------
         WeapMesh
-            A mesh with one bar element per pile section.
+            A mesh of bar elements discretizing the pile.
         """
 
         #check the pile length and get the number of elements needed
@@ -199,16 +223,26 @@ class WeapMesh(BaseModel):
         num_elements = m.ceil(pile_length / max_elem_length)
         element_length = pile_length / num_elements
 
+        # node elevations, from pile top down to pile bottom
+        z_nodes = pile.top_elevation - element_length * np.arange(num_elements + 1)
+        z_top, z_bot = z_nodes[:-1], z_nodes[1:]
+
         # interpolate E and A along the pile for specific elevation for the number of elements needed
         # we want to consider both values at the top and bottom of elements for that
-        
+        E_top = _section_lookup(pile, z_top, lambda s: s.material.young_modulus)
+        E_bot = _section_lookup(pile, z_bot, lambda s: s.material.young_modulus)
+        A_top = _section_lookup(pile, z_top, lambda s: s.area)
+        A_bot = _section_lookup(pile, z_bot, lambda s: s.area)
+        density_top = _section_lookup(pile, z_top, lambda s: s.material.unitmass)
+        density_bot = _section_lookup(pile, z_bot, lambda s: s.material.unitmass)
 
         elements = [
             BarElement(
-                z=[section.top, section.bottom],
-                E=section.material.young_modulus,
-                A=section.cross_sectional_area,
+                z=[zt, zb],
+                E=0.5 * (et + eb),
+                A=0.5 * (at + ab),
+                rho=0.5 * (rt + rb)
             )
-            for section in pile.sections
+            for zt, zb, et, eb, at, ab, rt, rb in zip(z_top, z_bot, E_top, E_bot, A_top, A_bot, density_top, density_bot)
         ]
         return cls(elements=elements)

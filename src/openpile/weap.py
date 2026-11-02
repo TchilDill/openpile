@@ -1,45 +1,21 @@
 import math as m
+from operator import le
 import pandas as pd
 import numpy as np
-import warnings
 import matplotlib.pyplot as plt
 
-import openpile.utils.graphics as graphics
 
-from openpile.materials import PileMaterial
-import openpile.materials as materials
-from openpile.core import misc, _model_build
 from openpile.soilmodels import LateralModel, AxialModel
-from openpile.core.misc import generate_color_string
-from openpile.core._model_build import (
-    check_springs,
-    get_soil_properties,
-    apply_bc,
-    validate_bc,
-    parameter2elements,
-)
-
 from openpile.construct import Pile
 
-from abc import ABC, abstractmethod
 from typing import Callable, List, Dict, Optional, Union
 from typing_extensions import Literal, Annotated, Optional
 from pydantic import (
     BaseModel,
-    ConfigDict,
-    InstanceOf,
     Field,
-    model_validator,
-    computed_field,
-    AfterValidator
 )
-from functools import cached_property
 
-from pydantic import (
-    BaseModel,
-    Field,
-    model_validator,
-)
+from scipy.sparse import coo_matrix
 
 #to be later pushed into factory.py
 class Element(BaseModel):
@@ -181,6 +157,17 @@ class WeapMesh(BaseModel):
     """
     elements: List[Element] = Field(..., description="List of elements in the mesh.")
 
+    @property
+    def num_elements(self) -> int:
+        """Get the number of elements in the mesh.
+
+        Returns
+        -------
+        int
+            The number of elements in the mesh.
+        """
+        return len(self.elements)
+
     def add_element(self, element: Element) -> None:
         """Add an element to the mesh.
 
@@ -200,6 +187,21 @@ class WeapMesh(BaseModel):
             The total length of all elements in the mesh.
         """
         return sum(element.length for element in self.elements)
+
+    def get_critical_time_step(self, safety_factor: float = 1.6) -> float:
+        """Calculate the critical time step for the mesh based on the smallest element length and material properties.
+
+        Parameters
+        ----------
+        safety_factor : float, optional
+            A safety factor to apply to the critical time step calculation (default is 1.6 like in GRLWEAP).  
+        
+        Returns
+        -------
+        float
+            The critical time step for the mesh.
+        """
+        return 1/safety_factor * min(element.length/np.sqrt(element.E*1e3 / element.rho) for element in self.elements)
 
     @classmethod
     def from_pile(cls, pile: Pile, max_elem_length: float) -> "WeapMesh":
@@ -247,3 +249,100 @@ class WeapMesh(BaseModel):
             for zt, zb, e, ar, r in zip(z_top, z_bot, E, A, rho)
         ]
         return cls(elements=elements)
+
+
+def run_explicit_weap_analysis_with_top_excitation(
+    mesh: WeapMesh,
+    acc: np.ndarray,
+    t_end: float,
+):
+    """Run an explicit WEAP analysis with a given excitation (acceleration time series).
+
+    Parameters
+    ----------
+    mesh : WeapMesh
+        The mesh to be used for the analysis.
+    acc : np.ndarray
+        An array containing the acceleration time in first column and acceleration in 2nd column for the analysis.
+    t_end : float
+        The end time of the analysis.
+
+    """
+    
+
+    dt = mesh.get_critical_time_step()
+    # number of time steps, 
+    # +1 for t=0s and t=t_end, 
+    ntimesteps = int(t_end / dt) + 1
+    # create the time vector
+    time = np.linspace(0, t_end, ntimesteps)
+
+    # transform acceleration time series so that it has the same timestep and t_end
+    acc_t = acc[:,0]
+    acc_a = acc[:,1]
+    input_acc = np.interp(time, acc_t, acc_a, left=0, right=0 )
+
+    # number of nodes
+    nnodes = mesh.num_elements + 1
+    # number of elements
+    nelem = mesh.num_elements
+
+    # assemble 2*2*nelem pile stiffness array
+    Kp = np.zeros((nelem, 2, 2))
+    for i, elem in enumerate(mesh.elements):
+        Kp[i] = elem.consistent_stiffness_matrix
+
+    # assemble sparse Kp COO matrix
+    row = np.zeros(4*nelem, dtype=int)
+    col = np.zeros(4*nelem, dtype=int)
+    for i in range(nelem):
+        row[4*i:4*i+4] = [i, i, i+1, i+1]
+        col[4*i:4*i+4] = [i, i+1, i, i+1]
+    data = Kp.reshape(-1) * 1e3
+    K = coo_matrix((data, (row, col)), shape=(nnodes, nnodes)).tocsr()
+
+    # assemple Mass matrix
+    M = np.zeros((nnodes, nnodes))
+    for i, elem in enumerate(mesh.elements):
+        M[i:i+2, i:i+2] += elem.lumped_mass_matrix
+    # create the mass vector and its inverse for practical use in the solver
+    Mv = M.diagonal()
+    Mv_inv = 1/Mv  
+
+    # initialize the initial vectors for the central difference method
+    u_current = np.zeros(nnodes)  
+    u_next = np.zeros(nnodes)  # initialize the current displacement vector 
+    v_next = np.zeros(nnodes)  # initialize the current velocity vector
+
+    R_ext = np.zeros(nnodes)
+
+    top_disp = []
+    top_vel = []
+    top_acc = []
+
+    for i, _ in enumerate(time):
+
+        # update vectors for the current time step
+        u_prev = u_current.copy()  # store the current displacement vector as the previous one for the next time step
+        u_current = u_next.copy()  # store the current velocity vector as the previous one for the next time step
+        v_current = v_next.copy()  # store the current velocity vector as the previous one for the next time step
+        
+        # we know the acceleraiton input at that time step alerady
+        R_ext[0] = input_acc[i] * Mv[0]  # apply the acceleration at the top node
+
+        # we also know the current displacment vector u, which is the solution from the previous time step
+        R_int = K @ u_current
+
+        # compute the acceleration at the current time step
+        a_current = Mv_inv * (R_ext - R_int)  
+
+        # compute the displacement at the next time step using the central difference method
+        u_next = dt**2 * a_current + 2*u_current - u_prev
+        v_next = (u_next - u_prev) / (2*dt)  
+
+        # record top node disp, vel, acc for post-processing
+        top_disp.append(u_next[0])
+        top_vel.append(v_current[0])
+        top_acc.append(a_current[0])
+
+    return time, np.array(top_disp), np.array(top_vel), np.array(top_acc)

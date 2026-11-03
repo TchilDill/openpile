@@ -99,6 +99,7 @@ class BarElement(Element):
         B = L/6
         return ksoil * np.array([[A, B], [B, A]])
 
+
     def get_soil_damping_matrix(self, csoil) -> np.ndarray:
         """Calculate the soil damping matrix for the bar element.
 
@@ -116,14 +117,6 @@ class BarElement(Element):
         A = L/3
         B = L/6
         return csoil * np.array([[A, B], [B, A]])
-
-
-class BeamElement(Element):
-    """Class representing a beam element in the model.
-
-    Inherits from the Element class and adds properties specific to beam elements, such as moment of inertia.
-    """
-    I: float = Field(..., description="Moment of inertia of the beam element.")
 
 
 def _section_lookup(pile: Pile, elevations: np.ndarray, key: Callable) -> np.ndarray:
@@ -203,8 +196,105 @@ class WeapMesh(BaseModel):
         """
         return 1/safety_factor * min(element.length/np.sqrt(element.E*1e3 / element.rho) for element in self.elements)
 
+    def get_stiffness_array_of_elements(self) -> np.ndarray:
+        """Collect the consistent stiffness matrix of each element in the mesh.
+
+        Every element contributes a 2x2 stiffness matrix relating the axial
+        displacements of its two nodes. The matrices are stacked along a new
+        leading axis, one per element, in the order of ``self.elements``.
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape ``(num_elements, 2, 2)`` containing the
+            consistent stiffness matrix of each element, in mesh order.
+            With ``E`` in kPa, ``A`` in m^2 and length in m, the entries
+            are in kN/m.
+        """
+        nelem = self.num_elements
+
+        # assemble 2*2*nelem pile stiffness array
+        Kp = np.zeros((nelem, 2, 2))
+        for i, elem in enumerate(self.elements):
+            Kp[i] = elem.consistent_stiffness_matrix
+
+        return Kp
+    
+
+    def get_stiffness_matrix(self) -> np.ndarray:
+        """Assemble the global stiffness matrix of the mesh.
+
+        The 2x2 consistent stiffness matrix of each element is scattered
+        into a global sparse matrix: element ``i`` connects global nodes
+        ``i`` and ``i + 1``, so the matrix is symmetric and tridiagonal.
+        Entries are scaled by 1e3 to convert from kN/m to N/m 
+        as it is used in the equation of motion.
+
+        Returns
+        -------
+        np.ndarray
+            Global stiffness matrix of shape ``(num_nodes, num_nodes)``
+            with ``num_nodes = num_elements + 1``, in N/m. Although the
+            annotation is ``np.ndarray``, a ``scipy.sparse.csr_matrix``
+            is actually returned.
+
+        See Also
+        --------
+        get_stiffness_array_of_elements : Per-element stiffness matrices
+            used to build this global matrix.
+        """
+        nnodes = self.num_elements + 1
+        nelem = self.num_elements
+
+        Kp = self.get_stiffness_array_of_elements()
+
+        # assemble sparse Kp COO matrix
+        row = np.zeros(4*nelem, dtype=int)
+        col = np.zeros(4*nelem, dtype=int)
+        for i in range(nelem):
+            row[4*i:4*i+4] = [i, i, i+1, i+1]
+            col[4*i:4*i+4] = [i, i+1, i, i+1]
+        data = Kp.reshape(-1) * 1e3
+
+        return coo_matrix((data, (row, col)), shape=(nnodes, nnodes)).tocsr()
+
+    def get_lumped_mass_diagonal_vector(self) -> np.ndarray:
+        """Assemble the diagonal of the lumped mass matrix of the mesh.
+
+        Each element's 2x2 lumped mass matrix contributes half of the
+        element mass to each of its two nodes. Since the lumped mass
+        matrix is diagonal, only the nodal masses are assembled: element
+        ``i`` adds its mass to global nodes ``i`` and ``i + 1``.
+
+        Returns
+        -------
+        np.ndarray
+            Nodal lumped masses of shape ``(num_nodes,)`` with
+            ``num_nodes = num_elements + 1``, in kg (with ``rho`` in
+            kg/m^3, ``A`` in m^2 and length in m).
+
+        See Also
+        --------
+        BarElement.lumped_mass_matrix : Per-element lumped mass matrix
+            whose diagonal entries are accumulated here.
+        """
+        nnodes = self.num_elements + 1
+
+        # assemble the nodal masses directly, without building the full matrix
+        m_diag = np.zeros(nnodes)
+        for i, elem in enumerate(self.elements):
+            m_diag[i:i+2] += elem.lumped_mass_matrix.diagonal()
+
+        return m_diag
+
+
     @classmethod
-    def from_pile(cls, pile: Pile, max_elem_length: float) -> "WeapMesh":
+    def from_pile(
+        cls, 
+        pile: Pile, 
+        max_elem_length: float,
+        water_elevation: Optional[float] = None,
+    ) -> "WeapMesh":
         """Create a WeapMesh instance from a Pile instance.
 
         Parameters
@@ -213,6 +303,9 @@ class WeapMesh(BaseModel):
             The Pile instance from which to create the WeapMesh.
         max_elem_length : float
             The maximum desired length of each element in the mesh.
+        water_elevation : float, optional
+            The elevation of the water table, if applicable. 
+            This parameter is used to determine the effective unit weight of the pile material in submerged conditions.
 
         Returns
         -------
@@ -243,6 +336,9 @@ class WeapMesh(BaseModel):
         E = _section_lookup(pile, z_mid, lambda s: s.material.young_modulus)
         A = _section_lookup(pile, z_mid, lambda s: s.area)
         rho = _section_lookup(pile, z_mid, lambda s: s.material.unitmass)
+        if water_elevation is not None:
+            # adjust density for submerged elements
+            rho = np.where(z_mid < water_elevation, rho - 1000, rho)
 
         elements = [
             BarElement(z=[zt, zb], E=e, A=ar, rho=r)
@@ -268,7 +364,9 @@ def run_explicit_weap_analysis_with_top_excitation(
         The end time of the analysis.
 
     """
-    
+
+    # gravitational acceleration in m/s²
+    g = -9.81
 
     dt = mesh.get_critical_time_step()
     # number of time steps, 
@@ -287,34 +385,18 @@ def run_explicit_weap_analysis_with_top_excitation(
     # number of elements
     nelem = mesh.num_elements
 
-    # assemble 2*2*nelem pile stiffness array
-    Kp = np.zeros((nelem, 2, 2))
-    for i, elem in enumerate(mesh.elements):
-        Kp[i] = elem.consistent_stiffness_matrix
+    # get the stiffness matrix of the mesh
+    K = mesh.get_stiffness_matrix()
 
-    # assemble sparse Kp COO matrix
-    row = np.zeros(4*nelem, dtype=int)
-    col = np.zeros(4*nelem, dtype=int)
-    for i in range(nelem):
-        row[4*i:4*i+4] = [i, i, i+1, i+1]
-        col[4*i:4*i+4] = [i, i+1, i, i+1]
-    data = Kp.reshape(-1) * 1e3
-    K = coo_matrix((data, (row, col)), shape=(nnodes, nnodes)).tocsr()
-
-    # assemple Mass matrix
-    M = np.zeros((nnodes, nnodes))
-    for i, elem in enumerate(mesh.elements):
-        M[i:i+2, i:i+2] += elem.lumped_mass_matrix
-    # create the mass vector and its inverse for practical use in the solver
-    Mv = M.diagonal()
-    Mv_inv = 1/Mv  
+    # get the lumped mass diagonal vector and its inverse for practical use in the solver
+    Mv = mesh.get_lumped_mass_diagonal_vector()
+    Mv_inv = 1/Mv 
 
     # initialize the initial vectors for the central difference method
     u_current = np.zeros(nnodes)  
     u_next = np.zeros(nnodes)  # initialize the current displacement vector 
     v_next = np.zeros(nnodes)  # initialize the current velocity vector
 
-    R_ext = np.zeros(nnodes)
 
     top_disp = []
     top_vel = []
@@ -327,9 +409,12 @@ def run_explicit_weap_analysis_with_top_excitation(
         u_current = u_next.copy()  # store the current velocity vector as the previous one for the next time step
         v_current = v_next.copy()  # store the current velocity vector as the previous one for the next time step
         
-        # we know the acceleraiton input at that time step alerady
-        R_ext[0] = input_acc[i] * Mv[0]  # apply the acceleration at the top node
+        # we know the acceleration input at that time step already
+        R_ext = np.zeros(nnodes)
+        #TODO include the effect of gravity with R_ext += Mv * g  # apply the gravity at all nodes
 
+        # include the effect of the input acceleration at the top node
+        R_ext[0] = input_acc[i] * Mv[0]  # apply the acceleration at the top node
         # we also know the current displacment vector u, which is the solution from the previous time step
         R_int = K @ u_current
 

@@ -13,11 +13,78 @@ from typing_extensions import Literal, Annotated, Optional
 from pydantic import (
     BaseModel,
     Field,
+    computed_field,
 )
 
 from scipy.sparse import coo_matrix
 
 #to be later pushed into factory.py
+
+class Splice:
+    """
+    Splice/slack element per the published GRLWEAP model description
+    (GRLWEAP 2010 Background Report sec. 3.6; Rausche et al. 2004;
+    WEAP-family bilinear COR: WEAP86 manual / Holloway 1976).
+
+    k       : nominal stiffness EA/ell
+    delta_r : compressive slack (round-out): distance over which stiffness
+              ramps linearly to the full nominal value
+    delta_s : tension slack: opening before any tension is transmitted
+              (large value = joint never takes tension)
+    cor     : coefficient of restitution (0 < cor <= 1)
+
+    Convention: compression NEGATIVE. w = relative displacement.
+
+    LOADING (never seated):  F = -k*s^2/(2*dr)  for -dr < s <= 0
+                             F =  k*(s + dr/2)  for s <= -dr      (C1-continuous)
+    LOADING (seated):        F = k*s            (faces mated, linear from anchor)
+    UNLOADING:               WEAP rebound line through (w_rev, F_rev),
+                             slope k/cor^2, until force reaches zero.
+                             That point is a PERMANENT SET: anchor dp moves
+                             there, joint is 'seated', reload starts smoothly.
+    TENSION:                 zero within slack; F = k*(w - ds) beyond it.
+    """
+    def __init__(self, k, delta_r, delta_s, cor):
+        self.k, self.dr, self.ds, self.cor = k, delta_r, delta_s, cor
+        self.k_unload = k / (cor * cor)     # WEAP bilinear rebound stiffness
+        self.dp    = 0.0     # anchor / permanent set (<= 0)
+        self.w_rev = 0.0     # last load-reversal position
+        self.F_rev = 0.0
+        self.loading = True
+        self.seated = False  # True after the first permanent set
+
+    def _F_load(self, w):
+        s = w - self.dp                        # distance from current anchor
+        if self.seated:
+            return self.k * s                  # faces mated: linear from anchor
+        if s > -self.dr:                       # first seating: stiffness ramps
+            return -self.k * s * s / (2.0 * self.dr)
+        return self.k * (s + 0.5 * self.dr)    # fully seated (C1 at s = -dr)
+
+    def force(self, w):
+        if self.loading:
+            if w <= self.w_rev:                # compressing: loading branch
+                F = self._F_load(w)            # evaluate ONCE (state may flip)
+                self.w_rev, self.F_rev = w, F
+                return F
+            self.loading = False               # reversal -> switch branch
+        if w <= self.w_rev:                    # re-compressing past reversal:
+            self.loading = True                # back to loading (Masing rule)
+            return self.force(w)
+        F = self.F_rev + self.k_unload * (w - self.w_rev)   # rebound line
+        if F >= 0.0:                           # rebound force exhausted:
+            self.dp = self.w_rev - self.F_rev / self.k_unload  # permanent set
+            self.w_rev, self.F_rev = self.dp, 0.0
+            self.loading = True
+            self.seated = True                 # round-out consumed for good
+            return self._tension(w)
+        return F
+
+    def _tension(self, w):
+        if w > self.ds:
+            return self.k * (w - self.ds)      # tension past the slack
+        return 0.0                              # open: transmits nothing
+
 class Element(BaseModel):
     """Base class for all elements in the model. They always have two nodes.
 
@@ -35,12 +102,16 @@ class Element(BaseModel):
         return m.sqrt((self.x[1] - self.x[0]) ** 2 + (self.y[1] - self.y[0]) ** 2 + (self.z[1] - self.z[0]) ** 2)
 
 
-class BarElement(Element):
-    """Class representing a bar element in the model.
+class WeapElement(Element):
+    """Class representing a bar element in the weap model.
 
     Inherits from the Element class and adds properties specific to bar elements, such as cross-sectional area.
     """
     A: float = Field(..., description="Cross-sectional area of the bar element.")
+    parent: Literal["Pile", "Helmet", "Hammer"] = Field(..., description="Reference to the parent WeapMesh object.")
+    element_no: int = Field(..., description="Element number in the mesh.")
+    nodes_no: list[int] = Field(max_length=2, min_length=2, description="List of node numbers for the element.")
+
 
     @property
     def consistent_stiffness_matrix(self) -> np.ndarray:
@@ -148,7 +219,8 @@ class WeapMesh(BaseModel):
 
     Contains a list of elements and provides methods to manipulate and analyze the mesh.
     """
-    elements: List[Element] = Field(..., description="List of elements in the mesh.")
+    pile: Pile
+    max_elem_length: float
 
     @property
     def num_elements(self) -> int:
@@ -161,15 +233,6 @@ class WeapMesh(BaseModel):
         """
         return len(self.elements)
 
-    def add_element(self, element: Element) -> None:
-        """Add an element to the mesh.
-
-        Parameters
-        ----------
-        element : Element
-            The element to be added to the mesh.
-        """
-        self.elements.append(element)
 
     def get_total_length(self) -> float:
         """Calculate the total length of all elements in the mesh.
@@ -287,44 +350,23 @@ class WeapMesh(BaseModel):
 
         return m_diag
 
-
-    @classmethod
-    def from_pile(
-        cls, 
-        pile: Pile, 
-        max_elem_length: float,
-        water_elevation: Optional[float] = None,
-    ) -> "WeapMesh":
-        """Create a WeapMesh instance from a Pile instance.
-
-        Parameters
-        ----------
-        pile : Pile
-            The Pile instance from which to create the WeapMesh.
-        max_elem_length : float
-            The maximum desired length of each element in the mesh.
-        water_elevation : float, optional
-            The elevation of the water table, if applicable. 
-            This parameter is used to determine the effective unit weight of the pile material in submerged conditions.
-
-        Returns
-        -------
-        WeapMesh
-            A mesh of bar elements discretizing the pile.
-        """
+    @computed_field 
+    @property
+    def elements(self) -> List[Element]:
+        """List of elements in the mesh"""
 
         # node elevations: pile top/bottom and every section boundary are nodes,
         # and each segment between consecutive boundaries is subdivided into
         # equally sized elements, so no element crosses a section boundary
         z_bounds = np.unique(
             np.concatenate(
-                [[pile.top_elevation, pile.bottom_elevation]]
-                + [[s.top, s.bottom] for s in pile.sections]
+                [[self.pile.top_elevation, self.pile.bottom_elevation]]
+                + [[s.top, s.bottom] for s in self.pile.sections]
             )
         )[::-1]  # descending, from pile top to pile bottom
         z_nodes = [z_bounds[0]]
         for zt, zb in zip(z_bounds[:-1], z_bounds[1:]):
-            n_seg = m.ceil((zt - zb) / max_elem_length)
+            n_seg = m.ceil((zt - zb) / self.max_elem_length)
             z_nodes.extend(zt - (zt - zb) / n_seg * np.arange(1, n_seg + 1))
         z_nodes = np.array(z_nodes)
         z_top, z_bot = z_nodes[:-1], z_nodes[1:]
@@ -333,24 +375,22 @@ class WeapMesh(BaseModel):
         # boundaries are nodes, each element lies fully inside one section
         # and gets that section's exact properties (no smearing at boundaries)
         z_mid = 0.5 * (z_top + z_bot)
-        E = _section_lookup(pile, z_mid, lambda s: s.material.young_modulus)
-        A = _section_lookup(pile, z_mid, lambda s: s.area)
-        rho = _section_lookup(pile, z_mid, lambda s: s.material.unitmass)
-        if water_elevation is not None:
-            # adjust density for submerged elements
-            rho = np.where(z_mid < water_elevation, rho - 1000, rho)
+        E = _section_lookup(self.pile, z_mid, lambda s: s.material.young_modulus)
+        A = _section_lookup(self.pile, z_mid, lambda s: s.area)
+        rho = _section_lookup(self.pile, z_mid, lambda s: s.material.unitmass)
 
-        elements = [
-            BarElement(z=[zt, zb], E=e, A=ar, rho=r)
-            for zt, zb, e, ar, r in zip(z_top, z_bot, E, A, rho)
+        return [
+            WeapElement(z=[zt, zb], E=e, A=ar, rho=r, parent="Pile", element_no=i, nodes_no=[i, i+1])
+            for zt, zb, e, ar, r, i in zip(z_top, z_bot, E, A, rho, range(len(z_top)))
         ]
-        return cls(elements=elements)
 
 
 def run_explicit_weap_analysis_with_top_excitation(
     mesh: WeapMesh,
     acc: np.ndarray,
     t_end: float,
+    g_pile: float = 9.81,
+    g_hammer: float = 9.81
 ):
     """Run an explicit WEAP analysis with a given excitation (acceleration time series).
 
@@ -364,9 +404,6 @@ def run_explicit_weap_analysis_with_top_excitation(
         The end time of the analysis.
 
     """
-
-    # gravitational acceleration in m/s²
-    g = -9.81
 
     dt = mesh.get_critical_time_step()
     # number of time steps, 

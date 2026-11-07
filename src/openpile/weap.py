@@ -14,9 +14,10 @@ from pydantic import (
     BaseModel,
     Field,
     computed_field,
+    model_validator
 )
 
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_array, csr_array
 
 #to be later pushed into factory.py
 
@@ -84,6 +85,28 @@ class Splice:
         if w > self.ds:
             return self.k * (w - self.ds)      # tension past the slack
         return 0.0                              # open: transmits nothing
+
+class Interface(BaseModel):
+    """A splice connection between two mesh nodes (hammer/hammer, helmet/pile, pile splices)."""
+    name: str
+    upper_node: int                # mesh node number of the upper body
+    lower_node: int                # mesh node number of the lower body
+    splice: Splice                 # direct annotation: Splice defined above
+
+    @model_validator(mode="after")
+    def _check_nodes(self) -> "Interface":
+        if self.upper_node == self.lower_node:
+            raise ValueError("upper_node and lower_node must differ")
+        return self
+
+    def reset(self) -> None:
+        self.splice.reset()
+
+    def dt_limit(self, m_upper: float, m_lower: float) -> float:
+        """Courant limit of the stiffest splice branch against nodal masses [s]."""
+        return 2.0 / np.sqrt(
+            self.splice.k_unload * (1.0 / m_upper + 1.0 / m_lower)
+        )
 
 class Element(BaseModel):
     """Base class for all elements in the model. They always have two nodes.
@@ -284,7 +307,7 @@ class WeapMesh(BaseModel):
         return Kp
     
 
-    def get_stiffness_matrix(self) -> np.ndarray:
+    def get_stiffness_matrix(self) -> csr_array:
         """Assemble the global stiffness matrix of the mesh.
 
         The 2x2 consistent stiffness matrix of each element is scattered
@@ -319,7 +342,7 @@ class WeapMesh(BaseModel):
             col[4*i:4*i+4] = [i, i+1, i, i+1]
         data = Kp.reshape(-1) * 1e3
 
-        return coo_matrix((data, (row, col)), shape=(nnodes, nnodes)).tocsr()
+        return coo_array((data, (row, col)), shape=(nnodes, nnodes)).tocsr()
 
     def get_lumped_mass_diagonal_vector(self) -> np.ndarray:
         """Assemble the diagonal of the lumped mass matrix of the mesh.
@@ -427,7 +450,15 @@ def run_explicit_weap_analysis_with_top_excitation(
 
     # get the lumped mass diagonal vector and its inverse for practical use in the solver
     Mv = mesh.get_lumped_mass_diagonal_vector()
+    # no floating massless nodes: a zero-mass free DOF is ill-posed
+    if np.any(Mv <= 0.0):
+        bad = np.flatnonzero(Mv <= 0.0)
+        raise ValueError(
+            f"Zero lumped mass at DOFs {bad.tolist()}: massless node with no "
+            f"massive neighbour element. Check ram/helmet element rho and A."
+        )
     Mv_inv = 1/Mv 
+
 
     # initialize the initial vectors for the central difference method
     u_current = np.zeros(nnodes)  
@@ -463,7 +494,7 @@ def run_explicit_weap_analysis_with_top_excitation(
         v_next = (u_next - u_prev) / (2*dt)  
 
         # record top node disp, vel, acc for post-processing
-        top_disp.append(u_next[0])
+        top_disp.append(u_current[0])
         top_vel.append(v_current[0])
         top_acc.append(a_current[0])
 
